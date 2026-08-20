@@ -461,12 +461,12 @@ export function AnimatedCounter({ end, duration = 2000, suffix = '' }: { end: nu
 export function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-slate-200">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between py-4 text-left">
-        <span className="font-semibold text-[var(--navy)]">{question}</span>
-        <ChevronDown className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} size={20} />
+    <div className="border-b border-slate-200 last:border-b-0">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between py-5 px-5 text-left gap-4">
+        <span className="font-semibold text-[var(--navy)] text-base sm:text-lg">{question}</span>
+        <ChevronDown className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} size={20} />
       </button>
-      {isOpen && <p className="pb-4 text-[var(--charcoal)] leading-relaxed text-sm sm:text-base">{answer}</p>}
+      {isOpen && <p className="px-5 pb-5 text-[var(--charcoal)] leading-relaxed text-sm sm:text-base">{answer}</p>}
     </div>
   );
 }

@@ -116,7 +116,7 @@ function JobSeekerInfo() {
           <h2 className="text-3xl font-extrabold text-center mb-10 tracking-tight text-[var(--navy)]" style={{ fontFamily: 'var(--font-display)' }}>
             Frequently Asked Questions
           </h2>
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
+          <div className="bg-white rounded-2xl border border-slate-200">
             <FAQItem question="How do I apply for a job?" answer="Simply register on our platform by filling out the profile form. Our team will review your profile and match you with suitable job openings. You don't need to apply for individual jobs — we do the matching for you." />
             <FAQItem question="Do I need a resume to register?" answer="No, a resume is optional. You can fill in all your details directly in the registration form. However, if you have a resume, uploading it can speed up the process." />
             <FAQItem question="Is there any fee for registration?" answer="No, registration is completely free for job seekers. There are no charges at any stage of the process." />

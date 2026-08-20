@@ -196,7 +196,7 @@ function Contact() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight mb-4" style={{ fontFamily: 'var(--font-display)' }}>Common Questions</h2>
             <p className="text-base text-[var(--charcoal)]">Everything you need to know about getting started</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
+          <div className="bg-white rounded-2xl border border-slate-200">
             <FAQItem question="How do I register as a job seeker?" answer="Click the 'I'm a Job Seeker' button on the homepage, then fill out the registration form. It takes less than 5 minutes and is completely free." />
             <FAQItem question="How do I post a job as an employer?" answer="Click 'I'm an Employer' on the homepage, then fill out your company details and job requirements. Our team will review and start matching candidates." />
             <FAQItem question="What areas do you serve?" answer="We serve all states across India, with a focus on connecting rural talent with opportunities in both urban and rural areas." />
