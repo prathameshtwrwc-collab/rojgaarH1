@@ -162,9 +162,6 @@ export default function Jobs() {
         
         {/* Header Title Section */}
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[rgba(241,90,36,0.1)] text-[var(--orange)] rounded-full text-xs font-semibold mb-3 border border-[rgba(241,90,36,0.2)]">
-            <Sparkles size={14} /> Verified Jobs & Trusted Employers
-          </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--navy)] tracking-tight">
             Find Your Next Opportunity
           </h1>
