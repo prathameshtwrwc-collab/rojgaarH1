@@ -1,0 +1,207 @@
+- generic [ref=f11e3]:
+  - banner [ref=f11e4]:
+    - generic [ref=f11e6]:
+      - link "Rojgaar Hai Connecting Talent. Creating Futures." [ref=f11e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f11e13]:
+          - generic [ref=f11e14]: Rojgaar Hai
+          - generic [ref=f11e15]: Connecting Talent. Creating Futures.
+      - navigation "Primary" [ref=f11e16]:
+        - link "Home" [ref=f11e17] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f11e18] [cursor=pointer]:
+          - /url: /jobs
+        - link "For Job Seekers" [ref=f11e19] [cursor=pointer]:
+          - /url: /job-seeker-info
+        - link "For Employers" [ref=f11e20] [cursor=pointer]:
+          - /url: /employer-info
+        - link "Contact" [ref=f11e21] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=f11e22]:
+        - link "Get Started" [ref=f11e23] [cursor=pointer]:
+          - /url: /register/job-seeker
+        - button "Portals" [ref=f11e25]
+  - main [ref=f11e28]:
+    - generic [ref=f11e29]:
+      - generic [ref=f11e32]:
+        - generic [ref=f11e33]:
+          - generic [ref=f11e34]: Enterprise Workforce Recruitment
+          - heading "Hire Verified Workers Faster & Affordably" [level=1] [ref=f11e39]
+          - paragraph [ref=f11e40]: RojgaarHai connects business owners, HR managers, factory heads, contractors, and staffing agencies with pre-verified, skilled candidates across India. Post your job requirement in 3 minutes.
+          - generic [ref=f11e41]:
+            - link [ref=f11e42] [cursor=pointer]:
+              - /url: /register/employer
+              - button "Post a Job" [ref=f11e43]
+            - link "Learn More" [ref=f11e46] [cursor=pointer]:
+              - /url: /employer-info#why-choose-us
+          - generic [ref=f11e50]:
+            - generic [ref=f11e51]: Aadhaar & Skill Verified
+            - generic [ref=f11e55]: 3-5 Days Avg Turnaround
+            - generic [ref=f11e58]: Zero Upfront Fee
+        - generic [ref=f11e63]:
+          - img "RojgaarHai Employer Recruitment Portal" [ref=f11e64]
+          - generic [ref=f11e73]:
+            - paragraph [ref=f11e74]: Active Talent Pool
+            - paragraph [ref=f11e75]: 1,200+ Verified
+          - generic [ref=f11e83]:
+            - paragraph [ref=f11e84]: Verified Companies
+            - paragraph [ref=f11e85]: 500+ Hiring Employers
+      - generic [ref=f11e87]:
+        - generic [ref=f11e88]:
+          - generic [ref=f11e89]: Built For Modern Employers
+          - heading "Why Choose RojgaarHai for Your Hiring Needs?" [level=2] [ref=f11e93]
+          - paragraph [ref=f11e94]: We streamline the entire recruitment lifecycle so you get pre-vetted candidates without agency markups.
+        - generic [ref=f11e95]:
+          - generic [ref=f11e96]:
+            - heading "Verified Candidates" [level=3] [ref=f11e101]
+            - paragraph [ref=f11e102]: Every candidate profile is Aadhaar & skill verified by our team. No fake resumes or invalid contacts.
+          - generic [ref=f11e103]:
+            - heading "Faster Hiring" [level=3] [ref=f11e107]
+            - paragraph [ref=f11e108]: Reduce your time-to-hire from weeks to 3–5 days with automated matching & agent screening.
+          - generic [ref=f11e109]:
+            - heading "Skilled Workforce" [level=3] [ref=f11e114]
+            - paragraph [ref=f11e115]: Access ITI, Diploma, and certified workforce across manufacturing, construction, nursing, and IT.
+          - generic [ref=f11e116]:
+            - heading "Easy Job Posting" [level=3] [ref=f11e121]
+            - paragraph [ref=f11e122]: Post your job opening in under 3 minutes with clear salary, skill, and location requirements.
+          - generic [ref=f11e123]:
+            - heading "Centralized Applicant Tracking" [level=3] [ref=f11e130]
+            - paragraph [ref=f11e131]: Review applicants, download resumes, shortlist, and schedule interviews from a built-in ATS dashboard.
+          - generic [ref=f11e132]:
+            - heading "Dedicated Support" [level=3] [ref=f11e136]
+            - paragraph [ref=f11e137]: Every job posting is assigned a dedicated recruitment agent to coordinate sourcing and logistics.
+      - generic [ref=f11e139]:
+        - generic [ref=f11e140]:
+          - heading "Simple 3-Step Hiring Process" [level=2] [ref=f11e141]
+          - paragraph [ref=f11e142]: Start receiving matched candidate profiles in as little as 48 hours.
+        - generic [ref=f11e143]:
+          - generic [ref=f11e144]:
+            - generic [ref=f11e150]: STEP 01
+            - heading "Create Employer Account" [level=3] [ref=f11e151]
+            - paragraph [ref=f11e152]: Sign up with basic company details, contact person info, and location. Takes less than 2 minutes.
+          - generic [ref=f11e153]:
+            - generic [ref=f11e158]: STEP 02
+            - heading "Post Your Job Requirement" [level=3] [ref=f11e159]
+            - paragraph [ref=f11e160]: Specify job title, open vacancies, required skills, salary range, shift timings, and perks.
+          - generic [ref=f11e161]:
+            - generic [ref=f11e166]: STEP 03
+            - heading "Receive Verified Candidates" [level=3] [ref=f11e167]
+            - paragraph [ref=f11e168]: Get pre-screened candidate matches, conduct interviews, and hire the best workers with full support.
+        - link [ref=f11e170] [cursor=pointer]:
+          - /url: /register/employer
+          - button "Get Started Now" [ref=f11e171]
+      - generic [ref=f11e175]:
+        - generic [ref=f11e176]:
+          - heading "Key Advantages for Your Organization" [level=2] [ref=f11e177]
+          - paragraph [ref=f11e178]: Designed to optimize workforce planning for plants, sites, hospitals, and offices.
+        - generic [ref=f11e179]:
+          - generic [ref=f11e180]:
+            - heading "Hire 3x Faster" [level=4] [ref=f11e184]
+            - paragraph [ref=f11e185]: Pre-matched candidates delivered to your dashboard within 48 hours.
+          - generic [ref=f11e186]:
+            - heading "Zero Upfront Fees" [level=4] [ref=f11e191]
+            - paragraph [ref=f11e192]: Posting jobs is completely free. Pay commission only on successful placements.
+          - generic [ref=f11e193]:
+            - heading "Pre-Screened Workers" [level=4] [ref=f11e198]
+            - paragraph [ref=f11e199]: Every profile is pre-verified for technical skills, experience, and ID.
+          - generic [ref=f11e200]:
+            - heading "Bulk Hiring Capability" [level=4] [ref=f11e207]
+            - paragraph [ref=f11e208]: Need 5 or 200 workers? Our nationwide talent pool handles bulk plant hiring.
+          - generic [ref=f11e209]:
+            - heading "Save Time & Recruitment Cost" [level=4] [ref=f11e214]
+            - paragraph [ref=f11e215]: Eliminate middleman agency costs and reduce interviewing overheads.
+          - generic [ref=f11e216]:
+            - heading "30-Day Guarantee" [level=4] [ref=f11e221]
+            - paragraph [ref=f11e222]: Free candidate replacement guarantee if a placed worker leaves within 30 days.
+      - generic [ref=f11e224]:
+        - generic [ref=f11e225]:
+          - generic [ref=f11e226]: Wide Sector Coverage
+          - heading "Industries We Serve Across India" [level=2] [ref=f11e229]
+          - paragraph [ref=f11e230]: We recruit verified workforce across major commercial and industrial sectors.
+        - generic [ref=f11e231]:
+          - generic [ref=f11e232]:
+            - heading "Manufacturing & Plants" [level=4] [ref=f11e236]
+            - paragraph [ref=f11e237]: CNC Operators, Machinists, Assembly Staff, Fitters
+          - generic [ref=f11e238]:
+            - heading "Construction & Civil" [level=4] [ref=f11e245]
+            - paragraph [ref=f11e246]: Site Supervisors, Welders, Electricians, Surveyors
+          - generic [ref=f11e247]:
+            - heading "Logistics & Warehousing" [level=4] [ref=f11e254]
+            - paragraph [ref=f11e255]: Delivery Executives, Drivers, Loaders, Warehouse Leads
+          - generic [ref=f11e256]:
+            - heading "Healthcare & Pharma" [level=4] [ref=f11e262]
+            - paragraph [ref=f11e263]: Staff Nurses, ANM/GNM, Lab Techs, Pharma Technicians
+          - generic [ref=f11e264]:
+            - heading "Agriculture & Agri-Tech" [level=4] [ref=f11e275]
+            - paragraph [ref=f11e276]: Field Supervisors, Agri Officers, Estate Managers
+          - generic [ref=f11e277]:
+            - heading "Facility Management" [level=4] [ref=f11e283]
+            - paragraph [ref=f11e284]: Maintenance Technicians, Security Guards, Housekeeping
+          - generic [ref=f11e285]:
+            - heading "Retail & Commercial" [level=4] [ref=f11e292]
+            - paragraph [ref=f11e293]: Store Executives, Cashiers, Billing Staff, Promoters
+          - generic [ref=f11e294]:
+            - heading "Office & Administration" [level=4] [ref=f11e299]
+            - paragraph [ref=f11e300]: Data Entry Operators, Accountants, HR Executives, Assistants
+      - generic [ref=f11e302]:
+        - generic [ref=f11e303]:
+          - heading "Trusted by HR Directors & Business Leaders" [level=2] [ref=f11e304]
+          - paragraph [ref=f11e305]: See how companies scale their workforce with RojgaarHai.
+        - generic [ref=f11e306]:
+          - generic [ref=f11e307]:
+            - paragraph [ref=f11e320]: "\"We needed 15 CNC machine operators for our plant in Pune on short notice. RojgaarHai delivered pre-screened candidates within 4 days. All 15 were verified and ready to join.\""
+            - generic [ref=f11e321]:
+              - generic [ref=f11e322]: SM
+              - generic [ref=f11e323]:
+                - heading "Sanjay Mehta" [level=5] [ref=f11e324]
+                - paragraph [ref=f11e325]: HR Manager • Bharat Manufacturing Co.
+          - generic [ref=f11e326]:
+            - paragraph [ref=f11e339]: "\"Finding qualified B.Sc Nursing staff for our Hyderabad hospital was difficult until we used RojgaarHai. The candidates were well-trained and pre-screened.\""
+            - generic [ref=f11e340]:
+              - generic [ref=f11e341]: KR
+              - generic [ref=f11e342]:
+                - heading "Dr. K. Rao" [level=5] [ref=f11e343]
+                - paragraph [ref=f11e344]: Medical Director • Metro Hospital Group
+          - generic [ref=f11e345]:
+            - paragraph [ref=f11e358]: "\"RojgaarHai connected us with field supervisors and agriculture officers across Nashik. Zero upfront fees and fast candidate turnaround made a huge difference.\""
+            - generic [ref=f11e359]:
+              - generic [ref=f11e360]: AD
+              - generic [ref=f11e361]:
+                - heading "Anita Deshmukh" [level=5] [ref=f11e362]
+                - paragraph [ref=f11e363]: Director • Greenfield Agro Pvt Ltd
+          - generic [ref=f11e364]:
+            - paragraph [ref=f11e377]: "\"Our steel works plant in Manesar regularly hires welders and electricians. RojgaarHai handles sourcing, verification, and logistics seamlessly.\""
+            - generic [ref=f11e378]:
+              - generic [ref=f11e379]: KS
+              - generic [ref=f11e380]:
+                - heading "Kapil Sharma" [level=5] [ref=f11e381]
+                - paragraph [ref=f11e382]: Plant Head • Northern Steel Works
+      - generic [ref=f11e384]:
+        - generic [ref=f11e385]: Zero Upfront Registration Cost
+        - heading "Start Hiring Verified Talent Today" [level=2] [ref=f11e386]
+        - paragraph [ref=f11e387]: Post your vacancy requirement in 3 minutes and access pre-screened candidate matches across India.
+        - link [ref=f11e389] [cursor=pointer]:
+          - /url: /register/employer
+          - button "Post Your First Job" [ref=f11e390]
+  - contentinfo [ref=f11e393]:
+    - generic [ref=f11e395]:
+      - generic [ref=f11e396]:
+        - link "Rojgaar Hai" [ref=f11e397] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=f11e404]: Connecting skilled talent with opportunities across India.
+      - navigation "Footer navigation" [ref=f11e405]:
+        - link "Home" [ref=f11e406] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f11e407] [cursor=pointer]:
+          - /url: /jobs
+        - link "Contact" [ref=f11e408] [cursor=pointer]:
+          - /url: /contact
+        - link "About Us" [ref=f11e409] [cursor=pointer]:
+          - /url: /job-seeker-info
+      - generic [ref=f11e410]:
+        - link "LinkedIn" [ref=f11e411] [cursor=pointer]:
+          - /url: "#linkedin"
+        - link "Twitter" [ref=f11e414] [cursor=pointer]:
+          - /url: "#twitter"
+        - link "Instagram" [ref=f11e417] [cursor=pointer]:
+          - /url: "#instagram"

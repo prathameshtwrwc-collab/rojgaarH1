@@ -1,0 +1,52 @@
+- generic [ref=f7e3]:
+  - banner [ref=f7e4]:
+    - generic [ref=f7e6]:
+      - link "Rojgaar Hai Connecting Talent. Creating Futures." [ref=f7e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f7e13]:
+          - generic [ref=f7e14]: Rojgaar Hai
+          - generic [ref=f7e15]: Connecting Talent. Creating Futures.
+      - navigation "Primary" [ref=f7e16]:
+        - link "Home" [ref=f7e17] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f7e18] [cursor=pointer]:
+          - /url: /jobs
+        - link "For Job Seekers" [ref=f7e19] [cursor=pointer]:
+          - /url: /job-seeker-info
+        - link "For Employers" [ref=f7e20] [cursor=pointer]:
+          - /url: /employer-info
+        - link "Contact" [ref=f7e21] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=f7e22]:
+        - link "Get Started" [ref=f7e23] [cursor=pointer]:
+          - /url: /register/job-seeker
+        - button "Portals" [ref=f7e25]
+  - main [ref=f7e28]:
+    - generic [ref=f7e30]:
+      - heading "Job Opening Not Found" [level=2] [ref=f7e33]
+      - paragraph [ref=f7e34]: The job listing you are looking for may have been closed or removed.
+      - link [ref=f7e35] [cursor=pointer]:
+        - /url: /jobs
+        - button "Back to All Jobs" [ref=f7e36]
+  - contentinfo [ref=f7e37]:
+    - generic [ref=f7e39]:
+      - generic [ref=f7e40]:
+        - link "Rojgaar Hai" [ref=f7e41] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=f7e48]: Connecting skilled talent with opportunities across India.
+      - navigation "Footer navigation" [ref=f7e49]:
+        - link "Home" [ref=f7e50] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f7e51] [cursor=pointer]:
+          - /url: /jobs
+        - link "Contact" [ref=f7e52] [cursor=pointer]:
+          - /url: /contact
+        - link "About Us" [ref=f7e53] [cursor=pointer]:
+          - /url: /job-seeker-info
+      - generic [ref=f7e54]:
+        - link "LinkedIn" [ref=f7e55] [cursor=pointer]:
+          - /url: "#linkedin"
+        - link "Twitter" [ref=f7e58] [cursor=pointer]:
+          - /url: "#twitter"
+        - link "Instagram" [ref=f7e61] [cursor=pointer]:
+          - /url: "#instagram"

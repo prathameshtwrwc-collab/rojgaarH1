@@ -1,0 +1,55 @@
+- generic [ref=f14e3]:
+  - generic [ref=f14e6]:
+    - link "Back to Home" [ref=f14e7] [cursor=pointer]:
+      - /url: /
+    - heading "Create Your Candidate Profile" [level=1] [ref=f14e11]
+  - generic [ref=f14e12]:
+    - generic [ref=f14e13]:
+      - generic [ref=f14e15]:
+        - generic [ref=f14e16]: Step 1 of 3
+        - generic [ref=f14e17]: 33%
+      - generic [ref=f14e21]:
+        - generic [ref=f14e22]: "1"
+        - generic [ref=f14e25]: "2"
+        - generic [ref=f14e28]: "3"
+    - generic [ref=f14e30]:
+      - generic [ref=f14e31]:
+        - generic [ref=f14e37]:
+          - heading "Personal Information" [level=2] [ref=f14e38]
+          - paragraph [ref=f14e39]: Tell us about yourself
+        - generic [ref=f14e40]:
+          - generic [ref=f14e41]:
+            - generic [ref=f14e42]: First Name*
+            - textbox "First Name*" [ref=f14e43]:
+              - /placeholder: e.g. Rajesh
+          - generic [ref=f14e44]:
+            - generic [ref=f14e45]: Last Name*
+            - textbox "Last Name*" [ref=f14e46]:
+              - /placeholder: e.g. Kumar
+        - generic [ref=f14e47]:
+          - generic [ref=f14e48]:
+            - generic [ref=f14e49]: Phone Number*
+            - textbox "Phone Number*" [ref=f14e50]:
+              - /placeholder: +91-9876543210
+            - paragraph [ref=f14e51]: Include country code
+          - generic [ref=f14e52]:
+            - generic [ref=f14e53]: Email Address*
+            - textbox "Email Address*" [ref=f14e54]:
+              - /placeholder: you@email.com
+        - generic [ref=f14e55]:
+          - generic [ref=f14e56]:
+            - generic [ref=f14e57]: Date of Birth*
+            - textbox "Date of Birth*" [ref=f14e58]
+          - generic [ref=f14e59]:
+            - generic [ref=f14e60]: Gender
+            - combobox "Gender" [ref=f14e62]:
+              - option "Select Gender (Optional)" [selected]
+              - option "Male"
+              - option "Female"
+              - option "Other"
+              - option "Prefer not to say"
+      - button "Next" [ref=f14e64] [cursor=pointer]
+    - generic [ref=f14e67]:
+      - generic [ref=f14e68]: 🔒 Your data is secure
+      - generic [ref=f14e69]: ✓ Free registration
+      - generic [ref=f14e70]: 📧 Email confirmation

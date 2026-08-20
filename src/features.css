@@ -1,0 +1,154 @@
+/* ============================================
+   SECTION 05: FEATURES
+   ============================================ */
+.features-section {
+  background-color: #FAF8F4;
+  position: relative;
+  overflow: hidden;
+  background-image: url('/assets/section5/section5bg.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.features-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.features-inner {
+  position: relative;
+  z-index: 1;
+  min-height: 580px;
+  display: flex;
+  align-items: center;
+  gap: 56px;
+  padding: 72px 0;
+}
+
+.features-heading {
+  flex: 0 0 38%;
+  max-width: 400px;
+}
+
+.features-heading h2 {
+  font-family: var(--font-display);
+  font-size: clamp(46px, 4.8vw, 60px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: #101A36;
+}
+
+.features-heading h2 span {
+  display: block;
+}
+
+.features-heading .accent-purple {
+  color: #7655D9;
+  font-style: italic;
+  font-weight: 800;
+}
+
+.features-grid {
+  flex: 1;
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.feature-item {
+  flex: 1;
+  max-width: 190px;
+}
+
+.feature-tile {
+  width: 86px;
+  height: 86px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-item:hover .feature-tile {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(16, 26, 54, 0.08);
+}
+
+.tile-lavender { background-color: #DDD6F5; }
+.tile-mint     { background-color: #D6EAD9; }
+.tile-peach    { background-color: #F8DEC5; }
+.tile-bluegrey { background-color: #DCE6F2; }
+
+.feature-tile svg {
+  width: 32px;
+  height: 32px;
+  stroke: #101A36;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feature-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #101A36;
+  margin-bottom: 5px;
+  letter-spacing: -0.01em;
+}
+
+.feature-desc {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #3D4452;
+  line-height: 1.45;
+  max-width: 160px;
+}
+
+@media (max-width: 860px) {
+  .features-inner {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 56px 0;
+  }
+
+  .features-heading {
+    flex: none;
+    max-width: 420px;
+  }
+
+  .features-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 24px;
+  }
+
+  .feature-item {
+    max-width: 220px;
+  }
+
+  .feature-tile {
+    width: 78px;
+    height: 78px;
+  }
+}
+
+@media (max-width: 480px) {
+  .feature-tile {
+    width: 72px;
+    height: 72px;
+  }
+
+  .feature-tile svg {
+    width: 28px;
+    height: 28px;
+  }
+}

@@ -1,0 +1,159 @@
+- generic [ref=e245]:
+  - banner [ref=e246]:
+    - generic [ref=e248]:
+      - link "ROJGAARHAI Connecting Talent" [ref=e249] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e254]:
+          - generic [ref=e255]: ROJGAARHAI
+          - generic [ref=e256]: Connecting Talent
+      - navigation [ref=e257]:
+        - link "Home" [ref=e258] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=e259] [cursor=pointer]:
+          - /url: /jobs
+        - link "For Job Seekers" [ref=e260] [cursor=pointer]:
+          - /url: /job-seeker-info
+        - link "For Employers" [ref=e261] [cursor=pointer]:
+          - /url: /employer-info
+        - link "Contact" [ref=e262] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=e263]:
+        - link "I'm a Job Seeker" [ref=e264] [cursor=pointer]:
+          - /url: /register/job-seeker
+        - link "I'm an Employer" [ref=e265] [cursor=pointer]:
+          - /url: /employer-info
+        - button "Switch to Dark Mode" [ref=e266]
+        - button "Portals" [ref=e270]
+  - main [ref=e273]:
+    - generic [ref=e274]:
+      - generic [ref=e276]:
+        - generic [ref=e277]: For Job Seekers
+        - heading "Your Next Career Starts Here" [level=1] [ref=e282]
+        - paragraph [ref=e283]: Join thousands of skilled candidates across India who have found meaningful employment through ROJGAARHAI. Free registration, personalized matching, and full support.
+        - link [ref=e284] [cursor=pointer]:
+          - /url: /register/job-seeker
+          - button "Register Now — It's Free" [ref=e285]
+      - generic [ref=e289]:
+        - heading "How to Get Started" [level=2] [ref=e290]
+        - generic [ref=e291]:
+          - generic [ref=e292]:
+            - generic [ref=e298]: STEP 01
+            - heading "Create Your Profile" [level=3] [ref=e299]
+            - paragraph [ref=e300]: Fill in your details — name, skills, experience, and job preferences. Takes less than 5 minutes.
+          - generic [ref=e301]:
+            - generic [ref=e306]: STEP 02
+            - heading "Get Matched" [level=3] [ref=e307]
+            - paragraph [ref=e308]: Our team reviews your profile and matches you with the best-fit job openings from verified employers.
+          - generic [ref=e309]:
+            - generic [ref=e314]: STEP 03
+            - heading "Get Hired" [level=3] [ref=e315]
+            - paragraph [ref=e316]: Interview with employers, receive your offer letter, and start your new job with ongoing support.
+      - generic [ref=e318]:
+        - heading "Why Join ROJGAARHAI?" [level=2] [ref=e319]
+        - generic [ref=e320]:
+          - generic [ref=e326]:
+            - heading "100% Free for Job Seekers" [level=4] [ref=e327]
+            - paragraph [ref=e328]: No registration fees, no hidden charges. Our service is completely free for candidates.
+          - generic [ref=e333]:
+            - heading "Verified Employers Only" [level=4] [ref=e334]
+            - paragraph [ref=e335]: Every company on our platform is vetted. You only interact with legitimate businesses.
+          - generic [ref=e341]:
+            - heading "Local & Relocation Jobs" [level=4] [ref=e342]
+            - paragraph [ref=e343]: Find opportunities near your hometown or explore jobs in new cities — your choice.
+          - generic [ref=e349]:
+            - heading "Quick Turnaround" [level=4] [ref=e350]
+            - paragraph [ref=e351]: Most candidates get their first match within a week of registration.
+          - generic [ref=e356]:
+            - heading "Career Support" [level=4] [ref=e357]
+            - paragraph [ref=e358]: Our agents guide you through interviews, negotiations, and onboarding.
+          - generic [ref=e364]:
+            - heading "Diverse Industries" [level=4] [ref=e365]
+            - paragraph [ref=e366]: Manufacturing, healthcare, IT, agriculture, logistics — opportunities across sectors.
+      - generic [ref=e368]:
+        - heading "Simple Registration Form" [level=2] [ref=e369]
+        - paragraph [ref=e370]: "Our form is designed to be quick and easy. Here's what you'll need:"
+        - generic [ref=e371]:
+          - generic [ref=e372]:
+            - generic [ref=e373]: Full Name
+            - generic [ref=e378]: Phone Number
+            - generic [ref=e383]: Email Address
+            - generic [ref=e388]: Date of Birth
+            - generic [ref=e393]: Current Location
+            - generic [ref=e398]: Gender
+            - generic [ref=e403]: Highest Qualification
+            - generic [ref=e408]: Key Skills
+            - generic [ref=e413]: Experience (Years)
+            - generic [ref=e418]: Preferred Job Type
+            - generic [ref=e423]: Expected Salary
+            - generic [ref=e428]: Willingness to Relocate
+          - paragraph [ref=e433]: Resume upload and profile photo are completely optional
+      - generic [ref=e435]:
+        - heading "Frequently Asked Questions" [level=2] [ref=e436]
+        - generic [ref=e437]:
+          - button "How do I apply for a job?" [ref=e439]
+          - button "Do I need a resume to register?" [ref=e444]
+          - button "Is there any fee for registration?" [ref=e449]
+          - button "How will I know if I'm matched with a job?" [ref=e454]
+          - button "Can I apply for jobs in another state?" [ref=e459]
+          - button "What types of jobs are available?" [ref=e464]
+      - generic [ref=e469]:
+        - heading "Ready to Find Your Next Job?" [level=2] [ref=e470]
+        - paragraph [ref=e471]: Join 1,200+ candidates already registered on our platform
+        - link [ref=e472] [cursor=pointer]:
+          - /url: /register/job-seeker
+          - button "Register Now — Free" [ref=e473]
+  - contentinfo [ref=e476]:
+    - generic [ref=e477]:
+      - generic [ref=e478]:
+        - generic [ref=e479]:
+          - link "ROJGAARHAI Connecting Talent" [ref=e480] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e485]:
+              - generic [ref=e486]: ROJGAARHAI
+              - generic [ref=e487]: Connecting Talent
+          - paragraph [ref=e488]: Connecting skilled talent with opportunities across India.
+        - generic [ref=e489]:
+          - heading "For Job Seekers" [level=4] [ref=e490]
+          - list [ref=e491]:
+            - listitem [ref=e492]:
+              - link "Browse Jobs" [ref=e493] [cursor=pointer]:
+                - /url: /jobs
+            - listitem [ref=e494]:
+              - link "How It Works" [ref=e495] [cursor=pointer]:
+                - /url: /job-seeker-info
+            - listitem [ref=e496]:
+              - link "Register Now" [ref=e497] [cursor=pointer]:
+                - /url: /register/job-seeker
+        - generic [ref=e498]:
+          - heading "For Employers" [level=4] [ref=e499]
+          - list [ref=e500]:
+            - listitem [ref=e501]:
+              - link "How Hiring Works" [ref=e502] [cursor=pointer]:
+                - /url: /employer-info
+            - listitem [ref=e503]:
+              - link "Why Choose Us" [ref=e504] [cursor=pointer]:
+                - /url: /employer-info#why-choose-us
+            - listitem [ref=e505]:
+              - link "Post a Job" [ref=e506] [cursor=pointer]:
+                - /url: /register/employer
+        - generic [ref=e507]:
+          - heading "Company" [level=4] [ref=e508]
+          - list [ref=e509]:
+            - listitem [ref=e510]:
+              - link "Contact Us" [ref=e511] [cursor=pointer]:
+                - /url: /contact
+            - listitem [ref=e512]:
+              - link "Privacy Policy" [ref=e513] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e514]:
+              - link "Terms of Service" [ref=e515] [cursor=pointer]:
+                - /url: "#"
+      - generic [ref=e516]:
+        - paragraph [ref=e517]: © 2024 ROJGAARHAI. All rights reserved.
+        - generic [ref=e518]:
+          - link "Twitter" [ref=e519] [cursor=pointer]:
+            - /url: "#"
+          - link "LinkedIn" [ref=e520] [cursor=pointer]:
+            - /url: "#"
+          - link "Facebook" [ref=e521] [cursor=pointer]:
+            - /url: "#"

@@ -1,0 +1,369 @@
+/* ============================================
+   SECTION 07: TESTIMONIALS
+   ============================================ */
+.testimonials-section {
+  background-color: #063D32;
+  position: relative;
+  overflow: hidden;
+  background-image: url('/assets/section7/section7bg.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.testimonials-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.testimonials-inner {
+  position: relative;
+  z-index: 1;
+  min-height: min(88vh, 780px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 40px;
+  padding: 64px 0 24px;
+  padding-left: clamp(16px, 4vw, 64px);
+}
+
+.featured-testimonial {
+  flex: 0 0 42%;
+  max-width: 460px;
+}
+
+.quote-mark {
+  display: block;
+  color: #FAF8F4;
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 0.6;
+  margin-bottom: 18px;
+  letter-spacing: -0.04em;
+}
+
+.featured-quote {
+  margin-bottom: 24px;
+  color: #FAF8F4;
+  font-family: var(--font-display);
+  font-size: clamp(34px, 3.2vw, 40px);
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+}
+
+.featured-quote span {
+  display: block;
+}
+
+.easier-highlight {
+  position: relative;
+  display: inline-block;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 1;
+  padding: 0 2px;
+}
+
+.easier-highlight svg {
+  position: absolute;
+  left: -6px;
+  top: -4px;
+  width: calc(100% + 12px);
+  height: calc(100% + 10px);
+  pointer-events: none;
+  z-index: -1;
+  overflow: visible;
+}
+
+.featured-author {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.author-name {
+  color: #FAF8F4;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.author-role {
+  color: rgba(250, 248, 244, 0.7);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.testimonial-carousel {
+  position: relative;
+  width: 610px;
+  height: 300px;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+.testimonial-card {
+  position: absolute;
+  border-radius: 12px;
+  padding: 22px 20px 20px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition:
+    left 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    top 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.4s ease,
+    color 0.4s ease,
+    box-shadow 0.4s ease,
+    transform 0.2s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+}
+
+.testimonial-card:focus-visible {
+  outline: 2px solid #FAF8F4;
+  outline-offset: 3px;
+}
+
+.card-left {
+  width: 210px;
+  height: 230px;
+  left: 0;
+  top: 40px;
+  background-color: #5D6346;
+  z-index: 1;
+  color: rgba(250, 248, 244, 0.72);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.card-center {
+  width: 250px;
+  height: 300px;
+  left: 180px;
+  top: 0;
+  background-color: #FAF8F4;
+  z-index: 3;
+  color: #101A36;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+}
+
+.card-right {
+  width: 210px;
+  height: 230px;
+  left: 400px;
+  top: 40px;
+  background-color: #5D6346;
+  z-index: 2;
+  color: rgba(250, 248, 244, 0.68);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.card-quote {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 0.7;
+  margin-bottom: 14px;
+}
+
+.card-left .card-quote,
+.card-right .card-quote {
+  color: rgba(250, 248, 244, 0.78);
+  font-size: 22px;
+}
+
+.card-text {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.36;
+  letter-spacing: -0.015em;
+}
+
+.card-left .card-text,
+.card-right .card-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(250, 248, 244, 0.72);
+}
+
+.card-author {
+  position: absolute;
+  left: 20px;
+  right: 16px;
+  bottom: 18px;
+}
+
+.card-author-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.card-author-role {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.card-left .card-author-name,
+.card-right .card-author-name,
+.card-left .card-author-role,
+.card-right .card-author-role {
+  color: rgba(250, 248, 244, 0.62);
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 0 32px;
+  margin-top: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.carousel-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: rgba(250, 248, 244, 0.32);
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.carousel-dots span:hover {
+  background-color: rgba(250, 248, 244, 0.55);
+}
+
+.carousel-dots span:focus-visible {
+  outline: 2px solid #FAF8F4;
+  outline-offset: 3px;
+}
+
+.carousel-dots .dot-active {
+  background-color: #FAF8F4;
+  width: 8px;
+  height: 8px;
+}
+
+@media (max-width: 1024px) {
+  .testimonials-inner {
+    gap: 32px;
+    padding-left: clamp(16px, 3vw, 40px);
+  }
+
+  .testimonial-carousel {
+    width: 520px;
+    height: 270px;
+  }
+
+  .card-left {
+    width: 180px;
+    height: 200px;
+    top: 35px;
+  }
+
+  .card-center {
+    left: 150px;
+    width: 220px;
+    height: 270px;
+  }
+
+  .card-right {
+    left: 340px;
+    width: 180px;
+    height: 200px;
+    top: 35px;
+  }
+}
+
+@media (max-width: 860px) {
+  .testimonials-inner {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 52px 0 24px;
+  }
+
+  .featured-testimonial {
+    flex: none;
+    max-width: 100%;
+  }
+
+  .testimonial-carousel {
+    width: 100%;
+    max-width: 420px;
+    height: 210px;
+    align-self: center;
+    margin-left: 0;
+  }
+
+  .card-left {
+    width: 144px;
+    height: 158px;
+    top: 27px;
+  }
+
+  .card-center {
+    left: 124px;
+    width: 172px;
+    height: 206px;
+  }
+
+  .card-right {
+    left: 275px;
+    width: 144px;
+    height: 158px;
+    top: 27px;
+  }
+
+  .carousel-dots {
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quote-mark {
+    font-size: 56px;
+  }
+
+  .featured-quote {
+    font-size: 23px;
+  }
+
+  .testimonial-carousel {
+    height: 230px;
+    max-width: 330px;
+  }
+
+  .card-left,
+  .card-right {
+    width: 146px;
+    height: 184px;
+    top: 20px;
+  }
+
+  .card-right {
+    left: 184px;
+  }
+
+  .card-center {
+    width: 162px;
+    height: 224px;
+    left: 84px;
+    top: 0;
+  }
+}

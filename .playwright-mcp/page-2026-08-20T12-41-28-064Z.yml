@@ -1,0 +1,177 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Rojgaar Hai Connecting Talent. Creating Futures." [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]:
+          - generic [ref=e12]: Rojgaar Hai
+          - generic [ref=e13]: Connecting Talent. Creating Futures.
+      - generic [ref=e14]:
+        - navigation "Primary" [ref=e15]:
+          - link "For Job Seekers" [ref=e16] [cursor=pointer]:
+            - /url: /job-seeker-info
+          - link "For Employers" [ref=e17] [cursor=pointer]:
+            - /url: /employer-info
+          - link "About Us" [ref=e18] [cursor=pointer]:
+            - /url: /contact
+          - link "Resources" [ref=e19] [cursor=pointer]:
+            - /url: /jobs
+        - link "Get Started" [ref=e20] [cursor=pointer]:
+          - /url: /register/job-seeker
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e30]: Opportunities don't happen.
+      - generic [ref=e31]: We make them happen.
+    - heading "Rojgaar Hai!" [level=1] [ref=e35]:
+      - generic [ref=e36]: Rojgaar
+      - generic [ref=e37]: Hai!
+    - paragraph [ref=e38]: A better career. The right talent.Real connections that build the future.
+    - generic [ref=e39]:
+      - link "I am a Job Seeker" [ref=e40] [cursor=pointer]:
+        - /url: /register/job-seeker
+      - link "I am an Employer" [ref=e47] [cursor=pointer]:
+        - /url: /register/employer
+  - generic [ref=e56]:
+    - heading "For Job Seekers" [level=2] [ref=e57]:
+      - generic [ref=e58]: For
+      - generic [ref=e59]: Job Seekers
+    - paragraph [ref=e63]: Discover opportunities thatmatch your skills and ambition.
+    - link "Explore Jobs" [ref=e64] [cursor=pointer]:
+      - /url: /jobs
+  - generic [ref=e71]:
+    - heading "For Employers" [level=2] [ref=e72]:
+      - generic [ref=e73]: For
+      - generic [ref=e74]: Employers
+    - paragraph [ref=e75]: Find the right talent. Faster.Smarter. Better.
+    - link "Post a Job" [ref=e76] [cursor=pointer]:
+      - /url: /register/employer
+  - region "How It Works" [ref=e81]:
+    - generic [ref=e82]:
+      - heading "Simple Steps. Powerful Outcomes." [level=2] [ref=e84]:
+        - generic [ref=e85]: Simple Steps.
+        - generic [ref=e86]: Powerful Outcomes.
+      - list [ref=e87]:
+        - listitem [ref=e88]:
+          - heading "Discover" [level=3] [ref=e93]
+          - paragraph [ref=e94]: Find the right matchfor your career.
+        - listitem [ref=e95]:
+          - heading "Apply" [level=3] [ref=e100]
+          - paragraph [ref=e101]: Apply to jobs thatfit you best.
+        - listitem [ref=e102]:
+          - heading "Connect" [level=3] [ref=e107]
+          - paragraph [ref=e108]: Employers connectwith top talent.
+        - listitem [ref=e109]:
+          - heading "Grow" [level=3] [ref=e116]
+          - paragraph [ref=e117]: Build your future.Together.
+  - region "Features" [ref=e118]:
+    - generic [ref=e119]:
+      - heading "All the right features. In all the right ways." [level=2] [ref=e121]:
+        - generic [ref=e122]: All the right
+        - generic [ref=e123]: features. In all
+        - generic [ref=e124]:
+          - text: the
+          - emphasis [ref=e125]: right
+          - text: ways.
+      - generic [ref=e126]:
+        - article [ref=e127]:
+          - heading "Smart Matching" [level=3] [ref=e131]
+          - paragraph [ref=e132]: AI-powered matching for better connections.
+        - article [ref=e133]:
+          - heading "Verified Employers" [level=3] [ref=e138]
+          - paragraph [ref=e139]: Trusted companies. Genuine opportunities.
+        - article [ref=e140]:
+          - heading "Career Insights" [level=3] [ref=e144]
+          - paragraph [ref=e145]: Insights to help you grow and decide.
+        - article [ref=e146]:
+          - heading "Real-time Alerts" [level=3] [ref=e151]
+          - paragraph [ref=e152]: Never miss an opportunity.
+  - region "Stats" [ref=e153]:
+    - generic [ref=e155]:
+      - heading "Trusted by thousands. Growing every day." [level=2] [ref=e156]:
+        - generic [ref=e157]: Trusted by thousands.
+        - generic [ref=e158]: Growing every day.
+      - generic [ref=e159]:
+        - generic [ref=e160]:
+          - strong [ref=e161]: 50K+
+          - generic [ref=e162]: Job Seekers
+        - generic [ref=e163]:
+          - strong [ref=e164]: 5K+
+          - generic [ref=e165]: Employers
+        - generic [ref=e166]:
+          - strong [ref=e167]: 20K+
+          - generic [ref=e168]: Jobs Posted
+        - generic [ref=e169]:
+          - strong [ref=e170]: 95%
+          - generic [ref=e171]: Satisfaction Rate
+  - region "Testimonials" [ref=e172]:
+    - generic [ref=e173]:
+      - generic [ref=e174]:
+        - generic [ref=e175]: “
+        - paragraph [ref=e176]:
+          - generic [ref=e177]: Rojgaar Hai made
+          - generic [ref=e178]:
+            - text: my job search
+            - emphasis [ref=e179]: easier
+          - generic [ref=e180]: and my career better.
+        - generic [ref=e181]:
+          - generic [ref=e182]: — Neha Sharma
+          - generic [ref=e183]: Product Designer
+      - generic [ref=e184]:
+        - button "Show testimonial from Priya Verma" [ref=e185] [cursor=pointer]:
+          - generic [ref=e186]: “
+          - paragraph [ref=e187]: We found theperfect fit...
+          - generic [ref=e188]:
+            - generic [ref=e189]: — Priya Verma
+            - generic [ref=e190]: Marketing Specialist
+        - button "Show testimonial from Arjun Mehta" [ref=e191] [cursor=pointer]:
+          - generic [ref=e192]: “
+          - paragraph [ref=e193]: We found the perfectcandidate in just 3 days!
+          - generic [ref=e194]:
+            - generic [ref=e195]: — Arjun Mehta
+            - generic [ref=e196]: HR Manager,TechNova
+        - button "Show testimonial from Karan Malhotra" [ref=e197] [cursor=pointer]:
+          - generic [ref=e198]: “
+          - paragraph [ref=e199]: We found top talentsurprisingly fast!
+          - generic [ref=e200]:
+            - generic [ref=e201]: — Karan Malhotra
+            - generic [ref=e202]: CEO,Growthify
+    - generic [ref=e203]:
+      - button "Show testimonial from Priya Verma" [ref=e204] [cursor=pointer]
+      - button "Show testimonial from Arjun Mehta" [ref=e205] [cursor=pointer]
+      - button "Show testimonial from Karan Malhotra" [ref=e206] [cursor=pointer]
+  - region "Get started with Rojgaar Hai" [ref=e207]:
+    - generic [ref=e210]:
+      - heading "Your next opportunity is just a click away." [level=2] [ref=e211]:
+        - generic [ref=e212]: Your next opportunity
+        - generic [ref=e213]:
+          - text: is just a
+          - emphasis [ref=e214]: click
+          - text: away.
+      - paragraph [ref=e215]: Whether you're hiring or job hunting,Rojgaar Hai is here to help you win.
+      - generic [ref=e216]:
+        - link "I am a Job Seeker" [ref=e217] [cursor=pointer]:
+          - /url: /register/job-seeker
+        - link "I am an Employer" [ref=e218] [cursor=pointer]:
+          - /url: /register/employer
+    - generic [ref=e220]:
+      - link "Rojgaar Hai home" [ref=e221] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e227]: Rojgaar Hai
+      - navigation "Footer navigation" [ref=e228]:
+        - link "About Us" [ref=e229] [cursor=pointer]:
+          - /url: /contact
+        - link "Contact" [ref=e230] [cursor=pointer]:
+          - /url: /contact
+        - link "Blog" [ref=e231] [cursor=pointer]:
+          - /url: "#blog"
+        - link "Privacy Policy" [ref=e232] [cursor=pointer]:
+          - /url: "#privacy"
+        - link "Terms" [ref=e233] [cursor=pointer]:
+          - /url: "#terms"
+      - generic "Social media" [ref=e234]:
+        - link "LinkedIn" [ref=e235] [cursor=pointer]:
+          - /url: "#linkedin"
+        - link "Twitter X" [ref=e238] [cursor=pointer]:
+          - /url: "#twitter"
+        - link "Instagram" [ref=e241] [cursor=pointer]:
+          - /url: "#instagram"

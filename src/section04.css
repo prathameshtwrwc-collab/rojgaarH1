@@ -1,0 +1,171 @@
+/* ============================================
+   SECTION 04: HOW IT WORKS
+   ============================================ */
+.how-it-works {
+  background-color: #06182D;
+  color: #FFFFFF;
+  background-image: url('/assets/section4/section4bg.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.how-inner {
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 0;
+}
+
+.how-heading {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.how-heading h2 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.how-heading h2 .line-white {
+  color: #FFFFFF;
+  display: block;
+}
+
+.how-heading h2 .line-orange {
+  color: #F15A24;
+  display: block;
+}
+
+.process-timeline {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  max-width: 940px;
+  width: 100%;
+  position: relative;
+}
+
+/* Connecting dashed line behind circles */
+.process-timeline::before {
+  content: '';
+  position: absolute;
+  top: 34px;
+  left: calc(12.5% + 22px);
+  right: calc(12.5% + 22px);
+  height: 2px;
+  background-image: linear-gradient(to right, rgba(247, 181, 29, 0.7) 50%, rgba(247, 181, 29, 0) 0%);
+  background-size: 16px 2px;
+  background-repeat: repeat-x;
+  z-index: 0;
+}
+
+.process-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  max-width: 200px;
+}
+
+.step-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.04);
+  transition: transform 0.2s ease;
+}
+
+.step-icon-wrap:hover {
+  transform: scale(1.04);
+}
+
+.icon-discover { background-color: #7655D9; }
+.icon-apply   { background-color: #F15A24; }
+.icon-connect { background-color: #F7B51D; }
+.icon-grow    { background-color: #65B993; }
+
+.step-icon-wrap svg {
+  width: 30px;
+  height: 30px;
+  stroke: #FFFFFF;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.step-desc {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  .how-inner {
+    min-height: 0;
+    padding: 56px 0;
+  }
+
+  .process-timeline {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 320px;
+  }
+
+  .process-timeline::before {
+    top: 30px;
+    bottom: 30px;
+    left: 50%;
+    right: auto;
+    width: 2px;
+    height: auto;
+    transform: translateX(-50%);
+    background-image: linear-gradient(to bottom, rgba(247, 181, 29, 0.7) 50%, rgba(247, 181, 29, 0) 0%);
+    background-size: 2px 16px;
+    background-repeat: repeat-y;
+  }
+
+  .process-step {
+    max-width: 260px;
+  }
+
+  .step-icon-wrap {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  .step-icon-wrap svg {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .how-heading h2 {
+    font-size: 24px;
+  }
+}

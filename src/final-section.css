@@ -1,0 +1,233 @@
+/* ============================================
+   SECTION 08: FINAL CTA + FOOTER
+   ============================================ */
+.final-section {
+  background-color: #FAF8F4;
+}
+
+.final-cta {
+  background-color: #FAF8F4;
+  position: relative;
+  overflow: hidden;
+  background-image: url('/assets/section8/section8bg.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  aspect-ratio: 1824 / 862;
+  display: flex;
+  align-items: center;
+}
+
+.final-cta-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.final-cta-inner {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.final-cta-content {
+  flex: 0 0 55%;
+  max-width: 560px;
+  padding: 64px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.final-cta-heading {
+  margin-bottom: 22px;
+  color: #101A36;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 4.6vw, 56px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+
+.final-cta-heading span {
+  display: block;
+}
+
+.final-cta-heading em {
+  color: #F15A24;
+  font-style: normal;
+}
+
+.final-cta-description {
+  max-width: 340px;
+  margin-bottom: 30px;
+  color: #101A36;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.final-cta-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.cta-visual {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 45%;
+  height: 100%;
+  background-color: transparent;
+  pointer-events: none;
+}
+
+/* Footer */
+.site-footer {
+  background-color: #071A36;
+  color: #FFFFFF;
+}
+
+.footer-inner {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+  align-items: center;
+  gap: 32px;
+  padding: 14px 0;
+}
+
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 9px;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.footer-brand-icon {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+}
+
+.footer-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 2.2vw, 28px);
+}
+
+.footer-navigation a {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.16s ease;
+}
+
+.footer-navigation a:hover,
+.footer-navigation a:focus-visible {
+  color: #FFFFFF;
+}
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 20px;
+}
+
+.footer-socials a {
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.footer-socials a:hover,
+.footer-socials a:focus-visible {
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.footer-socials svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 860px) {
+  .final-cta {
+    aspect-ratio: auto;
+  }
+
+  .final-cta-inner {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 56px;
+    padding-bottom: 40px;
+  }
+
+  .final-cta-content {
+    flex: none;
+    width: 100%;
+    max-width: 520px;
+    padding: 0;
+  }
+
+  .cta-visual {
+    position: relative;
+    width: calc(100% + 48px);
+    margin: 48px -24px 0;
+    height: 260px;
+  }
+
+  .footer-inner {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 22px;
+    padding: 28px 0;
+  }
+
+  .footer-brand,
+  .footer-socials {
+    justify-self: center;
+  }
+
+  .footer-navigation {
+    flex-wrap: wrap;
+    max-width: 340px;
+  }
+}
+
+@media (max-width: 480px) {
+  .final-cta-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .final-cta-actions .btn {
+    width: 100%;
+  }
+
+  .cta-visual {
+    height: 220px;
+  }
+}

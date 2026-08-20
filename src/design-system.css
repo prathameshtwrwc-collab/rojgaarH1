@@ -1,0 +1,660 @@
+/* ============================================
+   LANDING PAGE DESIGN SYSTEM
+   Reusable utility classes for landing pages
+   ============================================ */
+
+/* 1. Landing Section - basic section wrapper */
+.landing-section {
+  padding: clamp(48px, 6vw, 80px) 0;
+  width: 100%;
+}
+
+/* 2. Landing Container - max-width 1280px, centered */
+.landing-container {
+  width: calc(100% - 48px);
+  max-width: var(--container, 1280px);
+  margin: 0 auto;
+}
+
+/* 3. Section Heading - display font, bold, tracking-tight */
+.section-heading {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: var(--navy);
+  font-size: clamp(32px, 4vw, 48px);
+}
+
+/* 4. Section Subtitle - small, charcoal */
+.section-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--charcoal);
+  line-height: 1.5;
+}
+
+/* 5. Button Landing Primary - matching .btn-primary */
+.btn-landing-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 26px;
+  height: 46px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: var(--orange);
+  color: var(--white);
+  white-space: nowrap;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn-landing-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(241, 90, 36, 0.22);
+}
+
+.btn-landing-primary:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+/* 6. Button Landing Secondary - matching .btn-secondary */
+.btn-landing-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 26px;
+  height: 46px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: var(--navy);
+  color: var(--white);
+  white-space: nowrap;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn-landing-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 26, 54, 0.18);
+}
+
+.btn-landing-secondary:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+/* 7. Button Landing Outline - white bg, navy border, navy text */
+.btn-landing-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 26px;
+  height: 46px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid var(--navy);
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: var(--white);
+  color: var(--navy);
+  white-space: nowrap;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.btn-landing-outline:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 26, 54, 0.12);
+  background-color: var(--bg-warm);
+}
+
+.btn-landing-outline:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
+
+/* 8. Card Landing - white bg, rounded-2xl, border, shadow */
+.card-landing {
+  background-color: var(--white);
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: clamp(20px, 3vw, 32px);
+}
+
+/* 9. Card Landing Dark - bg-[#FAF8F4], rounded-2xl, border, shadow */
+.card-landing-dark {
+  background-color: var(--bg-warm);
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: clamp(20px, 3vw, 32px);
+}
+
+/* 10. Badge Landing - inline badge, rounded-full, text-xs font-bold */
+.badge-landing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.badge-landing--orange {
+  background-color: rgba(241, 90, 36, 0.1);
+  color: var(--orange);
+}
+
+.badge-landing--navy {
+  background-color: rgba(16, 26, 54, 0.08);
+  color: var(--navy);
+}
+
+.badge-landing--green {
+  background-color: rgba(13, 96, 74, 0.1);
+  color: var(--green);
+}
+
+/* 11. Input Landing - form input style */
+.input-landing {
+  width: 100%;
+  padding: 12px 16px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+  background-color: var(--white);
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-landing::placeholder {
+  color: #94A3B8;
+}
+
+.input-landing:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(241, 90, 36, 0.12);
+}
+
+.input-landing:disabled {
+  background-color: #F1F5F9;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
+/* 12. Icon Box Landing - icon container */
+.icon-box-landing {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-box-landing svg {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-box-landing--orange {
+  background-color: rgba(241, 90, 36, 0.1);
+  color: var(--orange);
+}
+
+.icon-box-landing--navy {
+  background-color: rgba(16, 26, 54, 0.08);
+  color: var(--navy);
+}
+
+.icon-box-landing--green {
+  background-color: rgba(13, 96, 74, 0.1);
+  color: var(--green);
+}
+
+.icon-box-landing--purple {
+  background-color: rgba(118, 85, 217, 0.1);
+  color: var(--purple);
+}
+
+.icon-box-landing--white {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--white);
+}
+
+/* 13. Step Card Landing - step card with icon, number, title, description */
+.step-card-landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.step-card-landing .step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  background-color: var(--orange);
+  flex-shrink: 0;
+}
+
+.step-card-landing .step-title {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+
+.step-card-landing .step-description {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--charcoal);
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+/* 14. Benefit Card Landing - benefit card with icon, title, description */
+.benefit-card-landing {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.benefit-card-landing .benefit-title {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+
+.benefit-card-landing .benefit-description {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--charcoal);
+  line-height: 1.55;
+}
+
+/* 15. Page Header Landing - page hero header */
+.page-header-landing {
+  background: linear-gradient(135deg, #101A36 0%, #071A36 100%);
+  color: var(--white);
+  padding: clamp(56px, 8vw, 96px) 0;
+}
+
+.page-header-landing .page-header-landing__title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.page-header-landing .page-header-landing__subtitle {
+  font-size: clamp(15px, 1.4vw, 17px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+/* 16. Page Header Teal - page hero header */
+.page-header-teal {
+  background: linear-gradient(135deg, #0D604A 0%, #1E293B 100%);
+  color: var(--white);
+  padding: clamp(56px, 8vw, 96px) 0;
+}
+
+.page-header-teal .page-header-teal__title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.page-header-teal .page-header-teal__subtitle {
+  font-size: clamp(15px, 1.4vw, 17px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+/* 17. Form Card Landing - white bg card for forms */
+.form-card-landing {
+  background-color: var(--white);
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.form-card-landing .form-card-landing__title {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.form-card-landing .form-card-landing__subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--charcoal);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* 18. Success Icon Landing - large green circle with checkmark */
+.success-icon-landing {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: var(--green);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.success-icon-landing svg {
+  width: 32px;
+  height: 32px;
+  stroke: var(--white);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ============================================
+   DASHBOARD SYSTEM
+   Premium, restrained application-UI primitives
+   for authenticated dashboards (Candidate / Employer / Admin)
+   ============================================ */
+
+/* Page shell */
+.dash-shell {
+  background-color: var(--bg-warm);
+  min-height: 100%;
+}
+
+.dash-container {
+  width: calc(100% - 40px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header: greeting + contextual actions. No gradients, no giant hero. */
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 32px 0 24px;
+  border-bottom: 1px solid #E7E2D9;
+}
+
+.dash-header__title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--navy);
+  line-height: 1.15;
+}
+
+.dash-header__subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--charcoal);
+  margin-top: 4px;
+}
+
+/* Metrics strip: flat numbers separated by fine dividers. No colored cards. */
+.dash-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 22px 0;
+  border-bottom: 1px solid #E7E2D9;
+}
+
+.dash-metric {
+  flex: 1 1 140px;
+  padding: 0 24px;
+  border-left: 1px solid #E7E2D9;
+}
+
+.dash-metric:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.dash-metric__value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.dash-metric__value--accent {
+  color: var(--orange);
+}
+
+.dash-metric__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-top: 4px;
+}
+
+.dash-metric__trend {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--green);
+  margin-top: 2px;
+}
+
+/* Section header */
+.dash-section-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+
+.dash-section-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--charcoal);
+  margin-top: 2px;
+}
+
+/* Surface: the ONE card style. Restrained radius, hairline border, no shadow by default. */
+.dash-surface {
+  background-color: var(--white);
+  border: 1px solid #E7E2D9;
+  border-radius: 14px;
+}
+
+.dash-surface--pad {
+  padding: 20px;
+}
+
+/* Data row: list item with a bottom divider instead of a boxed card */
+.dash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid #EFEAE1;
+}
+
+.dash-row:last-child {
+  border-bottom: none;
+}
+
+/* Status badge — used ONLY for genuine states */
+.dash-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.dash-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.dash-status--success { background: rgba(13, 96, 74, 0.09); color: var(--green); }
+.dash-status--warning { background: rgba(217, 119, 6, 0.1); color: #B45309; }
+.dash-status--danger { background: rgba(220, 38, 38, 0.08); color: #B91C1C; }
+.dash-status--neutral { background: rgba(16, 26, 54, 0.06); color: var(--navy); }
+.dash-status--accent { background: rgba(241, 90, 36, 0.1); color: var(--orange); }
+
+/* Button system */
+.dash-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.dash-btn--compact { height: 36px; padding: 0 13px; font-size: 13px; }
+
+.dash-btn-primary {
+  background: var(--orange);
+  color: var(--white);
+}
+.dash-btn-primary:hover { background: #d94d1a; }
+
+.dash-btn-secondary {
+  background: var(--white);
+  color: var(--navy);
+  border-color: #D8D2C6;
+}
+.dash-btn-secondary:hover { background: #FAF7F0; border-color: #C7C0B2; }
+
+.dash-btn-tertiary {
+  background: transparent;
+  color: var(--charcoal);
+  padding: 0 8px;
+}
+.dash-btn-tertiary:hover { color: var(--navy); }
+
+/* Thin progress bar */
+.dash-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: #EFEAE1;
+  overflow: hidden;
+}
+
+.dash-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--orange);
+}
+
+/* Avatar: flat navy initial, not a rainbow gradient */
+.dash-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--navy);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Admin sidebar — quiet navy, subtle selected state */
+.dash-sidebar {
+  background: var(--navy);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.dash-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  position: relative;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dash-sidebar__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dash-sidebar__link--active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--white);
+}
+
+.dash-sidebar__link--active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--orange);
+}

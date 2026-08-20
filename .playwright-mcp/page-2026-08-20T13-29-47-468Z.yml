@@ -1,0 +1,571 @@
+- generic [ref=f12e3]:
+  - banner [ref=f12e4]:
+    - generic [ref=f12e6]:
+      - link "Rojgaar Hai Connecting Talent. Creating Futures." [ref=f12e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f12e13]:
+          - generic [ref=f12e14]: Rojgaar Hai
+          - generic [ref=f12e15]: Connecting Talent. Creating Futures.
+      - navigation "Primary" [ref=f12e16]:
+        - link "Home" [ref=f12e17] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f12e18] [cursor=pointer]:
+          - /url: /jobs
+        - link "For Job Seekers" [ref=f12e19] [cursor=pointer]:
+          - /url: /job-seeker-info
+        - link "For Employers" [ref=f12e20] [cursor=pointer]:
+          - /url: /employer-info
+        - link "Contact" [ref=f12e21] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=f12e22]:
+        - link "Get Started" [ref=f12e23] [cursor=pointer]:
+          - /url: /register/job-seeker
+        - button "Portals" [ref=f12e25]
+  - main [ref=f12e28]:
+    - generic [ref=f12e30]:
+      - generic [ref=f12e31]:
+        - generic [ref=f12e32]: Verified Jobs & Trusted Employers
+        - heading "Find Your Next Opportunity" [level=1] [ref=f12e36]
+        - paragraph [ref=f12e37]: Browse the latest verified job openings across India and apply directly in seconds.
+      - generic [ref=f12e38]:
+        - textbox "Search by job title, company name, skill (e.g. Machine Operator, CNC, Tally)..." [ref=f12e43]
+        - generic [ref=f12e44]:
+          - combobox [ref=f12e47]:
+            - option "All Locations" [selected]
+            - option "Bangalore"
+            - option "Chennai"
+            - option "Delhi"
+            - option "Hyderabad"
+            - option "Jaipur"
+            - option "Manesar"
+            - option "Nashik"
+            - option "Pune"
+          - combobox [ref=f12e50]:
+            - option "All Job Types" [selected]
+            - option "Full Time"
+            - option "Part Time"
+            - option "Contract"
+            - option "Internship"
+          - combobox [ref=f12e53]:
+            - option "All Experience" [selected]
+            - option "Freshers (0-1 yr)"
+            - option "1 - 3 Years"
+            - option "3+ Years"
+          - combobox [ref=f12e56]:
+            - option "All Salaries" [selected]
+            - option "Under ₹15,000"
+            - option "₹15,000 - ₹20,000"
+            - option "₹20,000 - ₹25,000"
+            - option "₹25,000+"
+          - combobox [ref=f12e59]:
+            - option "All Education" [selected]
+            - option "10th / 12th Pass"
+            - option "ITI / Diploma"
+            - option "Graduate"
+            - option "Post-Graduate"
+          - combobox [ref=f12e62]:
+            - option "All Industries" [selected]
+            - option "Agriculture"
+            - option "Construction"
+            - option "Healthcare"
+            - option "IT Services"
+            - option "Logistics"
+            - option "Manufacturing"
+        - generic [ref=f12e63]:
+          - generic [ref=f12e64]:
+            - generic [ref=f12e65]: "15"
+            - generic [ref=f12e66]: jobs available
+          - generic [ref=f12e67]:
+            - generic [ref=f12e68]: "Sort by:"
+            - combobox [ref=f12e71]:
+              - option "Newest First" [selected]
+              - option "Oldest First"
+              - option "Highest Salary"
+              - option "Lowest Salary"
+      - generic [ref=f12e72]:
+        - generic [ref=f12e73]:
+          - generic [ref=f12e74]:
+            - generic [ref=f12e75]:
+              - generic [ref=f12e76]:
+                - generic [ref=f12e77]: Full-time
+                - generic [ref=f12e78]: Verified
+              - button "Save job" [ref=f12e82]
+            - generic [ref=f12e85]:
+              - generic [ref=f12e86]: "N"
+              - generic [ref=f12e87]:
+                - link "Electrician" [ref=f12e88] [cursor=pointer]:
+                  - /url: /jobs/JP015
+                - paragraph [ref=f12e89]: Northern Steel Works
+            - generic [ref=f12e90]:
+              - generic [ref=f12e91]: Manesar, Haryana
+              - generic [ref=f12e96]: ₹18,000 - ₹25,000
+              - generic [ref=f12e101]: 3-6 years
+              - generic [ref=f12e106]: ITI Electrician
+            - paragraph [ref=f12e111]: Maintain industrial electrical systems, distribution panels, three-phase electric motors, and overhead crane wiring at steel mill plant.
+            - generic [ref=f12e112]:
+              - generic [ref=f12e113]: Electrical Wiring
+              - generic [ref=f12e114]: Motor Repair
+              - generic [ref=f12e115]: Maintenance
+              - generic [ref=f12e116]: +1 more
+          - generic [ref=f12e117]:
+            - generic [ref=f12e118]: 4 openings
+            - generic [ref=f12e123]:
+              - link [ref=f12e124] [cursor=pointer]:
+                - /url: /jobs/JP015
+                - button "Details" [ref=f12e125]
+              - button "Apply Now" [ref=f12e126] [cursor=pointer]
+        - generic [ref=f12e129]:
+          - generic [ref=f12e130]:
+            - generic [ref=f12e131]:
+              - generic [ref=f12e132]:
+                - generic [ref=f12e133]: Full-time
+                - generic [ref=f12e134]: Verified
+              - button "Save job" [ref=f12e138]
+            - generic [ref=f12e141]:
+              - generic [ref=f12e142]: Q
+              - generic [ref=f12e143]:
+                - link "HR Executive" [ref=f12e144] [cursor=pointer]:
+                  - /url: /jobs/JP014
+                - paragraph [ref=f12e145]: QuickDel Logistics
+            - generic [ref=f12e146]:
+              - generic [ref=f12e147]: Delhi, Delhi
+              - generic [ref=f12e152]: ₹22,000 - ₹28,000
+              - generic [ref=f12e157]: 2-5 years
+              - generic [ref=f12e162]: MBA / BBA
+            - paragraph [ref=f12e167]: Manage blue-collar worker recruitment drives across Delhi NCR, handle onboarding documentation, coordinate monthly payroll processing, and address staff grievances.
+            - generic [ref=f12e168]:
+              - generic [ref=f12e169]: HR
+              - generic [ref=f12e170]: Recruitment
+              - generic [ref=f12e171]: Payroll
+              - generic [ref=f12e172]: +1 more
+          - generic [ref=f12e173]:
+            - generic [ref=f12e174]: 2 openings
+            - generic [ref=f12e179]:
+              - link [ref=f12e180] [cursor=pointer]:
+                - /url: /jobs/JP014
+                - button "Details" [ref=f12e181]
+              - button "Apply Now" [ref=f12e182] [cursor=pointer]
+        - generic [ref=f12e185]:
+          - generic [ref=f12e186]:
+            - generic [ref=f12e187]:
+              - generic [ref=f12e188]:
+                - generic [ref=f12e189]: Full-time
+                - generic [ref=f12e190]: Verified
+              - button "Save job" [ref=f12e194]
+            - generic [ref=f12e197]:
+              - generic [ref=f12e198]: B
+              - generic [ref=f12e199]:
+                - link "Accountant" [ref=f12e200] [cursor=pointer]:
+                  - /url: /jobs/JP013
+                - paragraph [ref=f12e201]: Bharat Manufacturing Co.
+            - generic [ref=f12e202]:
+              - generic [ref=f12e203]: Pune, Maharashtra
+              - generic [ref=f12e208]: ₹18,000 - ₹24,000
+              - generic [ref=f12e213]: 2-4 years
+              - generic [ref=f12e218]: B.Com
+            - paragraph [ref=f12e223]: Manage plant accounts, record daily purchase and sales invoices in Tally Prime, compute GST monthly returns, and process vendor payments.
+            - generic [ref=f12e224]:
+              - generic [ref=f12e225]: Accounting
+              - generic [ref=f12e226]: Tally
+              - generic [ref=f12e227]: Excel
+              - generic [ref=f12e228]: +1 more
+          - generic [ref=f12e229]:
+            - generic [ref=f12e230]: 2 openings
+            - generic [ref=f12e235]:
+              - link [ref=f12e236] [cursor=pointer]:
+                - /url: /jobs/JP013
+                - button "Details" [ref=f12e237]
+              - button "Apply Now" [ref=f12e238] [cursor=pointer]
+        - generic [ref=f12e241]:
+          - generic [ref=f12e242]:
+            - generic [ref=f12e243]:
+              - generic [ref=f12e244]:
+                - generic [ref=f12e245]: Full-time
+                - generic [ref=f12e246]: Verified
+              - button "Save job" [ref=f12e250]
+            - generic [ref=f12e253]:
+              - generic [ref=f12e254]: C
+              - generic [ref=f12e255]:
+                - link "ANM / GNM Nurse" [ref=f12e256] [cursor=pointer]:
+                  - /url: /jobs/JP012
+                - paragraph [ref=f12e257]: CareWell Hospitals
+            - generic [ref=f12e258]:
+              - generic [ref=f12e259]: Chennai, Tamil Nadu
+              - generic [ref=f12e264]: ₹15,000 - ₹20,000
+              - generic [ref=f12e269]: 1-3 years
+              - generic [ref=f12e274]: ANM/GNM
+            - paragraph [ref=f12e279]: Assist staff doctors in outpatient clinics and general wards. Conduct vaccination clinics, check patient vitals, and assist in dressing wounds.
+            - generic [ref=f12e280]:
+              - generic [ref=f12e281]: Nursing
+              - generic [ref=f12e282]: Patient Care
+              - generic [ref=f12e283]: Vaccination
+              - generic [ref=f12e284]: +1 more
+          - generic [ref=f12e285]:
+            - generic [ref=f12e286]: 10 openings
+            - generic [ref=f12e291]:
+              - link [ref=f12e292] [cursor=pointer]:
+                - /url: /jobs/JP012
+                - button "Details" [ref=f12e293]
+              - button "Apply Now" [ref=f12e294] [cursor=pointer]
+        - generic [ref=f12e297]:
+          - generic [ref=f12e298]:
+            - generic [ref=f12e299]:
+              - generic [ref=f12e300]:
+                - generic [ref=f12e301]: Full-time
+                - generic [ref=f12e302]: Verified
+              - button "Save job" [ref=f12e306]
+            - generic [ref=f12e309]:
+              - generic [ref=f12e310]: F
+              - generic [ref=f12e311]:
+                - link "Agriculture Officer" [ref=f12e312] [cursor=pointer]:
+                  - /url: /jobs/JP011
+                - paragraph [ref=f12e313]: FreshBasket Agro
+            - generic [ref=f12e314]:
+              - generic [ref=f12e315]: Nashik, Maharashtra
+              - generic [ref=f12e320]: ₹16,000 - ₹22,000
+              - generic [ref=f12e325]: 2-4 years
+              - generic [ref=f12e330]: B.Sc Agriculture
+            - paragraph [ref=f12e335]: Provide technical advice to contract farmers on vegetable crop protection, organic pest management, and post-harvest handling.
+            - generic [ref=f12e336]:
+              - generic [ref=f12e337]: Agriculture
+              - generic [ref=f12e338]: Soil Testing
+              - generic [ref=f12e339]: Irrigation
+              - generic [ref=f12e340]: +1 more
+          - generic [ref=f12e341]:
+            - generic [ref=f12e342]: 2 openings
+            - generic [ref=f12e347]:
+              - link [ref=f12e348] [cursor=pointer]:
+                - /url: /jobs/JP011
+                - button "Details" [ref=f12e349]
+              - button "Apply Now" [ref=f12e350] [cursor=pointer]
+        - generic [ref=f12e353]:
+          - generic [ref=f12e354]:
+            - generic [ref=f12e355]:
+              - generic [ref=f12e356]:
+                - generic [ref=f12e357]: Full-time
+                - generic [ref=f12e358]: Verified
+              - button "Save job" [ref=f12e362]
+            - generic [ref=f12e365]:
+              - generic [ref=f12e366]: "N"
+              - generic [ref=f12e367]:
+                - link "Welder" [ref=f12e368] [cursor=pointer]:
+                  - /url: /jobs/JP010
+                - paragraph [ref=f12e369]: Northern Steel Works
+            - generic [ref=f12e370]:
+              - generic [ref=f12e371]: Manesar, Haryana
+              - generic [ref=f12e376]: ₹20,000 - ₹28,000
+              - generic [ref=f12e381]: 3-8 years
+              - generic [ref=f12e386]: ITI Welder
+            - paragraph [ref=f12e391]: Perform heavy MIG and TIG welding on structural steel girders and industrial frames. Work with engineering blueprints in a safety-first plant.
+            - generic [ref=f12e392]:
+              - generic [ref=f12e393]: Welding
+              - generic [ref=f12e394]: Fabrication
+              - generic [ref=f12e395]: Blueprint Reading
+              - generic [ref=f12e396]: +1 more
+          - generic [ref=f12e397]:
+            - generic [ref=f12e398]: 6 openings
+            - generic [ref=f12e403]:
+              - link [ref=f12e404] [cursor=pointer]:
+                - /url: /jobs/JP010
+                - button "Details" [ref=f12e405]
+              - button "Apply Now" [ref=f12e406] [cursor=pointer]
+        - generic [ref=f12e409]:
+          - generic [ref=f12e410]:
+            - generic [ref=f12e411]:
+              - generic [ref=f12e412]:
+                - generic [ref=f12e413]: Full-time
+                - generic [ref=f12e414]: Verified
+              - button "Save job" [ref=f12e418]
+            - generic [ref=f12e421]:
+              - generic [ref=f12e422]: A
+              - generic [ref=f12e423]:
+                - link "Pharmacy Technician" [ref=f12e424] [cursor=pointer]:
+                  - /url: /jobs/JP009
+                - paragraph [ref=f12e425]: Apex Pharma Industries
+            - generic [ref=f12e426]:
+              - generic [ref=f12e427]: Hyderabad, Telangana
+              - generic [ref=f12e432]: ₹18,000 - ₹24,000
+              - generic [ref=f12e437]: 1-3 years
+              - generic [ref=f12e442]: B.Pharm/D.Pharm
+            - paragraph [ref=f12e447]: Dispense pharmaceutical products in manufacturing facility dispensary. Maintain raw material stock logs and ensure cleanroom compliance.
+            - generic [ref=f12e448]:
+              - generic [ref=f12e449]: Pharmacy
+              - generic [ref=f12e450]: Drug Dispensing
+              - generic [ref=f12e451]: Quality Control
+              - generic [ref=f12e452]: +1 more
+          - generic [ref=f12e453]:
+            - generic [ref=f12e454]: 4 openings
+            - generic [ref=f12e459]:
+              - link [ref=f12e460] [cursor=pointer]:
+                - /url: /jobs/JP009
+                - button "Details" [ref=f12e461]
+              - button "Apply Now" [ref=f12e462] [cursor=pointer]
+        - generic [ref=f12e465]:
+          - generic [ref=f12e466]:
+            - generic [ref=f12e467]:
+              - generic [ref=f12e468]:
+                - generic [ref=f12e469]: Full-time
+                - generic [ref=f12e470]: Verified
+              - button "Save job" [ref=f12e474]
+            - generic [ref=f12e477]:
+              - generic [ref=f12e478]: T
+              - generic [ref=f12e479]:
+                - link "Junior Developer" [ref=f12e480] [cursor=pointer]:
+                  - /url: /jobs/JP008
+                - paragraph [ref=f12e481]: TechRural Solutions
+            - generic [ref=f12e482]:
+              - generic [ref=f12e483]: Jaipur, Rajasthan
+              - generic [ref=f12e488]: ₹15,000 - ₹22,000
+              - generic [ref=f12e493]: 0-1 years
+              - generic [ref=f12e498]: B.Tech/BCA
+            - paragraph [ref=f12e503]: Assist in building web applications and API endpoints. Write modular code, participate in daily standups, and resolve user bug tickets.
+            - generic [ref=f12e504]:
+              - generic [ref=f12e505]: Python
+              - generic [ref=f12e506]: JavaScript
+              - generic [ref=f12e507]: SQL
+              - generic [ref=f12e508]: +1 more
+          - generic [ref=f12e509]:
+            - generic [ref=f12e510]: 3 openings
+            - generic [ref=f12e515]:
+              - link [ref=f12e516] [cursor=pointer]:
+                - /url: /jobs/JP008
+                - button "Details" [ref=f12e517]
+              - button "Apply Now" [ref=f12e518] [cursor=pointer]
+        - generic [ref=f12e521]:
+          - generic [ref=f12e522]:
+            - generic [ref=f12e523]:
+              - generic [ref=f12e524]:
+                - generic [ref=f12e525]: Full-time
+                - generic [ref=f12e526]: Verified
+              - button "Save job" [ref=f12e530]
+            - generic [ref=f12e533]:
+              - generic [ref=f12e534]: B
+              - generic [ref=f12e535]:
+                - link "Quality Inspector" [ref=f12e536] [cursor=pointer]:
+                  - /url: /jobs/JP007
+                - paragraph [ref=f12e537]: Bharat Manufacturing Co.
+            - generic [ref=f12e538]:
+              - generic [ref=f12e539]: Pune, Maharashtra
+              - generic [ref=f12e544]: ₹20,000 - ₹26,000
+              - generic [ref=f12e549]: 3-5 years
+              - generic [ref=f12e554]: B.Sc
+            - paragraph [ref=f12e559]: Inspect manufactured metal components against engineering tolerances. Maintain ISO audit documentation and calibration records.
+            - generic [ref=f12e560]:
+              - generic [ref=f12e561]: Quality Control
+              - generic [ref=f12e562]: Inspection
+              - generic [ref=f12e563]: ISO Standards
+              - generic [ref=f12e564]: +1 more
+          - generic [ref=f12e565]:
+            - generic [ref=f12e566]: 2 openings
+            - generic [ref=f12e571]:
+              - link [ref=f12e572] [cursor=pointer]:
+                - /url: /jobs/JP007
+                - button "Details" [ref=f12e573]
+              - button "Apply Now" [ref=f12e574] [cursor=pointer]
+        - generic [ref=f12e577]:
+          - generic [ref=f12e578]:
+            - generic [ref=f12e579]:
+              - generic [ref=f12e580]:
+                - generic [ref=f12e581]: Full-time
+                - generic [ref=f12e582]: Verified
+              - button "Save job" [ref=f12e586]
+            - generic [ref=f12e589]:
+              - generic [ref=f12e590]: S
+              - generic [ref=f12e591]:
+                - link "Site Supervisor" [ref=f12e592] [cursor=pointer]:
+                  - /url: /jobs/JP006
+                - paragraph [ref=f12e593]: Sunrise Construction
+            - generic [ref=f12e594]:
+              - generic [ref=f12e595]: Bangalore, Karnataka
+              - generic [ref=f12e600]: ₹22,000 - ₹30,000
+              - generic [ref=f12e605]: 5-8 years
+              - generic [ref=f12e610]: Diploma Civil
+            - paragraph [ref=f12e615]: Supervise residential building construction sites. Coordinate with contractors, inspect materials, enforce safety standards, and track project timelines.
+            - generic [ref=f12e616]:
+              - generic [ref=f12e617]: Construction
+              - generic [ref=f12e618]: Site Management
+              - generic [ref=f12e619]: Safety
+              - generic [ref=f12e620]: +1 more
+          - generic [ref=f12e621]:
+            - generic [ref=f12e622]: 2 openings
+            - generic [ref=f12e627]:
+              - link [ref=f12e628] [cursor=pointer]:
+                - /url: /jobs/JP006
+                - button "Details" [ref=f12e629]
+              - button "Apply Now" [ref=f12e630] [cursor=pointer]
+        - generic [ref=f12e633]:
+          - generic [ref=f12e634]:
+            - generic [ref=f12e635]:
+              - generic [ref=f12e636]:
+                - generic [ref=f12e637]: Full-time
+                - generic [ref=f12e638]: Verified
+              - button "Save job" [ref=f12e642]
+            - generic [ref=f12e645]:
+              - generic [ref=f12e646]: Q
+              - generic [ref=f12e647]:
+                - link "Delivery Executive" [ref=f12e648] [cursor=pointer]:
+                  - /url: /jobs/JP005
+                - paragraph [ref=f12e649]: QuickDel Logistics
+            - generic [ref=f12e650]:
+              - generic [ref=f12e651]: Delhi, Delhi
+              - generic [ref=f12e656]: ₹14,000 - ₹18,000
+              - generic [ref=f12e661]: 0-2 years
+              - generic [ref=f12e666]: 10th Pass
+            - paragraph [ref=f12e671]: Deliver e-commerce parcels to residential and commercial addresses across Delhi NCR using mobile navigation app. Flexible shift timing and attractive per-parcel incentives.
+            - generic [ref=f12e672]:
+              - generic [ref=f12e673]: Driving
+              - generic [ref=f12e674]: Navigation
+              - generic [ref=f12e675]: Customer Service
+          - generic [ref=f12e676]:
+            - generic [ref=f12e677]: 20 openings
+            - generic [ref=f12e682]:
+              - link [ref=f12e683] [cursor=pointer]:
+                - /url: /jobs/JP005
+                - button "Details" [ref=f12e684]
+              - button "Apply Now" [ref=f12e685] [cursor=pointer]
+        - generic [ref=f12e688]:
+          - generic [ref=f12e689]:
+            - generic [ref=f12e690]:
+              - generic [ref=f12e691]:
+                - generic [ref=f12e692]: Full-time
+                - generic [ref=f12e693]: Verified
+              - button "Save job" [ref=f12e697]
+            - generic [ref=f12e700]:
+              - generic [ref=f12e701]: M
+              - generic [ref=f12e702]:
+                - link "Staff Nurse" [ref=f12e703] [cursor=pointer]:
+                  - /url: /jobs/JP004
+                - paragraph [ref=f12e704]: Metro Hospital Group
+            - generic [ref=f12e705]:
+              - generic [ref=f12e706]: Hyderabad, Telangana
+              - generic [ref=f12e711]: ₹20,000 - ₹28,000
+              - generic [ref=f12e716]: 2-5 years
+              - generic [ref=f12e721]: B.Sc Nursing
+            - paragraph [ref=f12e726]: Provide high-quality clinical patient care in ward and ICU units. Assist senior physicians during rounds, administer medications, and maintain patient care plans.
+            - generic [ref=f12e727]:
+              - generic [ref=f12e728]: Nursing
+              - generic [ref=f12e729]: Patient Care
+              - generic [ref=f12e730]: ICU
+              - generic [ref=f12e731]: +1 more
+          - generic [ref=f12e732]:
+            - generic [ref=f12e733]: 8 openings
+            - generic [ref=f12e738]:
+              - link [ref=f12e739] [cursor=pointer]:
+                - /url: /jobs/JP004
+                - button "Details" [ref=f12e740]
+              - button "Apply Now" [ref=f12e741] [cursor=pointer]
+        - generic [ref=f12e744]:
+          - generic [ref=f12e745]:
+            - generic [ref=f12e746]:
+              - generic [ref=f12e747]:
+                - generic [ref=f12e748]: Full-time
+                - generic [ref=f12e749]: Verified
+              - button "Save job" [ref=f12e753]
+            - generic [ref=f12e756]:
+              - generic [ref=f12e757]: T
+              - generic [ref=f12e758]:
+                - link "Data Entry Operator" [ref=f12e759] [cursor=pointer]:
+                  - /url: /jobs/JP003
+                - paragraph [ref=f12e760]: TechRural Solutions
+            - generic [ref=f12e761]:
+              - generic [ref=f12e762]: Jaipur, Rajasthan
+              - generic [ref=f12e767]: ₹12,000 - ₹16,000
+              - generic [ref=f12e772]: 0-2 years
+              - generic [ref=f12e777]: 12th Pass
+            - paragraph [ref=f12e782]: Accurately enter and verify customer data in digitized CRM databases. Maintain confidential records and generate daily output reports.
+            - generic [ref=f12e783]:
+              - generic [ref=f12e784]: Data Entry
+              - generic [ref=f12e785]: MS Office
+              - generic [ref=f12e786]: Typing
+              - generic [ref=f12e787]: +1 more
+          - generic [ref=f12e788]:
+            - generic [ref=f12e789]: 10 openings
+            - generic [ref=f12e794]:
+              - link [ref=f12e795] [cursor=pointer]:
+                - /url: /jobs/JP003
+                - button "Details" [ref=f12e796]
+              - button "Apply Now" [ref=f12e797] [cursor=pointer]
+        - generic [ref=f12e800]:
+          - generic [ref=f12e801]:
+            - generic [ref=f12e802]:
+              - generic [ref=f12e803]:
+                - generic [ref=f12e804]: Full-time
+                - generic [ref=f12e805]: Verified
+              - button "Save job" [ref=f12e809]
+            - generic [ref=f12e812]:
+              - generic [ref=f12e813]: G
+              - generic [ref=f12e814]:
+                - link "Field Supervisor" [ref=f12e815] [cursor=pointer]:
+                  - /url: /jobs/JP002
+                - paragraph [ref=f12e816]: Greenfield Agro Pvt Ltd
+            - generic [ref=f12e817]:
+              - generic [ref=f12e818]: Nashik, Maharashtra
+              - generic [ref=f12e823]: ₹15,000 - ₹20,000
+              - generic [ref=f12e828]: 1-3 years
+              - generic [ref=f12e833]: B.Sc Agriculture
+            - paragraph [ref=f12e838]: Supervise field agricultural operations, manage farm workforce, monitor crop health and manage drip irrigation systems across 100+ acres.
+            - generic [ref=f12e839]:
+              - generic [ref=f12e840]: Agriculture
+              - generic [ref=f12e841]: Team Management
+              - generic [ref=f12e842]: Crop Management
+              - generic [ref=f12e843]: +1 more
+          - generic [ref=f12e844]:
+            - generic [ref=f12e845]: 3 openings
+            - generic [ref=f12e850]:
+              - link [ref=f12e851] [cursor=pointer]:
+                - /url: /jobs/JP002
+                - button "Details" [ref=f12e852]
+              - button "Apply Now" [ref=f12e853] [cursor=pointer]
+        - generic [ref=f12e856]:
+          - generic [ref=f12e857]:
+            - generic [ref=f12e858]:
+              - generic [ref=f12e859]:
+                - generic [ref=f12e860]: Full-time
+                - generic [ref=f12e861]: Verified
+              - button "Save job" [ref=f12e865]
+            - generic [ref=f12e868]:
+              - generic [ref=f12e869]: B
+              - generic [ref=f12e870]:
+                - link "Machine Operator" [ref=f12e871] [cursor=pointer]:
+                  - /url: /jobs/JP001
+                - paragraph [ref=f12e872]: Bharat Manufacturing Co.
+            - generic [ref=f12e873]:
+              - generic [ref=f12e874]: Pune, Maharashtra
+              - generic [ref=f12e879]: ₹18,000 - ₹22,000
+              - generic [ref=f12e884]: 2-5 years
+              - generic [ref=f12e889]: ITI
+            - paragraph [ref=f12e894]: Operate and maintain CNC machines in a modern manufacturing facility. Ensure strict quality control and safety compliance during daily production shifts.
+            - generic [ref=f12e895]:
+              - generic [ref=f12e896]: Machine Operation
+              - generic [ref=f12e897]: Quality Check
+              - generic [ref=f12e898]: CNC
+              - generic [ref=f12e899]: +1 more
+          - generic [ref=f12e900]:
+            - generic [ref=f12e901]: 5 openings
+            - generic [ref=f12e906]:
+              - link [ref=f12e907] [cursor=pointer]:
+                - /url: /jobs/JP001
+                - button "Details" [ref=f12e908]
+              - button "Apply Now" [ref=f12e909] [cursor=pointer]
+  - contentinfo [ref=f12e912]:
+    - generic [ref=f12e914]:
+      - generic [ref=f12e915]:
+        - link "Rojgaar Hai" [ref=f12e916] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=f12e923]: Connecting skilled talent with opportunities across India.
+      - navigation "Footer navigation" [ref=f12e924]:
+        - link "Home" [ref=f12e925] [cursor=pointer]:
+          - /url: /
+        - link "Jobs" [ref=f12e926] [cursor=pointer]:
+          - /url: /jobs
+        - link "Contact" [ref=f12e927] [cursor=pointer]:
+          - /url: /contact
+        - link "About Us" [ref=f12e928] [cursor=pointer]:
+          - /url: /job-seeker-info
+      - generic [ref=f12e929]:
+        - link "LinkedIn" [ref=f12e930] [cursor=pointer]:
+          - /url: "#linkedin"
+        - link "Twitter" [ref=f12e933] [cursor=pointer]:
+          - /url: "#twitter"
+        - link "Instagram" [ref=f12e936] [cursor=pointer]:
+          - /url: "#instagram"
