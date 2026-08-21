@@ -54,6 +54,22 @@ export default function Dashboard() {
     { month: 'Feb', candidates: 110, placements: 25, revenue: 75000 },
   ];
 
+  const candidatesByStatus = [
+    { name: 'New', value: jobSeekers.filter(j => j.status === 'New').length, color: '#F15A24' },
+    { name: 'Contacted', value: jobSeekers.filter(j => j.status === 'Contacted').length, color: '#D97706' },
+    { name: 'Interviewed', value: jobSeekers.filter(j => j.status === 'Interviewed').length, color: '#F15A24' },
+    { name: 'Placed', value: jobSeekers.filter(j => j.status === 'Placed').length, color: '#16A34A' },
+  ].filter(d => d.value > 0);
+
+  const jobsByIndustry = Object.entries(
+    jobPostings.reduce((acc: Record<string, number>, j) => {
+      const employer = employers.find(e => e.id === j.employerId);
+      const industry = employer?.industry || 'Other';
+      acc[industry] = (acc[industry] || 0) + 1;
+      return acc;
+    }, {})
+  ).map(([name, count]) => ({ name, count }));
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
