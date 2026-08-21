@@ -153,7 +153,7 @@ function EmployerInfo() {
               </span>
               <span className="relative inline-block mt-1 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
                 Start Here.
-                <svg className="absolute left-0 -bottom-1 w-[92%]" viewBox="0 0 200 14" fill="none" aria-hidden="true">
+                <svg className="absolute left-0 -bottom-3 w-[92%]" viewBox="0 0 200 14" fill="none" aria-hidden="true">
                   <path d="M3 7C40 2 90 1 140 5C160 6.5 180 9 197 6" stroke="var(--purple)" strokeWidth="3" strokeLinecap="round" />
                 </svg>
               </span>
