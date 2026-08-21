@@ -45,6 +45,15 @@ export default function Dashboard() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+  const monthlyData = [
+    { month: 'Sep', candidates: 45, placements: 8, revenue: 24000 },
+    { month: 'Oct', candidates: 62, placements: 12, revenue: 36000 },
+    { month: 'Nov', candidates: 78, placements: 15, revenue: 45000 },
+    { month: 'Dec', candidates: 95, placements: 18, revenue: 54000 },
+    { month: 'Jan', candidates: 120, placements: 22, revenue: 66000 },
+    { month: 'Feb', candidates: 110, placements: 25, revenue: 75000 },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
