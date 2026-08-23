@@ -676,3 +676,67 @@ html.lenis, html.lenis body {
   border-radius: 0 3px 3px 0;
   background: var(--orange);
 }
+
+/* ============================================
+   DASHBOARD SYSTEM — MOBILE (<=640px)
+   Additive only: desktop rules above are untouched.
+   ============================================ */
+@media (max-width: 640px) {
+  .dash-container {
+    width: calc(100% - 24px);
+  }
+
+  .dash-header {
+    padding: 20px 0 16px;
+    gap: 14px;
+  }
+
+  .dash-header__title {
+    font-size: 22px;
+  }
+
+  .dash-header__subtitle {
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  /* Metrics: clean 2-column grid instead of cramped bordered flex-wrap */
+  .dash-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 16px;
+    background: var(--white);
+    border: 1px solid #E7E2D9;
+    border-radius: 14px;
+    border-bottom: 1px solid #E7E2D9;
+  }
+
+  .dash-metric {
+    flex: none;
+    padding: 0;
+    border-left: none;
+  }
+
+  .dash-metric__value {
+    font-size: 22px;
+  }
+
+  .dash-surface--pad {
+    padding: 16px;
+  }
+
+  .dash-section-title {
+    font-size: 15.5px;
+  }
+
+  .dash-btn {
+    font-size: 13px;
+    padding: 0 14px;
+  }
+
+  /* Avoid horizontal viewport overflow from any wide inline layout */
+  .dash-shell {
+    overflow-x: hidden;
+  }
+}

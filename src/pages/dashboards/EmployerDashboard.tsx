@@ -499,7 +499,7 @@ function EmployerDashboard() {
               Recruiter Workspace · {employer.industry} · {employer.city}, {employer.state} · Contact: {employer.contactName}
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <button onClick={openEditCompany} className="dash-btn dash-btn-secondary dash-btn--compact">
               Edit Company
             </button>
@@ -554,7 +554,7 @@ function EmployerDashboard() {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               <select
                 value={dateFilter}
                 onChange={e => setDateFilter(e.target.value)}

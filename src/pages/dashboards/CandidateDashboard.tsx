@@ -293,6 +293,7 @@ function CandidateDashboard() {
               </Button>
             </Link>
 
+            <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-2 rounded-xl hover:bg-slate-100 text-[var(--charcoal)] transition-colors relative"
@@ -308,7 +309,7 @@ function CandidateDashboard() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 animate-fade-in">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h4 className="font-bold text-[var(--navy)] text-sm flex items-center gap-2">
                     <Bell size={16} className="text-[var(--orange)]" /> Notifications
@@ -336,6 +337,7 @@ function CandidateDashboard() {
                 </button>
               </div>
             )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">

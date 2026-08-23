@@ -90,7 +90,7 @@ export default function JobApprovals() {
           <h2 className="text-2xl font-bold text-[var(--navy)]">Job Postings</h2>
           <p className="text-sm text-[var(--charcoal)] mt-1">{jobs.length} total · {pendingCount} awaiting approval</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select
             options={[
               { value: 'All', label: 'All Statuses' },

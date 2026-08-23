@@ -316,20 +316,34 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   };
 
   const sectionTabs = [
-    { id: 'personal', label: '1. Personal Info', icon: <User size={16} /> },
-    { id: 'location', label: '2. Location & Relocation', icon: <MapPin size={16} /> },
-    { id: 'professional', label: '3. Professional Info', icon: <Briefcase size={16} /> },
-    { id: 'education', label: '4. Education', icon: <GraduationCap size={16} /> },
-    { id: 'skills', label: '5. Skills', icon: <Sparkles size={16} /> },
-    { id: 'resume', label: '6. Resume', icon: <FileText size={16} /> },
-    { id: 'experience', label: '7. Experience', icon: <Award size={16} /> },
-    { id: 'preferences', label: '8. Expected Job', icon: <Briefcase size={16} /> },
-    { id: 'documents', label: '9. Documents Vault', icon: <Shield size={16} /> },
-    { id: 'social', label: '10. Social Links', icon: <Globe size={16} /> },
-    { id: 'bio', label: '11. About Me / Bio', icon: <BookOpen size={16} /> },
-    { id: 'languages', label: '12. Languages', icon: <Globe size={16} /> },
-    { id: 'certifications', label: '13. Certifications', icon: <Award size={16} /> },
+    { id: 'personal', label: 'Personal Info', icon: <User size={16} /> },
+    { id: 'location', label: 'Location & Relocation', icon: <MapPin size={16} /> },
+    { id: 'professional', label: 'Professional Info', icon: <Briefcase size={16} /> },
+    { id: 'education', label: 'Education', icon: <GraduationCap size={16} /> },
+    { id: 'skills', label: 'Skills', icon: <Sparkles size={16} /> },
+    { id: 'resume', label: 'Resume', icon: <FileText size={16} /> },
+    { id: 'experience', label: 'Experience', icon: <Award size={16} /> },
+    { id: 'preferences', label: 'Expected Job', icon: <Briefcase size={16} /> },
+    { id: 'documents', label: 'Documents Vault', icon: <Shield size={16} /> },
+    { id: 'social', label: 'Social Links', icon: <Globe size={16} /> },
+    { id: 'bio', label: 'About Me / Bio', icon: <BookOpen size={16} /> },
+    { id: 'languages', label: 'Languages', icon: <Globe size={16} /> },
+    { id: 'certifications', label: 'Certifications', icon: <Award size={16} /> },
   ];
+
+  const activeStepIndex = sectionTabs.findIndex(t => t.id === activeSection);
+
+  const [visitedSections, setVisitedSections] = useState<Set<string>>(new Set(['personal']));
+
+  const goToSection = (id: string) => {
+    setActiveSection(id);
+    setVisitedSections(prev => new Set(prev).add(id));
+  };
+
+  const goStep = (delta: number) => {
+    const nextIndex = Math.min(sectionTabs.length - 1, Math.max(0, activeStepIndex + delta));
+    goToSection(sectionTabs[nextIndex].id);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -345,59 +359,123 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
       
       {/* Modal Container */}
-      <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
-        
+      <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
+
         {/* ═══ HEADER BAR ═══ */}
-        <div className="bg-slate-900 text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-[var(--orange)] text-white rounded-2xl flex items-center justify-center font-extrabold text-xl shadow-lg">
+        <div
+          className="relative text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}
+        >
+          <div
+            className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-20 blur-2xl"
+            style={{ background: 'radial-gradient(circle, var(--orange) 0%, transparent 70%)' }}
+          />
+
+          <div className="relative flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-gradient-to-br from-[var(--orange)] to-[#d94d1a] text-white rounded-2xl flex items-center justify-center font-extrabold text-xl shadow-lg ring-2 ring-white/15">
               {firstName[0] || 'C'}{lastName[0] || 'P'}
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Manage & Edit Profile</h2>
-              <p className="text-xs text-white/80">Keep your information updated for 3x higher recruiter visibility</p>
+              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Manage & Edit Profile</h2>
+              <p className="text-xs text-white/70 mt-0.5">Step {activeStepIndex + 1} of {sectionTabs.length} · {sectionTabs[activeStepIndex]?.label}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Live Profile Completion Pill */}
-            <div className="flex items-center gap-2 bg-slate-800 px-3.5 py-1.5 rounded-full border border-slate-700">
-              <span className="text-xs text-slate-300 font-semibold">Profile Score:</span>
-              <span className="text-sm font-extrabold text-[var(--orange)]">{liveCompletion}%</span>
-              <div className="w-16 bg-slate-700 rounded-full h-2 overflow-hidden">
-                <div className="bg-[var(--orange)] h-2 transition-all duration-300" style={{ width: `${liveCompletion}%` }} />
+          <div className="relative flex items-center gap-4">
+            {/* Live Profile Completion Ring */}
+            <div className="hidden sm:flex items-center gap-2.5 bg-white/[0.06] px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+              <div className="relative w-8 h-8 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-8 h-8 -rotate-90">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+                  <circle
+                    cx="18" cy="18" r="15" fill="none" stroke="var(--orange)" strokeWidth="4" strokeLinecap="round"
+                    strokeDasharray={`${(liveCompletion / 100) * 94.2} 94.2`}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold">{liveCompletion}%</span>
+              </div>
+              <div className="leading-tight">
+                <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wide">Profile Score</p>
+                <p className="text-xs font-bold text-white">{liveCompletion >= 80 ? 'Excellent' : liveCompletion >= 50 ? 'Good progress' : 'Just getting started'}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
             >
               <HugeiconsIcon icon={Cancel01Icon} size={19} />
             </button>
           </div>
         </div>
 
+        {/* ═══ STEP PROGRESS BAR ═══ */}
+        <div className="px-5 sm:px-6 py-3 bg-white border-b border-slate-100 flex items-center gap-3">
+          <button
+            onClick={() => goStep(-1)}
+            disabled={activeStepIndex === 0}
+            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            aria-label="Previous step"
+          >
+            ‹
+          </button>
+          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-all duration-400 ease-out"
+              style={{ width: `${((activeStepIndex + 1) / sectionTabs.length) * 100}%` }}
+            />
+          </div>
+          <button
+            onClick={() => goStep(1)}
+            disabled={activeStepIndex === sectionTabs.length - 1}
+            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            aria-label="Next step"
+          >
+            ›
+          </button>
+        </div>
+
         {/* ═══ BODY SECTION (LEFT TAB SIDEBAR + RIGHT FORM EDITOR) ═══ */}
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
-          {/* LEFT TABS SIDEBAR (Desktop 2-col, Mobile scrollable pills) */}
-          <div className="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
-            {sectionTabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveSection(tab.id)}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all text-left ${
-                  activeSection === tab.id
-                    ? 'bg-[var(--orange)] text-white shadow-md shadow-orange-600/20'
-                    : 'text-slate-600 hover:bg-slate-200/60'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
+          {/* LEFT STEPPER SIDEBAR (Desktop vertical stepper, Mobile scrollable pills) */}
+          <div className="w-full md:w-72 bg-slate-50 border-r border-slate-200 p-3 md:p-4 flex md:flex-col gap-1 md:gap-0 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
+            {sectionTabs.map((tab, i) => {
+              const isActive = activeSection === tab.id;
+              const isDone = visitedSections.has(tab.id) && !isActive;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => goToSection(tab.id)}
+                  className={`relative flex items-center gap-3 px-2.5 md:px-3 py-2.5 md:py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all text-left group ${
+                    isActive ? 'bg-white shadow-md shadow-slate-900/5 border border-slate-200' : 'hover:bg-slate-100/80 border border-transparent'
+                  }`}
+                >
+                  {/* Connecting line (desktop only) */}
+                  {i < sectionTabs.length - 1 && (
+                    <span className="hidden md:block absolute left-[27px] top-[38px] w-px h-[calc(100%-14px)] bg-slate-200" />
+                  )}
+
+                  <span
+                    className={`relative z-10 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold transition-colors ${
+                      isActive
+                        ? 'bg-[var(--orange)] text-white shadow-sm shadow-orange-600/30'
+                        : isDone
+                        ? 'bg-[var(--green)]/12 text-[var(--green)]'
+                        : 'bg-slate-200/80 text-slate-500 group-hover:bg-slate-300/70'
+                    }`}
+                  >
+                    {isDone ? <CheckCircle size={13} /> : i + 1}
+                  </span>
+
+                  <span className={`flex items-center gap-1.5 min-w-0 ${isActive ? 'text-[var(--navy)]' : isDone ? 'text-slate-700' : 'text-slate-500'}`}>
+                    <span className={isActive ? 'text-[var(--orange)]' : 'opacity-60'}>{tab.icon}</span>
+                    <span className="truncate">{tab.label}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* RIGHT SCROLLABLE SECTION EDITOR */}
