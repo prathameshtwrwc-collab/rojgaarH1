@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Reveal from '../components/Reveal';
 import AnimatedCounter from '../components/AnimatedCounter';
+import RoleChooserModal from '../components/RoleChooserModal';
 
 const testimonialCards = [
   {
@@ -26,6 +27,7 @@ function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [activeCard, setActiveCard] = useState(1);
+  const [showRoleChooser, setShowRoleChooser] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setAtTop(window.scrollY === 0);
@@ -51,10 +53,10 @@ function Landing() {
               <Link to="/jobs" className="nav-link">Apply for Jobs</Link>
             </nav>
 
-            <Link to="/register/job-seeker" className="btn-header-cta">
+            <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
               <span>Get Started</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </Link>
+            </button>
 
             <button
               className="menu-toggle"
@@ -73,7 +75,7 @@ function Landing() {
             <Link to="/employer-info" onClick={() => setMenuOpen(false)}>For Employers</Link>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
             <Link to="/jobs" onClick={() => setMenuOpen(false)}>Apply for Jobs</Link>
-            <Link to="/register/job-seeker" className="mobile-nav-cta" onClick={() => setMenuOpen(false)}>Get Started</Link>
+              <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">Get Started</button>
           </nav>
         )}
       </header>
@@ -484,6 +486,8 @@ function Landing() {
           </div>
         </footer>
       </section>
+
+      <RoleChooserModal isOpen={showRoleChooser} onClose={() => setShowRoleChooser(false)} mode="signup" />
     </>
   );
 }
