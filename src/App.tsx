@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { DataProvider, useData } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
@@ -22,6 +24,7 @@ import Communications from './pages/admin/Communications';
 import Placements from './pages/admin/Placements';
 import EmployerDetail from './pages/admin/EmployerDetail';
 import JobApprovals from './pages/admin/JobApprovals';
+import JobPostDetail from './pages/admin/JobPostDetail';
 import CandidateLogin from './pages/auth/CandidateLogin';
 import EmployerLogin from './pages/auth/EmployerLogin';
 import AdminLoginPage from './pages/auth/AdminLogin';
@@ -33,6 +36,7 @@ import PostJob from './pages/dashboards/PostJob';
 import { ReactNode } from 'react';
 import PageLoader from './components/PageLoader';
 import ScrollRestoration from './components/ScrollRestoration';
+import AppPreloader from './components/AppPreloader';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 
 function AuthGate() {
@@ -79,7 +83,14 @@ function ProtectedEmployerRoute({ children }: { children: ReactNode }) {
 }
 
 function AppRoutes() {
+  const location = useLocation();
   return (
+    <motion.div
+      key={location.pathname}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+    >
     <Routes>
       {/* Landing page renders without layout wrapper */}
       <Route element={<Landing />} path="/" />
@@ -118,6 +129,7 @@ function AppRoutes() {
       {/* Admin */}
       <Route path="/admin" element={<ProtectedAdminRoute><Dashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/jobs" element={<ProtectedAdminRoute><JobApprovals /></ProtectedAdminRoute>} />
+      <Route path="/admin/jobs/:id" element={<ProtectedAdminRoute><JobPostDetail /></ProtectedAdminRoute>} />
       <Route path="/admin/candidates" element={<ProtectedAdminRoute><Candidates /></ProtectedAdminRoute>} />
       <Route path="/admin/employers" element={<ProtectedAdminRoute><Employers /></ProtectedAdminRoute>} />
       <Route path="/employer/:id" element={<ProtectedAdminRoute><EmployerDetail /></ProtectedAdminRoute>} />
@@ -128,18 +140,27 @@ function AppRoutes() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </motion.div>
   );
 }
 
 function App() {
   useSmoothScroll();
+  const [booting, setBooting] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBooting(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <BrowserRouter>
+      <AppPreloader show={booting} />
       <AuthProvider>
         <DataProvider>
           <DatabaseProvider>
             <ScrollRestoration />
-            <AppRoutes />
+            {!booting && <AppRoutes />}
           </DatabaseProvider>
         </DataProvider>
       </AuthProvider>

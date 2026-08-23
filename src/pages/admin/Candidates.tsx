@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Search, Eye, Mail, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Filter } from 'lucide-react';
+import { Search, Eye, Mail, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Filter, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { hireCandidate as hireCandidateApi } from '../../lib/supabase/data';
+import { exportToCsv } from '../../lib/csvExport';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
   'New': 'info', 'Contacted': 'warning', 'Interviewed': 'default', 'Placed': 'success', 'Inactive': 'danger',
@@ -185,6 +186,35 @@ export default function Candidates() {
 
   const openJobs = jobPostingsDisplay.filter(j => j.status === 'Open');
 
+  const handleExportCsv = () => {
+    exportToCsv('candidates', filtered.map((c: any) => ({
+      'Full Name': `${c.firstName} ${c.lastName}`.trim(),
+      Phone: c.phone,
+      'Date of Birth': c.dob,
+      Gender: c.gender || '',
+      Location: c.location,
+      State: c.state || '',
+      Country: c.country || '',
+      Qualification: c.qualification || '',
+      Skills: c.skills,
+      'Total Experience (yrs)': c.totalExperience,
+      'Expected Salary': c.expectedSalary,
+      'Preferred Job Type': c.preferredJobType,
+      'Willing To Relocate': c.willingToRelocate,
+      Status: c.status,
+      'Marital Status': c.marital_status || '',
+      Nationality: c.nationality || '',
+      'LinkedIn': c.linkedin_url || '',
+      'GitHub': c.github_url || '',
+      'Portfolio': c.portfolio_url || '',
+      'Resume URL': c.resumeFile,
+      'Referred By Employer ID': c.referred_by || '',
+      'Referral Code Used': c.referral_code_used || '',
+      'Date Joined': c.createdAt,
+      'Candidate ID': c.id,
+    })));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -194,6 +224,9 @@ export default function Candidates() {
             Showing {filtered.length} of {jobSeekers.length} candidates • Search by name & filter by date joined
           </p>
         </div>
+        <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 flex-shrink-0">
+          <Download size={15} /> Download CSV
+        </Button>
       </div>
 
       {/* ═══ FILTER BAR ═══ */}

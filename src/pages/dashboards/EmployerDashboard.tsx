@@ -13,6 +13,7 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { updateJobPosting, getCandidatesReferredByEmployer, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCandidateAccountByEmployer } from '../../lib/supabase/data';
 import { DashboardSkeleton } from '../../components/Skeleton';
+import EditCompanyModal from '../../components/EditCompanyModal';
 
 function formatExperience(min: number | null, max: number | null): string {
   if (min != null && max != null) return `${min}-${max} years`;
@@ -186,7 +187,7 @@ function EmployerDashboard() {
     const dismissedKey = `rojgaarhai_company_profile_skipped_${mappedEmployer.id}`;
     if (localStorage.getItem(dismissedKey)) return;
     setCompanyForm({
-      companyName: '', industry: '', companySize: '', website: '', address: '',
+      companyName: '', industry: '', companySize: '', yearEstablished: '', website: '', gstNumber: '', address: '',
       city: mappedEmployer.city, state: mappedEmployer.state,
       contactName: mappedEmployer.contactName, contactEmail: mappedEmployer.contactEmail, contactPhone: mappedEmployer.contactPhone,
     });
@@ -392,7 +393,9 @@ function EmployerDashboard() {
       companyName: employer.companyName,
       industry: employer.industry,
       companySize: employer.companySize,
+      yearEstablished: employer.yearEstablished,
       website: employer.website,
+      gstNumber: employer.gstNumber,
       address: employer.address,
       city: employer.city,
       state: employer.state,
@@ -403,21 +406,23 @@ function EmployerDashboard() {
     setShowEditCompanyModal(true);
   };
 
-  const saveCompanyEdit = async () => {
-    if (!companyForm) return;
+  const saveCompanyEdit = async (submittedForm: typeof companyForm) => {
+    if (!submittedForm) return;
     setSavingCompany(true);
     try {
       await updateEmployerProfile(employer.id, {
-        company_name: companyForm.companyName,
-        industry: companyForm.industry,
-        company_size: companyForm.companySize,
-        website: companyForm.website,
-        address: companyForm.address,
-        city: companyForm.city,
-        state: companyForm.state,
-        contact_name: companyForm.contactName,
-        contact_email: companyForm.contactEmail,
-        contact_phone: companyForm.contactPhone,
+        company_name: submittedForm.companyName,
+        industry: submittedForm.industry,
+        company_size: submittedForm.companySize,
+        year_established: submittedForm.yearEstablished ? Number(submittedForm.yearEstablished) : null,
+        website: submittedForm.website,
+        gst_number: submittedForm.gstNumber,
+        address: submittedForm.address,
+        city: submittedForm.city,
+        state: submittedForm.state,
+        contact_name: submittedForm.contactName,
+        contact_email: submittedForm.contactEmail,
+        contact_phone: submittedForm.contactPhone,
       } as any);
       setToastMessage('Company details updated successfully.');
       setShowEditCompanyModal(false);
@@ -1044,78 +1049,23 @@ function EmployerDashboard() {
         )}
       </Modal>
 
-      {/* ═══ EDIT COMPANY MODAL ═══ */}
-      <Modal
-        isOpen={showEditCompanyModal}
-        onClose={() => setShowEditCompanyModal(false)}
-        title={mappedEmployer?.companyNameSet ? 'Edit Company Details' : 'Complete Your Company Profile'}
-        size="md"
-      >
-        {companyForm && (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Company Name</label>
-              <input value={companyForm.companyName} onChange={e => setCompanyForm({ ...companyForm, companyName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Industry</label>
-                <input value={companyForm.industry} onChange={e => setCompanyForm({ ...companyForm, industry: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Company Size</label>
-                <input value={companyForm.companySize} onChange={e => setCompanyForm({ ...companyForm, companySize: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Website</label>
-              <input value={companyForm.website} onChange={e => setCompanyForm({ ...companyForm, website: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Address</label>
-              <input value={companyForm.address} onChange={e => setCompanyForm({ ...companyForm, address: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">City</label>
-                <input value={companyForm.city} onChange={e => setCompanyForm({ ...companyForm, city: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">State</label>
-                <input value={companyForm.state} onChange={e => setCompanyForm({ ...companyForm, state: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Name</label>
-              <input value={companyForm.contactName} onChange={e => setCompanyForm({ ...companyForm, contactName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Email</label>
-                <input value={companyForm.contactEmail} onChange={e => setCompanyForm({ ...companyForm, contactEmail: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Phone</label>
-                <input value={companyForm.contactPhone} onChange={e => setCompanyForm({ ...companyForm, contactPhone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button onClick={saveCompanyEdit} disabled={savingCompany} variant="success">{savingCompany ? 'Saving...' : 'Save Changes'}</Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  if (!mappedEmployer?.companyNameSet && mappedEmployer) {
-                    localStorage.setItem(`rojgaarhai_company_profile_skipped_${mappedEmployer.id}`, '1');
-                  }
-                  setShowEditCompanyModal(false);
-                }}
-              >
-                {mappedEmployer?.companyNameSet ? 'Cancel' : 'Skip for now'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* ═══ EDIT COMPANY MODAL (step-by-step) ═══ */}
+      {companyForm && (
+        <EditCompanyModal
+          isOpen={showEditCompanyModal}
+          onClose={() => setShowEditCompanyModal(false)}
+          onSkip={() => {
+            if (!mappedEmployer?.companyNameSet && mappedEmployer) {
+              localStorage.setItem(`rojgaarhai_company_profile_skipped_${mappedEmployer.id}`, '1');
+            }
+            setShowEditCompanyModal(false);
+          }}
+          onSave={saveCompanyEdit}
+          initial={companyForm}
+          saving={savingCompany}
+          isFirstRun={!mappedEmployer?.companyNameSet}
+        />
+      )}
 
       {/* ═══ PROFILE PREVIEW MODAL ═══ */}
       <Modal isOpen={showProfilePreviewModal} onClose={() => setShowProfilePreviewModal(false)} title="Your Company Profile" size="lg">

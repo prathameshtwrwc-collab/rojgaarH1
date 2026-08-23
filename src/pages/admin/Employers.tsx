@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Eye, Building2 } from 'lucide-react';
+import { Search, Eye, Building2, Download } from 'lucide-react';
 import { Card, Badge, Button, Select } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
+import { exportToCsv } from '../../lib/csvExport';
 
 export default function Employers() {
   const { employers, jobs: jobPostings } = useDatabase();
@@ -22,11 +23,38 @@ export default function Employers() {
 
   const getEmployerJobs = (employerId: string) => jobPostings.filter((j: any) => j.employer_id === employerId);
 
+  const handleExportCsv = () => {
+    exportToCsv('employers', filtered.map((e: any) => ({
+      'Company Name': e.company_name || '',
+      Industry: e.industry || '',
+      'Company Size': e.company_size || '',
+      'Year Established': e.year_established || '',
+      Website: e.website || '',
+      Address: e.address || '',
+      City: e.city || '',
+      State: e.state || '',
+      'Contact Name': e.contact_name || '',
+      'Contact Email': e.contact_email || '',
+      'Contact Phone': e.contact_phone || '',
+      'GST Number': e.gst_number || '',
+      Verified: e.verified,
+      'Referral Code': e.referral_code || '',
+      'Job Postings Count': getEmployerJobs(e.id).length,
+      'Date Joined': e.created_at ? e.created_at.split('T')[0] : '',
+      'Employer ID': e.id,
+    })));
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-[var(--navy)]">Employers</h2>
-        <p className="text-sm text-[var(--charcoal)] mt-1">{employers.length} registered companies</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-[var(--navy)]">Employers</h2>
+          <p className="text-sm text-[var(--charcoal)] mt-1">{employers.length} registered companies</p>
+        </div>
+        <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 flex-shrink-0">
+          <Download size={15} /> Download CSV
+        </Button>
       </div>
 
       <Card className="!p-4">

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createPlacement, updatePlacement as updatePlacementApi } from '../../lib/supabase/data';
+import { exportToCsv } from '../../lib/csvExport';
 
 const statusVariant: Record<string, 'success' | 'warning' | 'danger'> = {
   'Active': 'success', 'Completed': 'warning', 'Terminated': 'danger',
@@ -62,6 +63,22 @@ export default function Placements() {
     }
   };
 
+  const handleExportCsv = () => {
+    exportToCsv('placements', placements.map((p: any) => ({
+      Candidate: candidateName(p.candidate_id),
+      'Job Title': jobTitle(p.job_id),
+      Employer: employerName(p.employer_id),
+      'Placement Date': p.placement_date,
+      'Handover Date': p.handover_date || '',
+      'Commission (₹)': p.commission,
+      'Commission Status': p.commission_status,
+      Status: p.status,
+      'Placement ID': p.id,
+      'Candidate ID': p.candidate_id,
+      'Job ID': p.job_id,
+    })));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -69,7 +86,10 @@ export default function Placements() {
           <h2 className="text-2xl font-bold text-[var(--navy)]">Placements</h2>
           <p className="text-sm text-[var(--charcoal)] mt-1">Track successful placements and commissions</p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="gap-1"><Plus size={16} /> Record Placement</Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={handleExportCsv} className="gap-1.5"><Download size={15} /> Download CSV</Button>
+          <Button onClick={() => setShowModal(true)} className="gap-1"><Plus size={16} /> Record Placement</Button>
+        </div>
       </div>
 
       {/* Revenue Cards */}
