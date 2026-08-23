@@ -3,7 +3,7 @@ import PageLoader from '../../components/PageLoader';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { signUp } from '../../lib/supabase/auth';
-import { createCandidate, getEmployerByReferralCode } from '../../lib/supabase/data';
+import { createCandidate, getEmployerByReferralCode, getRecruiterByReferralCode } from '../../lib/supabase/data';
 import { useAuth } from '../../context/AuthContext';
 import AuthSwitcher from '../../components/AuthSwitcher';
 
@@ -23,6 +23,7 @@ export default function CandidateSignup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get('ref');
+  const recruiterCode = searchParams.get('recruiter');
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -30,6 +31,8 @@ export default function CandidateSignup() {
         navigate('/admin', { replace: true });
       } else if (user.role === 'employer') {
         navigate('/dashboard/employer', { replace: true });
+      } else if (user.role === 'recruiter') {
+        navigate('/dashboard/recruiter', { replace: true });
       } else {
         navigate('/dashboard/candidate', { replace: true });
       }
@@ -65,11 +68,15 @@ export default function CandidateSignup() {
         role: 'candidate',
       });
       let referredBy: string | null = null;
-      if (refCode) {
+      let referredByRecruiter: string | null = null;
+      if (recruiterCode) {
+        const referringRecruiter = await getRecruiterByReferralCode(recruiterCode);
+        if (referringRecruiter) referredByRecruiter = referringRecruiter.id;
+      } else if (refCode) {
         const referringEmployer = await getEmployerByReferralCode(refCode);
         if (referringEmployer) referredBy = referringEmployer.id;
       }
-      await createCandidate(authUser.id, referredBy, refCode || null);
+      await createCandidate(authUser.id, referredBy, recruiterCode || refCode || null, referredByRecruiter);
       navigate('/dashboard/candidate', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');

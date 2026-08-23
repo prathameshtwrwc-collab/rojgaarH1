@@ -85,6 +85,8 @@ export default function JobApprovals() {
         status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: new Date().toISOString(),
       } as any);
       await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to approve job. Make sure supabase/recruiter-feature.sql has been run.');
     } finally {
       setBusyJobId(null);
     }
@@ -95,6 +97,8 @@ export default function JobApprovals() {
     try {
       await updateJobPosting(job.id, { status: 'Closed', is_verified: false } as any);
       await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update job. Make sure supabase/recruiter-feature.sql has been run.');
     } finally {
       setBusyJobId(null);
     }

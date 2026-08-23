@@ -49,6 +49,7 @@ function Landing() {
             <nav className="nav" aria-label="Primary">
               <Link to="/job-seeker-info" className="nav-link">For Job Seekers</Link>
               <Link to="/employer-info" className="nav-link">For Employers</Link>
+              <Link to="/recruiter-info" className="nav-link">Recruiters</Link>
               <Link to="/contact" className="nav-link">Contact</Link>
               <Link to="/jobs" className="nav-link">Apply for Jobs</Link>
             </nav>
@@ -73,6 +74,7 @@ function Landing() {
           <nav className="mobile-nav" aria-label="Mobile">
             <Link to="/job-seeker-info" onClick={() => setMenuOpen(false)}>For Job Seekers</Link>
             <Link to="/employer-info" onClick={() => setMenuOpen(false)}>For Employers</Link>
+            <Link to="/recruiter-info" onClick={() => setMenuOpen(false)}>Recruiters</Link>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
             <Link to="/jobs" onClick={() => setMenuOpen(false)}>Apply for Jobs</Link>
               <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">Get Started</button>

@@ -55,11 +55,17 @@ export async function getCandidateByUserId(userId: string): Promise<CandidateRow
   return data;
 }
 
-export async function createCandidate(userId: string, referredBy?: string | null, referralCodeUsed?: string | null): Promise<void> {
+export async function createCandidate(
+  userId: string,
+  referredBy?: string | null,
+  referralCodeUsed?: string | null,
+  referredByRecruiter?: string | null
+): Promise<void> {
   const { error } = await supabase.from('candidates').insert({
     id: userId,
     referred_by: referredBy || null,
     referral_code_used: referralCodeUsed || null,
+    referred_by_recruiter: referredByRecruiter || null,
   } as never);
   if (error) throw error;
 }
@@ -87,6 +93,124 @@ export async function createCandidateAccountByEmployer(employerId: string, detai
   const { error: candErr } = await tempClient.from('candidates').insert({
     id: data.user.id,
     referred_by: employerId,
+    referral_code_used: 'recruiter-onboarded',
+  } as never);
+  if (candErr) throw candErr;
+
+  await tempClient.auth.signOut();
+
+  return { candidateId: data.user.id, password };
+}
+
+// ── Recruiters ──────────────────────────────────────────────────────────
+
+export async function createRecruiter(userId: string, details: { fullName?: string; phone?: string }): Promise<void> {
+  const referralCode = `RC${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const { error } = await supabase.from('recruiters').insert({
+    id: userId,
+    full_name: details.fullName || null,
+    phone: details.phone || null,
+    referral_code: referralCode,
+    is_approved: false,
+  } as never);
+  if (error) throw error;
+}
+
+export async function getRecruiterByUserId(userId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('recruiters')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching recruiter:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function getAllRecruiters(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('recruiters')
+    .select('*, profiles!recruiters_id_fkey(full_name, phone)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching recruiters:', error);
+    return [];
+  }
+  return (data || []).map((r: any) => ({
+    ...r,
+    profile_name: r.profiles?.full_name || r.full_name || '',
+    profile_phone: r.profiles?.phone || r.phone || '',
+  }));
+}
+
+export async function getRecruiterByReferralCode(code: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('recruiters')
+    .select('*')
+    .eq('referral_code', code)
+    .single();
+
+  if (error) {
+    console.error('Error fetching recruiter by referral code:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateRecruiterApproval(recruiterId: string, isApproved: boolean, adminId: string | null): Promise<void> {
+  const { error } = await supabase.from('recruiters').update({
+    is_approved: isApproved,
+    approved_by: isApproved ? adminId : null,
+    approved_at: isApproved ? new Date().toISOString() : null,
+  } as never).eq('id', recruiterId);
+  if (error) throw error;
+}
+
+export async function getCandidatesReferredByRecruiter(recruiterId: string): Promise<(CandidateRow & { profile_name?: string; profile_phone?: string })[]> {
+  const { data, error } = await supabase
+    .from('candidates')
+    .select('*, profiles!candidates_id_fkey(full_name, phone)')
+    .eq('referred_by_recruiter', recruiterId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching recruiter-referred candidates:', error);
+    return [];
+  }
+  return (data || []).map((c: any) => ({
+    ...c,
+    profile_name: c.profiles?.full_name || '',
+    profile_phone: c.profiles?.phone || '',
+  }));
+}
+
+export async function createCandidateAccountByRecruiter(recruiterId: string, details: {
+  fullName: string;
+  phone: string;
+  email: string;
+}): Promise<{ candidateId: string; password: string }> {
+  const { createTempClient } = await import('./tempClient');
+  const tempClient = createTempClient();
+
+  const password = `RH${Math.random().toString(36).slice(2, 8)}${Math.floor(Math.random() * 90 + 10)}`;
+
+  const { data, error } = await tempClient.auth.signUp({
+    email: details.email,
+    password,
+    options: {
+      data: { role: 'candidate', full_name: details.fullName, phone: details.phone },
+    },
+  });
+  if (error) throw error;
+  if (!data.user) throw new Error('Failed to create candidate account');
+
+  const { error: candErr } = await tempClient.from('candidates').insert({
+    id: data.user.id,
+    referred_by_recruiter: recruiterId,
     referral_code_used: 'recruiter-onboarded',
   } as never);
   if (candErr) throw candErr;

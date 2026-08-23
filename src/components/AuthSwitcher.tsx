@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 
 interface AuthSwitcherProps {
   active: 'login' | 'signup';
-  role: 'candidate' | 'employer';
+  role: 'candidate' | 'employer' | 'recruiter';
 }
 
 const routes = {
   candidate: { login: '/login/candidate', signup: '/register/job-seeker' },
   employer: { login: '/login/employer', signup: '/register/employer' },
+  recruiter: { login: '/login/recruiter', signup: '/register/recruiter' },
 };
 
 export default function AuthSwitcher({ active, role }: AuthSwitcherProps) {

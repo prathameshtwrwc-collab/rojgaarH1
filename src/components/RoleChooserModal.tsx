@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Building2, ArrowRight } from 'lucide-react';
+import { X, Users, Building2, ArrowRight, UserSearch } from 'lucide-react';
 
 interface RoleChooserModalProps {
   isOpen: boolean;
@@ -8,15 +8,18 @@ interface RoleChooserModalProps {
   mode: 'signup' | 'login';
 }
 
+const paths = {
+  candidate: { signup: '/register/job-seeker', login: '/login/candidate' },
+  employer: { signup: '/register/employer', login: '/login/employer' },
+  recruiter: { signup: '/register/recruiter', login: '/login/recruiter' },
+};
+
 export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserModalProps) {
   const navigate = useNavigate();
 
-  const go = (role: 'candidate' | 'employer') => {
+  const go = (role: 'candidate' | 'employer' | 'recruiter') => {
     onClose();
-    const path = mode === 'signup'
-      ? (role === 'candidate' ? '/register/job-seeker' : '/register/employer')
-      : (role === 'candidate' ? '/login/candidate' : '/login/employer');
-    navigate(path);
+    navigate(paths[role][mode]);
   };
 
   return (
@@ -84,6 +87,22 @@ export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserM
                   <p className="text-xs text-[var(--charcoal)]">Post jobs and hire pre-screened talent</p>
                 </div>
                 <ArrowRight size={18} className="text-slate-300 group-hover:text-[var(--green)] group-hover:translate-x-1 transition-all flex-shrink-0" />
+              </motion.button>
+
+              <motion.button
+                onClick={() => go('recruiter')}
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.98 }}
+                className="group flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-200 hover:border-[#7655D9] hover:bg-purple-50/40 transition-colors text-left"
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#7655D9]/10 text-[#7655D9] flex items-center justify-center flex-shrink-0">
+                  <UserSearch size={22} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[var(--navy)]">I'm a Recruiter</p>
+                  <p className="text-xs text-[var(--charcoal)]">Refer candidates and grow your network</p>
+                </div>
+                <ArrowRight size={18} className="text-slate-300 group-hover:text-[#7655D9] group-hover:translate-x-1 transition-all flex-shrink-0" />
               </motion.button>
             </div>
           </motion.div>

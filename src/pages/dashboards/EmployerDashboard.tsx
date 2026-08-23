@@ -4,14 +4,14 @@ import {
   Building2, Briefcase, Users, MapPin, FileText, LogOut, Eye, IndianRupee,
   Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
   Download, Copy, Share2, PauseCircle,
-  XCircle, Video, Link2, UserPlus2
+  XCircle, Video
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Activity03Icon } from '@hugeicons/core-free-icons';
 import { Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
-import { updateJobPosting, getCandidatesReferredByEmployer, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCandidateAccountByEmployer } from '../../lib/supabase/data';
+import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile } from '../../lib/supabase/data';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
 
@@ -115,15 +115,10 @@ function EmployerDashboard() {
   const [viewingApplicant, setViewingApplicant] = useState<any | null>(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [referredCandidates, setReferredCandidates] = useState<any[]>([]);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
   const [companyForm, setCompanyForm] = useState<any>(null);
   const [savingCompany, setSavingCompany] = useState(false);
-  const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
-  const [addCandidateForm, setAddCandidateForm] = useState({ fullName: '', phone: '', email: '' });
-  const [addingCandidate, setAddingCandidate] = useState(false);
-  const [newCandidateCreds, setNewCandidateCreds] = useState<{ email: string; password: string } | null>(null);
 
   const mappedEmployer = useMemo(() => {
     if (!employerData) return null;
@@ -152,8 +147,6 @@ function EmployerDashboard() {
     return new Map(candidates.map((c: any) => [c.id, c]));
   }, [candidates]);
 
-  const referralLink = mappedEmployer ? `${window.location.origin}/register/job-seeker?ref=${mappedEmployer.referralCode}` : '';
-
   const myJobs = useMemo(() => {
     if (!mappedEmployer) return [];
     return jobs.map(j => mapJob(j, mappedEmployer.companyName, jobSkills));
@@ -176,11 +169,6 @@ function EmployerDashboard() {
     const myJobIds = new Set(myJobs.map(j => j.id));
     return matches.filter((m: any) => myJobIds.has(m.job_id) && m.status === 'Interview Scheduled').length;
   }, [matches, myJobs]);
-
-  useEffect(() => {
-    if (!mappedEmployer) return;
-    getCandidatesReferredByEmployer(mappedEmployer.id).then(setReferredCandidates);
-  }, [mappedEmployer?.id]);
 
   useEffect(() => {
     if (!mappedEmployer || mappedEmployer.companyNameSet) return;
@@ -434,22 +422,6 @@ function EmployerDashboard() {
     }
   };
 
-  const handleAddCandidate = async () => {
-    if (!addCandidateForm.fullName || !addCandidateForm.phone || !addCandidateForm.email) return;
-    setAddingCandidate(true);
-    try {
-      const { password } = await createCandidateAccountByEmployer(employer.id, addCandidateForm);
-      setNewCandidateCreds({ email: addCandidateForm.email, password });
-      setAddCandidateForm({ fullName: '', phone: '', email: '' });
-      const referred = await getCandidatesReferredByEmployer(employer.id);
-      setReferredCandidates(referred);
-    } catch (err) {
-      setToastMessage(err instanceof Error ? err.message : 'Failed to create candidate account.');
-    } finally {
-      setAddingCandidate(false);
-    }
-  };
-
   return (
     <div className="dash-shell text-[var(--navy)] pb-16" style={{ fontFamily: 'var(--font)' }}>
 
@@ -464,7 +436,7 @@ function EmployerDashboard() {
               <Building2 size={16} />
             </div>
             <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">Rojgaar Hai</span>
-            <span className="dash-status dash-status--neutral ml-1">Recruiter Workspace</span>
+            <span className="dash-status dash-status--neutral ml-1">Employer Workspace</span>
           </Link>
 
           <div className="flex items-center gap-3">
@@ -501,7 +473,7 @@ function EmployerDashboard() {
               {employer.verified && <span className="dash-status dash-status--success"><ShieldCheck size={11} /> Verified</span>}
             </div>
             <p className="dash-header__subtitle">
-              Recruiter Workspace · {employer.industry} · {employer.city}, {employer.state} · Contact: {employer.contactName}
+              Employer Workspace · {employer.industry} · {employer.city}, {employer.state} · Contact: {employer.contactName}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
@@ -836,84 +808,6 @@ function EmployerDashboard() {
           )}
         </div>
 
-        {/* ═══ YOUR CANDIDATE NETWORK (unique link + manual onboarding) ═══ */}
-        <div>
-          <div className="dash-section-title mb-4">Your Candidate Network ({referredCandidates.length})</div>
-
-          <div className="dash-surface dash-surface--pad mb-4">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">
-                <Link2 size={18} />
-              </div>
-              <div>
-                <p className="font-bold text-[var(--navy)] text-[14px]">Your Unique Referral Link</p>
-                <p className="text-xs text-[var(--charcoal)]">Share this with candidates — anyone who registers through it is automatically mapped to your account.</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch gap-2">
-              <div className="flex-1 px-3.5 py-2.5 bg-[var(--bg-warm)] border border-[#E7E2D9] rounded-xl text-xs sm:text-sm font-mono text-[var(--navy)] truncate">
-                {referralLink}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => { navigator.clipboard.writeText(referralLink); setToastMessage('Referral link copied to clipboard!'); }}
-                  className="gap-1"
-                >
-                  <Copy size={14} /> Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    if (navigator.share) {
-                      try { await navigator.share({ title: `Join ${employer.companyName} on Rojgaar Hai`, text: 'Register as a candidate using my referral link:', url: referralLink }); }
-                      catch { /* user cancelled share */ }
-                    } else {
-                      navigator.clipboard.writeText(referralLink);
-                      setToastMessage('Sharing not supported on this device — link copied instead!');
-                    }
-                  }}
-                  className="gap-1"
-                >
-                  <Share2 size={14} /> Share
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="dash-surface dash-surface--pad mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-bold text-[var(--navy)] text-[14px]">Onboard a candidate in person</p>
-              <p className="text-xs text-[var(--charcoal)]">For candidates without internet access or tech familiarity — create their account for them at their doorstep.</p>
-            </div>
-            <Button onClick={() => setShowAddCandidateModal(true)} className="gap-1.5 flex-shrink-0">
-              <UserPlus2 size={16} /> Add Candidate
-            </Button>
-          </div>
-
-          <div className="dash-surface dash-surface--pad">
-            {referredCandidates.length === 0 ? (
-              <p className="text-sm text-[var(--charcoal)] text-center py-4">
-                No candidates in your network yet.
-              </p>
-            ) : (
-              <div className="divide-y divide-[#EFEAE1]">
-                {referredCandidates.map((c: any) => (
-                  <div key={c.id} className="flex items-center justify-between py-2.5">
-                    <div>
-                      <p className="font-semibold text-[13px] text-[var(--navy)]">{c.profile_name || 'Unnamed candidate'}</p>
-                      <p className="text-[11px] text-[var(--charcoal)]">{c.profile_phone} · Registered {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                    </div>
-                    <Badge variant="info" className="text-[10px]">{c.status}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* ═══ RECRUITMENT INSIGHTS, ACTIVITY & NOTIFICATIONS ═══ */}
         <div className="grid lg:grid-cols-3 gap-8">
 
@@ -1096,52 +990,6 @@ function EmployerDashboard() {
             </div>
           </div>
         </div>
-      </Modal>
-
-      {/* ═══ ADD CANDIDATE MODAL ═══ */}
-      <Modal
-        isOpen={showAddCandidateModal}
-        onClose={() => { setShowAddCandidateModal(false); setNewCandidateCreds(null); }}
-        title="Add Candidate on Their Behalf"
-        size="md"
-      >
-        {newCandidateCreds ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-              <UserPlus2 size={28} className="text-[var(--green)] mx-auto mb-2" />
-              <p className="font-bold text-[var(--navy)]">Candidate account created!</p>
-              <p className="text-xs text-[var(--charcoal)] mt-1">Share these login details with the candidate so they can access their account anytime.</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2 text-sm">
-              <p><span className="text-slate-400">Email:</span> <strong className="text-[var(--navy)]">{newCandidateCreds.email}</strong></p>
-              <p><span className="text-slate-400">Temporary Password:</span> <strong className="text-[var(--navy)] font-mono">{newCandidateCreds.password}</strong></p>
-            </div>
-            <p className="text-xs text-[var(--charcoal)]">They can log in at /login/candidate and complete their own profile details afterward.</p>
-            <Button onClick={() => { setShowAddCandidateModal(false); setNewCandidateCreds(null); }} className="w-full">Done</Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-xs text-[var(--charcoal)]">
-              Create a candidate account for someone without internet access or comfort with signing up themselves. They'll be mapped to your network automatically.
-            </p>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Full Name</label>
-              <input value={addCandidateForm.fullName} onChange={e => setAddCandidateForm({ ...addCandidateForm, fullName: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="Candidate's full name" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Phone Number</label>
-              <input value={addCandidateForm.phone} onChange={e => setAddCandidateForm({ ...addCandidateForm, phone: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="+91 98765 43210" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Email Address</label>
-              <input type="email" value={addCandidateForm.email} onChange={e => setAddCandidateForm({ ...addCandidateForm, email: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="candidate@example.com" />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleAddCandidate} disabled={addingCandidate} variant="success">{addingCandidate ? 'Creating...' : 'Create Account'}</Button>
-              <Button variant="ghost" onClick={() => setShowAddCandidateModal(false)}>Cancel</Button>
-            </div>
-          </div>
-        )}
       </Modal>
 
       {/* Toast Notification */}

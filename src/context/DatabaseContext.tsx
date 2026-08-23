@@ -24,6 +24,9 @@ import {
   getCandidateExperience,
   getCandidateLanguages,
   getCandidateCertifications,
+  getRecruiterByUserId,
+  getAllRecruiters,
+  getCandidatesReferredByRecruiter,
 } from '../lib/supabase/data';
 
 export interface DashboardStats {
@@ -42,6 +45,8 @@ interface DatabaseContextValue {
   profile: any | null;
   employer: any | null;
   candidate: any | null;
+  recruiter: any | null;
+  recruiters: any[];
   jobs: any[];
   employers: any[];
   candidates: any[];
@@ -63,6 +68,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [employer, setEmployer] = useState<any | null>(null);
   const [candidate, setCandidate] = useState<any | null>(null);
+  const [recruiter, setRecruiter] = useState<any | null>(null);
+  const [recruiters, setRecruiters] = useState<any[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
   const [employers, setEmployers] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
@@ -77,6 +84,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setEmployer(null);
       setCandidate(null);
+      setRecruiter(null);
+      setRecruiters([]);
       setJobs([]);
       setEmployers([]);
       setCandidates([]);
@@ -147,8 +156,15 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setJobs(approvedJobs || []);
         setEmployers(allEmployers || []);
         setJobSkills(jobSkillsMap || {});
+      } else if (user.role === 'recruiter') {
+        const [recruiterData, referredCandidates] = await Promise.all([
+          getRecruiterByUserId(user.id),
+          getCandidatesReferredByRecruiter(user.id),
+        ]);
+        setRecruiter(recruiterData);
+        setCandidates(referredCandidates || []);
       } else if (user.role === 'superadmin') {
-        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap] = await Promise.all([
+        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters] = await Promise.all([
           getAllEmployers(),
           getAllCandidates(),
           getAllJobs(),
@@ -156,6 +172,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getPlacements(),
           getCommunications(),
           getAllCandidateSkills(),
+          getAllRecruiters(),
         ]);
         const jobIds = (allJobs || []).map((j: any) => j.id);
         const jobSkillsMap = await getAllJobSkills(jobIds);
@@ -166,6 +183,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setPlacements(allPlacements || []);
         setCommunications(allCommunications || []);
         setJobSkills(jobSkillsMap || {});
+        setRecruiters(allRecruiters || []);
       }
     } catch (err) {
       console.error('Error loading database data:', err);
@@ -188,6 +206,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     profile,
     employer,
     candidate,
+    recruiter,
+    recruiters,
     jobs,
     employers,
     candidates,

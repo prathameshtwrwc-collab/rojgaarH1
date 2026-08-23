@@ -9,6 +9,7 @@ import PublicLayout from './components/PublicLayout';
 import AdminLayout from './components/AdminLayout';
 import JobSeekerInfo from './pages/JobSeekerInfo';
 import EmployerInfo from './pages/EmployerInfo';
+import RecruiterInfo from './pages/RecruiterInfo';
 import Contact from './pages/Contact';
 import AboutUs from './pages/AboutUs';
 import Blog from './pages/Blog';
@@ -25,13 +26,18 @@ import Placements from './pages/admin/Placements';
 import EmployerDetail from './pages/admin/EmployerDetail';
 import JobApprovals from './pages/admin/JobApprovals';
 import JobPostDetail from './pages/admin/JobPostDetail';
+import Recruiters from './pages/admin/Recruiters';
+import RecruiterDetail from './pages/admin/RecruiterDetail';
 import CandidateLogin from './pages/auth/CandidateLogin';
 import EmployerLogin from './pages/auth/EmployerLogin';
+import RecruiterLogin from './pages/auth/RecruiterLogin';
 import AdminLoginPage from './pages/auth/AdminLogin';
 import CandidateSignup from './pages/auth/CandidateSignup';
 import EmployerSignup from './pages/auth/EmployerSignup';
+import RecruiterSignup from './pages/auth/RecruiterSignup';
 import { CandidateDashboard } from './pages/dashboards/CandidateDashboard';
 import { EmployerDashboard } from './pages/dashboards/EmployerDashboard';
+import { RecruiterDashboard } from './pages/dashboards/RecruiterDashboard';
 import PostJob from './pages/dashboards/PostJob';
 import { ReactNode } from 'react';
 import PageLoader from './components/PageLoader';
@@ -82,6 +88,18 @@ function ProtectedEmployerRoute({ children }: { children: ReactNode }) {
   return <Navigate to="/login/employer" replace />;
 }
 
+function ProtectedRecruiterRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) return <AuthGate />;
+
+  if (user?.role === 'recruiter') {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/login/recruiter" replace />;
+}
+
 function AppRoutes() {
   const location = useLocation();
   return (
@@ -100,6 +118,7 @@ function AppRoutes() {
       <Route element={<PublicLayout><JobDetails /></PublicLayout>} path="/jobs/:id" />
       <Route element={<PublicLayout><JobSeekerInfo /></PublicLayout>} path="/job-seeker-info" />
       <Route element={<PublicLayout><EmployerInfo /></PublicLayout>} path="/employer-info" />
+      <Route element={<PublicLayout><RecruiterInfo /></PublicLayout>} path="/recruiter-info" />
       <Route element={<PublicLayout><Contact /></PublicLayout>} path="/contact" />
       <Route element={<PublicLayout><AboutUs /></PublicLayout>} path="/about" />
       <Route element={<PublicLayout><Blog /></PublicLayout>} path="/blog" />
@@ -109,12 +128,16 @@ function AppRoutes() {
       {/* Registration portals */}
       <Route element={<PublicLayout><CandidateSignup /></PublicLayout>} path="/register/job-seeker" />
       <Route element={<PublicLayout><EmployerSignup /></PublicLayout>} path="/register/employer" />
+      <Route element={<PublicLayout><RecruiterSignup /></PublicLayout>} path="/register/recruiter" />
 
       {/* Candidate Auth */}
       <Route element={<PublicLayout><CandidateLogin /></PublicLayout>} path="/login/candidate" />
 
       {/* Employer Auth */}
       <Route element={<PublicLayout><EmployerLogin /></PublicLayout>} path="/login/employer" />
+
+      {/* Recruiter Auth */}
+      <Route element={<PublicLayout><RecruiterLogin /></PublicLayout>} path="/login/recruiter" />
 
       {/* Admin Auth */}
       <Route element={<AdminLoginPage />} path="/admin/login" />
@@ -126,6 +149,9 @@ function AppRoutes() {
       <Route path="/dashboard/employer" element={<ProtectedEmployerRoute><EmployerDashboard /></ProtectedEmployerRoute>} />
       <Route path="/dashboard/employer/post-job" element={<ProtectedEmployerRoute><PostJob /></ProtectedEmployerRoute>} />
 
+      {/* Recruiter Dashboard */}
+      <Route path="/dashboard/recruiter" element={<ProtectedRecruiterRoute><RecruiterDashboard /></ProtectedRecruiterRoute>} />
+
       {/* Admin */}
       <Route path="/admin" element={<ProtectedAdminRoute><Dashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/jobs" element={<ProtectedAdminRoute><JobApprovals /></ProtectedAdminRoute>} />
@@ -133,6 +159,8 @@ function AppRoutes() {
       <Route path="/admin/candidates" element={<ProtectedAdminRoute><Candidates /></ProtectedAdminRoute>} />
       <Route path="/admin/employers" element={<ProtectedAdminRoute><Employers /></ProtectedAdminRoute>} />
       <Route path="/employer/:id" element={<ProtectedAdminRoute><EmployerDetail /></ProtectedAdminRoute>} />
+      <Route path="/admin/recruiters" element={<ProtectedAdminRoute><Recruiters /></ProtectedAdminRoute>} />
+      <Route path="/recruiter/:id" element={<ProtectedAdminRoute><RecruiterDetail /></ProtectedAdminRoute>} />
       <Route path="/admin/matching" element={<ProtectedAdminRoute><Matching /></ProtectedAdminRoute>} />
       <Route path="/admin/communications" element={<ProtectedAdminRoute><Communications /></ProtectedAdminRoute>} />
       <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />

@@ -4,6 +4,19 @@ This file records detailed changes made to the Rojgaar Hai project over time.
 
 ---
 
+## 2026-08-24
+
+### New role: Recruiter (separate from Employer) + job-approval bug fix
+
+- **Bug fix**: superadmin's Approve/Reject on `/admin/jobs` was silently failing — `job_postings` had no RLS policy letting anyone but the owning employer update a job row, so admin's click was blocked by RLS with no visible error. Added a superadmin UPDATE policy in `supabase/recruiter-feature.sql`, plus surfaced any future errors from this action instead of failing silently.
+- **New `recruiter` role**, fully separate from `employer`:
+  - Signup/login (`/register/recruiter`, `/login/recruiter`), info page (`/recruiter-info`) with "Join as a Recruiter" CTA, added to navbar and the "Get Started" role picker (now 3 options).
+  - New account starts **disabled pending superadmin approval** — dashboard shows an "Approval Pending" state and unlocks automatically once approved, no re-login needed.
+  - Recruiter dashboard (`/dashboard/recruiter`): unique referral link (copy/share), "Add Candidate" doorstep-onboarding flow, list of candidates mapped to them, and real stat cards (Referred / Placed / This Month / Awaiting Contact) — **no job posting**, by design.
+  - Admin: `/admin/recruiters` (list, Approve/Suspend, CSV export) and `/recruiter/:id` detail subpage, mirroring the existing Employers admin pages.
+- **Employer dashboard cleanup**: removed the referral-link / Add-Candidate / candidate-network feature that had been added to Employers previously — that capability now belongs exclusively to Recruiters, per explicit product decision to keep the two roles separate.
+- Schema: new `recruiters` table, `candidates.referred_by_recruiter` column, `user_role` enum gains `'recruiter'`. **Run `supabase/recruiter-feature.sql` in two steps (see the file's own instructions — the enum addition must be a separate statement from everything that uses it).**
+
 ## 2026-08-23 (continued, part 5)
 
 ### Bug fixes: modal scrolling, admin candidate names, switcher animation, employer onboarding

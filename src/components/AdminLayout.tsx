@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
@@ -12,6 +12,7 @@ const sidebarItems = [
   { to: '/admin/jobs', label: 'Jobs', icon: <Briefcase size={20} /> },
   { to: '/admin/candidates', label: 'Candidates', icon: <Users size={20} /> },
   { to: '/admin/employers', label: 'Employers', icon: <Building2 size={20} /> },
+  { to: '/admin/recruiters', label: 'Recruiters', icon: <UserSearch size={20} /> },
   { to: '/admin/matching', label: 'Matching', icon: <GitMerge size={20} /> },
   { to: '/admin/communications', label: 'Communications', icon: <MessageSquare size={20} /> },
   { to: '/admin/placements', label: 'Placements', icon: <Award size={20} /> },
