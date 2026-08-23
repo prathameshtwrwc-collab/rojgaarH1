@@ -898,8 +898,6 @@ function EmployerDashboard() {
               <div className="grid grid-cols-2 gap-3 text-xs">
                 {[
                   { label: 'Full Name', value: `${viewingApplicant.firstName} ${viewingApplicant.lastName}` },
-                  { label: 'Phone Number', value: viewingApplicant.phone },
-                  { label: 'Email Address', value: viewingApplicant.email || 'Not available' },
                   { label: 'Date of Birth', value: viewingApplicant.dob },
                   { label: 'Gender', value: viewingApplicant.gender },
                   { label: 'Current Location', value: `${viewingApplicant.location}, ${viewingApplicant.state}` },
@@ -916,6 +914,9 @@ function EmployerDashboard() {
                   </div>
                 ))}
               </div>
+              <p className="text-[11px] text-[var(--charcoal)] mt-3">
+                Candidate contact details (phone, email, address) are kept private and are not shared with employers.
+              </p>
             </div>
 
             {/* Skills */}

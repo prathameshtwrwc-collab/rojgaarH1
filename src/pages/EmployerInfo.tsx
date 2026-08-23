@@ -72,7 +72,7 @@ function EmployerInfo() {
 
   const employerBenefits = [
     { title: 'Hire 3x Faster', desc: 'Pre-matched candidates delivered to your dashboard within 48 hours.', icon: <Zap size={22} className="text-teal-600" /> },
-    { title: 'Zero Upfront Fees', desc: 'Posting jobs is completely free. Pay commission only on successful placements.', icon: <Award size={22} className="text-emerald-600" /> },
+    { title: 'Simple, Fair Pricing', desc: 'Straightforward pricing built for growing teams — no hidden costs, no surprises.', icon: <Award size={22} className="text-emerald-600" /> },
     { title: 'Pre-Screened Workers', desc: 'Every profile is pre-verified for technical skills, experience, and ID.', icon: <ShieldCheck size={22} className="text-[var(--orange)]" /> },
     { title: 'Bulk Hiring Capability', desc: 'Need 5 or 200 workers? Our nationwide talent pool handles bulk plant hiring.', icon: <Users size={22} className="text-purple-600" /> },
     { title: 'Save Time & Recruitment Cost', desc: 'Eliminate middleman agency costs and reduce interviewing overheads.', icon: <TrendingUp size={22} className="text-amber-600" /> },
@@ -108,7 +108,7 @@ function EmployerInfo() {
       avatar: 'KR'
     },
     {
-      quote: 'RojgaarHai connected us with field supervisors and agriculture officers across Nashik. Zero upfront fees and fast candidate turnaround made a huge difference.',
+      quote: 'RojgaarHai connected us with field supervisors and agriculture officers across Nashik. Simple pricing and fast candidate turnaround made a huge difference.',
       name: 'Anita Deshmukh',
       designation: 'Director',
       company: 'Greenfield Agro Pvt Ltd',
