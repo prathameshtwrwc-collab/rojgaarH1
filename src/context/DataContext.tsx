@@ -76,6 +76,8 @@ export interface JobSeeker {
   profilePhoto?: string;
   status: 'New' | 'Contacted' | 'Interviewed' | 'Placed' | 'Inactive';
   createdAt: string;
+  referredBy?: string;
+  referralCodeUsed?: string;
   // Full submission data & documents
   resumeFile?: string;
   profilePhotoFile?: string;
@@ -111,6 +113,8 @@ export interface Employer {
   contactPhone: string;
   gstNumber: string;
   createdAt: string;
+  verified?: boolean;
+  referralCode?: string;
 }
 
 export interface JobPosting {
@@ -133,10 +137,12 @@ export interface JobPosting {
   accommodationProvided: boolean;
   transportationProvided: boolean;
   additionalNotes: string;
-  status: 'Open' | 'Closed' | 'On Hold';
+  status: 'Pending' | 'Open' | 'Closed' | 'On Hold';
   createdAt: string;
   applicants: string[]; // candidate IDs
   isVerified?: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
   deadline?: string;
   responsibilities?: string[];
   requirements?: string[];
@@ -221,21 +227,21 @@ const mockJobSeekers: JobSeeker[] = [
 ];
 
 const mockEmployers: Employer[] = [
-  { id: 'EM001', companyName: 'Bharat Manufacturing Co.', industry: 'Manufacturing', companySize: '50-200', yearEstablished: '2010', website: 'bharatmfg.com', address: 'Plot 45, Industrial Area', city: 'Pune', state: 'Maharashtra', contactName: 'Sanjay Mehta', contactEmail: 'sanjay@bharatmfg.com', contactPhone: '+91-9812345001', gstNumber: '27AABCB1234F1Z5', createdAt: '2024-01-10' },
-  { id: 'EM002', companyName: 'Greenfield Agro Pvt Ltd', industry: 'Agriculture', companySize: '20-50', yearEstablished: '2015', website: 'greenfieldagro.in', address: '56, Agri Park', city: 'Nashik', state: 'Maharashtra', contactName: 'Anita Deshmukh', contactEmail: 'anita@greenfieldagro.in', contactPhone: '+91-9812345002', gstNumber: '', createdAt: '2024-01-12' },
-  { id: 'EM003', companyName: 'TechRural Solutions', industry: 'IT Services', companySize: '10-20', yearEstablished: '2018', website: 'techrural.com', address: '12, Tech Hub', city: 'Jaipur', state: 'Rajasthan', contactName: 'Rohit Agarwal', contactEmail: 'rohit@techrural.com', contactPhone: '+91-9812345003', gstNumber: '08AABCT5678G1Z3', createdAt: '2024-01-15' },
-  { id: 'EM004', companyName: 'Metro Hospital Group', industry: 'Healthcare', companySize: '200-500', yearEstablished: '2005', website: 'metrohospital.org', address: '78, Health City', city: 'Hyderabad', state: 'Telangana', contactName: 'Dr. K. Rao', contactEmail: 'krao@metrohospital.org', contactPhone: '+91-9812345004', gstNumber: '36AABCM9012H1Z7', createdAt: '2024-01-18' },
-  { id: 'EM005', companyName: 'QuickDel Logistics', industry: 'Logistics', companySize: '50-200', yearEstablished: '2012', website: 'quickdel.in', address: '23, Transport Nagar', city: 'Delhi', state: 'Delhi', contactName: 'Manish Gupta', contactEmail: 'manish@quickdel.in', contactPhone: '+91-9812345005', gstNumber: '07AABCQ3456K1Z9', createdAt: '2024-01-22' },
-  { id: 'EM006', companyName: 'Sunrise Construction', industry: 'Construction', companySize: '100-500', yearEstablished: '2008', website: 'sunrisecon.com', address: '45, Builder Colony', city: 'Bangalore', state: 'Karnataka', contactName: 'Venkat Reddy', contactEmail: 'venkat@sunrisecon.com', contactPhone: '+91-9812345006', gstNumber: '29AABCS7890L1Z1', createdAt: '2024-02-01' },
-  { id: 'EM007', companyName: 'Apex Pharma Industries', industry: 'Healthcare', companySize: '50-200', yearEstablished: '2011', website: 'apexpharma.co.in', address: '89, Pharma Zone', city: 'Hyderabad', state: 'Telangana', contactName: 'Dr. Sandhya Nair', contactEmail: 'sandhya@apexpharma.co.in', contactPhone: '+91-9812345007', gstNumber: '36AABCA4567B1Z4', createdAt: '2024-02-05' },
-  { id: 'EM008', companyName: 'Northern Steel Works', industry: 'Manufacturing', companySize: '200-500', yearEstablished: '2003', website: 'northernsteel.in', address: '12, Industrial Estate', city: 'Manesar', state: 'Haryana', contactName: 'Kapil Sharma', contactEmail: 'kapil@northernsteel.in', contactPhone: '+91-9812345008', gstNumber: '06AABCN8901C1Z8', createdAt: '2024-02-08' },
-  { id: 'EM009', companyName: 'FreshBasket Agro', industry: 'Agriculture', companySize: '20-50', yearEstablished: '2019', website: 'freshbasket.in', address: '34, Farm Hub', city: 'Nashik', state: 'Maharashtra', contactName: 'Prashant Kulkarni', contactEmail: 'prashant@freshbasket.in', contactPhone: '+91-9812345009', gstNumber: '', createdAt: '2024-02-12' },
-  { id: 'EM010', companyName: 'CareWell Hospitals', industry: 'Healthcare', companySize: '100-500', yearEstablished: '2007', website: 'carewellhospitals.com', address: '55, Medical District', city: 'Chennai', state: 'Tamil Nadu', contactName: 'Dr. Revathi Subramaniam', contactEmail: 'revathi@carewellhospitals.com', contactPhone: '+91-9812345010', gstNumber: '33AABCC2345D1Z2', createdAt: '2024-02-15' },
+  { id: 'EM001', companyName: 'Bharat Manufacturing Co.', industry: 'Manufacturing', companySize: '50-200', yearEstablished: '2010', website: 'bharatmfg.com', address: 'Plot 45, Industrial Area', city: 'Pune', state: 'Maharashtra', contactName: 'Sanjay Mehta', contactEmail: 'sanjay@bharatmfg.com', contactPhone: '+91-9812345001', gstNumber: '27AABCB1234F1Z5', createdAt: '2024-01-10', verified: true, referralCode: 'EM001-REF' },
+  { id: 'EM002', companyName: 'Greenfield Agro Pvt Ltd', industry: 'Agriculture', companySize: '20-50', yearEstablished: '2015', website: 'greenfieldagro.in', address: '56, Agri Park', city: 'Nashik', state: 'Maharashtra', contactName: 'Anita Deshmukh', contactEmail: 'anita@greenfieldagro.in', contactPhone: '+91-9812345002', gstNumber: '', createdAt: '2024-01-12', verified: true, referralCode: 'EM002-REF' },
+  { id: 'EM003', companyName: 'TechRural Solutions', industry: 'IT Services', companySize: '10-20', yearEstablished: '2018', website: 'techrural.com', address: '12, Tech Hub', city: 'Jaipur', state: 'Rajasthan', contactName: 'Rohit Agarwal', contactEmail: 'rohit@techrural.com', contactPhone: '+91-9812345003', gstNumber: '08AABCT5678G1Z3', createdAt: '2024-01-15', verified: true, referralCode: 'EM003-REF' },
+  { id: 'EM004', companyName: 'Metro Hospital Group', industry: 'Healthcare', companySize: '200-500', yearEstablished: '2005', website: 'metrohospital.org', address: '78, Health City', city: 'Hyderabad', state: 'Telangana', contactName: 'Dr. K. Rao', contactEmail: 'krao@metrohospital.org', contactPhone: '+91-9812345004', gstNumber: '36AABCM9012H1Z7', createdAt: '2024-01-18', verified: true, referralCode: 'EM004-REF' },
+  { id: 'EM005', companyName: 'QuickDel Logistics', industry: 'Logistics', companySize: '50-200', yearEstablished: '2012', website: 'quickdel.in', address: '23, Transport Nagar', city: 'Delhi', state: 'Delhi', contactName: 'Manish Gupta', contactEmail: 'manish@quickdel.in', contactPhone: '+91-9812345005', gstNumber: '07AABCQ3456K1Z9', createdAt: '2024-01-22', verified: true, referralCode: 'EM005-REF' },
+  { id: 'EM006', companyName: 'Sunrise Construction', industry: 'Construction', companySize: '100-500', yearEstablished: '2008', website: 'sunrisecon.com', address: '45, Builder Colony', city: 'Bangalore', state: 'Karnataka', contactName: 'Venkat Reddy', contactEmail: 'venkat@sunrisecon.com', contactPhone: '+91-9812345006', gstNumber: '29AABCS7890L1Z1', createdAt: '2024-02-01', verified: true, referralCode: 'EM006-REF' },
+  { id: 'EM007', companyName: 'Apex Pharma Industries', industry: 'Healthcare', companySize: '50-200', yearEstablished: '2011', website: 'apexpharma.co.in', address: '89, Pharma Zone', city: 'Hyderabad', state: 'Telangana', contactName: 'Dr. Sandhya Nair', contactEmail: 'sandhya@apexpharma.co.in', contactPhone: '+91-9812345007', gstNumber: '36AABCA4567B1Z4', createdAt: '2024-02-05', verified: true, referralCode: 'EM007-REF' },
+  { id: 'EM008', companyName: 'Northern Steel Works', industry: 'Manufacturing', companySize: '200-500', yearEstablished: '2003', website: 'northernsteel.in', address: '12, Industrial Estate', city: 'Manesar', state: 'Haryana', contactName: 'Kapil Sharma', contactEmail: 'kapil@northernsteel.in', contactPhone: '+91-9812345008', gstNumber: '06AABCN8901C1Z8', createdAt: '2024-02-08', verified: true, referralCode: 'EM008-REF' },
+  { id: 'EM009', companyName: 'FreshBasket Agro', industry: 'Agriculture', companySize: '20-50', yearEstablished: '2019', website: 'freshbasket.in', address: '34, Farm Hub', city: 'Nashik', state: 'Maharashtra', contactName: 'Prashant Kulkarni', contactEmail: 'prashant@freshbasket.in', contactPhone: '+91-9812345009', gstNumber: '', createdAt: '2024-02-12', verified: true, referralCode: 'EM009-REF' },
+  { id: 'EM010', companyName: 'CareWell Hospitals', industry: 'Healthcare', companySize: '100-500', yearEstablished: '2007', website: 'carewellhospitals.com', address: '55, Medical District', city: 'Chennai', state: 'Tamil Nadu', contactName: 'Dr. Revathi Subramaniam', contactEmail: 'revathi@carewellhospitals.com', contactPhone: '+91-9812345010', gstNumber: '33AABCC2345D1Z2', createdAt: '2024-02-15', verified: true, referralCode: 'EM010-REF' },
 ];
 
 const mockJobPostings: JobPosting[] = [
   {
-    id: 'JP001', employerId: 'EM001', companyName: 'Bharat Manufacturing Co.', jobTitle: 'Machine Operator', numberOfOpenings: 5, city: 'Pune', state: 'Maharashtra', salaryMin: '18000', salaryMax: '22000', employmentType: 'Full-time', qualificationRequired: 'ITI', experienceRequired: '2-5 years', skillsRequired: ['Machine Operation', 'Quality Check', 'CNC', 'Maintenance'], jobDescription: 'Operate and maintain CNC machines in a modern manufacturing facility. Ensure strict quality control and safety compliance during daily production shifts.', benefits: 'PF, ESI, Free Accommodation, Meals, Annual Bonus', joiningTimeline: 'Immediate', accommodationProvided: true, transportationProvided: true, additionalNotes: 'Rotational shifts', status: 'Open', createdAt: '2024-01-15', applicants: ['JS003', 'JS009', 'JS021', 'JS025'], isVerified: true, deadline: '2024-04-15',
+    id: 'JP001', employerId: 'EM001', companyName: 'Bharat Manufacturing Co.', jobTitle: 'Machine Operator', numberOfOpenings: 5, city: 'Pune', state: 'Maharashtra', salaryMin: '18000', salaryMax: '22000', employmentType: 'Full-time', qualificationRequired: 'ITI', experienceRequired: '2-5 years', skillsRequired: ['Machine Operation', 'Quality Check', 'CNC', 'Maintenance'], jobDescription: 'Operate and maintain CNC machines in a modern manufacturing facility. Ensure strict quality control and safety compliance during daily production shifts.', benefits: 'PF, ESI, Free Accommodation, Meals, Annual Bonus', joiningTimeline: 'Immediate', accommodationProvided: true, transportationProvided: true, additionalNotes: 'Rotational shifts', status: 'Open', createdAt: '2024-01-15', applicants: ['JS003', 'JS009', 'JS021', 'JS025'], isVerified: true, approvedBy: 'SA001', approvedAt: '2024-01-15', deadline: '2024-04-15',
     responsibilities: ['Operate CNC turning and milling machinery according to specifications.', 'Inspect finished components using precision measuring instruments (micrometers, calipers).', 'Perform routine preventive maintenance on assigned machinery.', 'Maintain daily production logs and report any machinery malfunction immediately.'],
     requirements: ['ITI certification in Fitter/Turner/Machinist trade.', 'Minimum 2 years hands-on experience operating CNC machinery.', 'Ability to read technical engineering drawings.', 'Strong physical stamina and willingness to work rotational shifts.'],
     workingHours: '8 Hours Shift (6 days/week)', recruiterName: 'Sanjay Mehta', recruiterEmail: 'sanjay@bharatmfg.com', recruiterPhone: '+91-9812345001'
@@ -259,7 +265,7 @@ const mockJobPostings: JobPosting[] = [
     workingHours: 'Rotational 8-Hour Shifts', recruiterName: 'Dr. K. Rao', recruiterEmail: 'krao@metrohospital.org', recruiterPhone: '+91-9812345004'
   },
   {
-    id: 'JP005', employerId: 'EM005', companyName: 'QuickDel Logistics', jobTitle: 'Delivery Executive', numberOfOpenings: 20, city: 'Delhi', state: 'Delhi', salaryMin: '14000', salaryMax: '18000', employmentType: 'Full-time', qualificationRequired: '10th Pass', experienceRequired: '0-2 years', skillsRequired: ['Driving', 'Navigation', 'Customer Service'], jobDescription: 'Deliver e-commerce parcels to residential and commercial addresses across Delhi NCR using mobile navigation app. Flexible shift timing and attractive per-parcel incentives.', benefits: 'Fuel Allowance, Per-Parcel Incentive (₹15/parcel), Accidental Insurance', joiningTimeline: 'Immediate', accommodationProvided: false, transportationProvided: false, additionalNotes: 'Must own a two-wheeler and valid driving license.', status: 'Open', createdAt: '2024-01-28', applicants: ['JS007', 'JS017'], isVerified: true, deadline: '2024-04-18',
+    id: 'JP005', employerId: 'EM005', companyName: 'QuickDel Logistics', jobTitle: 'Delivery Executive', numberOfOpenings: 20, city: 'Delhi', state: 'Delhi', salaryMin: '14000', salaryMax: '18000', employmentType: 'Full-time', qualificationRequired: '10th Pass', experienceRequired: '0-2 years', skillsRequired: ['Driving', 'Navigation', 'Customer Service'], jobDescription: 'Deliver e-commerce parcels to residential and commercial addresses across Delhi NCR using mobile navigation app. Flexible shift timing and attractive per-parcel incentives.', benefits: 'Fuel Allowance, Per-Parcel Incentive (₹15/parcel), Accidental Insurance', joiningTimeline: 'Immediate', accommodationProvided: false, transportationProvided: false, additionalNotes: 'Must own a two-wheeler and valid driving license.', status: 'Pending', createdAt: '2024-01-28', applicants: ['JS007', 'JS017'], isVerified: false, deadline: '2024-04-18',
     responsibilities: ['Load parcels from dispatch hub into delivery bag.', 'Navigate assigned delivery route using mobile app GPS.', 'Deliver packages safely to customers and collect digital signatures/COD payments.', 'Maintain polite and professional demeanor with customers.'],
     requirements: ['10th pass qualification.', 'Valid Indian driving license and active smartphone.', 'Own two-wheeler with valid registration & insurance.', 'Punctual and energetic attitude.'],
     workingHours: '9:00 AM - 6:00 PM (6 days/week)', recruiterName: 'Manish Gupta', recruiterEmail: 'manish@quickdel.in', recruiterPhone: '+91-9812345005'

@@ -1,48 +1,64 @@
 import { useState } from 'react';
 import { MessageSquare, Plus, Mail, Phone as PhoneIcon, Search } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Textarea, Input } from '../../components/ui';
-import { useData, Communication } from '../../context/DataContext';
+import { useDatabase } from '../../context/DatabaseContext';
+import { useAuth } from '../../context/AuthContext';
+import { createCommunication } from '../../lib/supabase/data';
 
 const typeIcon: Record<string, React.ReactNode> = {
-  'Email': <Mail size={14} />,
-  'Call': <PhoneIcon size={14} />,
-  'SMS': <MessageSquare size={14} />,
-  'In-Person': <PhoneIcon size={14} />,
+  'email': <Mail size={14} />,
+  'call': <PhoneIcon size={14} />,
+  'sms': <MessageSquare size={14} />,
+  'in_person': <PhoneIcon size={14} />,
 };
 
 const typeVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
-  'Email': 'info', 'Call': 'success', 'SMS': 'warning', 'In-Person': 'default',
+  'email': 'info', 'call': 'success', 'sms': 'warning', 'in_person': 'default',
 };
 
 export default function Communications() {
-  const { communications, addCommunication } = useData();
+  const { communications, refresh } = useDatabase();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [newComm, setNewComm] = useState({
-    type: 'Email' as Communication['type'],
-    contactType: 'Candidate' as Communication['contactType'],
+    type: 'email',
+    contactType: 'candidate',
     contactName: '',
     subject: '',
     notes: '',
     outcome: '',
   });
 
-  const filtered = communications.filter(c => {
+  const filtered = communications.filter((c: any) => {
     return !search ||
-      c.contactName.toLowerCase().includes(search.toLowerCase()) ||
-      c.subject.toLowerCase().includes(search.toLowerCase());
-  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      (c.contact_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.subject || '').toLowerCase().includes(search.toLowerCase());
+  }).sort((a: any, b: any) => new Date(b.communication_date).getTime() - new Date(a.communication_date).getTime());
 
-  const handleAdd = () => {
-    const comm: Communication = {
-      id: `CO${String(Date.now()).slice(-6)}`,
-      date: new Date().toISOString().split('T')[0],
-      ...newComm,
-      agentName: 'Admin',
-    };
-    addCommunication(comm);
-    setShowModal(false);
-    setNewComm({ type: 'Email', contactType: 'Candidate', contactName: '', subject: '', notes: '', outcome: '' });
+  const handleAdd = async () => {
+    if (!newComm.contactName || !newComm.subject || !newComm.notes) return;
+    setSaving(true);
+    try {
+      await createCommunication({
+        communication_date: new Date().toISOString(),
+        type: newComm.type as any,
+        contact_type: newComm.contactType as any,
+        contact_name: newComm.contactName,
+        subject: newComm.subject,
+        notes: newComm.notes,
+        outcome: newComm.outcome || null,
+        agent_id: user?.id,
+      } as any);
+      await refresh();
+      setShowModal(false);
+      setNewComm({ type: 'email', contactType: 'candidate', contactName: '', subject: '', notes: '', outcome: '' });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save communication');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -69,19 +85,19 @@ export default function Communications() {
       </Card>
 
       <div className="space-y-3">
-        {filtered.map(comm => (
+        {filtered.map((comm: any) => (
           <Card key={comm.id} className="hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
-              <div className={`p-2.5 rounded-xl text-sm ${comm.type === 'Email' ? 'bg-[#F15A24]/5 text-[var(--orange)]' : comm.type === 'Call' ? 'bg-[#0D604A]/5 text-[var(--green)]' : 'bg-[#F15A24]/5 text-[var(--orange)]'}`}>
-                {typeIcon[comm.type]}
+              <div className={`p-2.5 rounded-xl text-sm ${comm.type === 'email' ? 'bg-[#F15A24]/5 text-[var(--orange)]' : comm.type === 'call' ? 'bg-[#0D604A]/5 text-[var(--green)]' : 'bg-[#F15A24]/5 text-[var(--orange)]'}`}>
+                {typeIcon[comm.type] || <MessageSquare size={14} />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-bold text-[var(--navy)]">{comm.subject}</h4>
-                  <Badge variant={typeVariant[comm.type]}>{comm.type}</Badge>
-                  <Badge variant={comm.contactType === 'Candidate' ? 'info' : 'success'}>{comm.contactType}</Badge>
+                  <Badge variant={typeVariant[comm.type] || 'default'}>{comm.type}</Badge>
+                  <Badge variant={comm.contact_type === 'candidate' ? 'info' : 'success'}>{comm.contact_type}</Badge>
                 </div>
-                <p className="text-sm text-[var(--charcoal)] mt-0.5 font-medium">With {comm.contactName} • {comm.date}</p>
+                <p className="text-sm text-[var(--charcoal)] mt-0.5 font-medium">With {comm.contact_name} • {new Date(comm.communication_date).toLocaleDateString()}</p>
                 <p className="text-sm text-[var(--charcoal)] mt-2 line-clamp-2 leading-relaxed">{comm.notes}</p>
                 {comm.outcome && (
                   <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--bg-warm)] rounded-lg text-xs font-semibold text-[var(--charcoal)]">
@@ -89,7 +105,6 @@ export default function Communications() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-[var(--charcoal)] flex-shrink-0">by {comm.agentName}</p>
             </div>
           </Card>
         ))}
@@ -104,22 +119,22 @@ export default function Communications() {
             <Select
               label="Type"
               options={[
-                { value: 'Email', label: 'Email' },
-                { value: 'Call', label: 'Phone Call' },
-                { value: 'SMS', label: 'SMS' },
-                { value: 'In-Person', label: 'In-Person' },
+                { value: 'email', label: 'Email' },
+                { value: 'call', label: 'Phone Call' },
+                { value: 'sms', label: 'SMS' },
+                { value: 'in_person', label: 'In-Person' },
               ]}
               value={newComm.type}
-              onChange={e => setNewComm(prev => ({ ...prev, type: e.target.value as Communication['type'] }))}
+              onChange={e => setNewComm(prev => ({ ...prev, type: e.target.value }))}
             />
             <Select
               label="Contact Type"
               options={[
-                { value: 'Candidate', label: 'Candidate' },
-                { value: 'Employer', label: 'Employer' },
+                { value: 'candidate', label: 'Candidate' },
+                { value: 'employer', label: 'Employer' },
               ]}
               value={newComm.contactType}
-              onChange={e => setNewComm(prev => ({ ...prev, contactType: e.target.value as Communication['contactType'] }))}
+              onChange={e => setNewComm(prev => ({ ...prev, contactType: e.target.value }))}
             />
           </div>
           <Input
@@ -150,7 +165,7 @@ export default function Communications() {
             placeholder="e.g. Interview confirmed, Candidate interested"
           />
           <div className="flex gap-2 pt-2">
-            <Button onClick={handleAdd} className="gap-1"><Plus size={14} /> Save Communication</Button>
+            <Button onClick={handleAdd} disabled={saving} className="gap-1"><Plus size={14} /> {saving ? 'Saving...' : 'Save Communication'}</Button>
             <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input } from '../../components/ui';
-import { useData, Placement } from '../../context/DataContext';
+import { useDatabase } from '../../context/DatabaseContext';
+import { createPlacement, updatePlacement as updatePlacementApi } from '../../lib/supabase/data';
 
 const statusVariant: Record<string, 'success' | 'warning' | 'danger'> = {
   'Active': 'success', 'Completed': 'warning', 'Terminated': 'danger',
@@ -11,38 +12,53 @@ const commissionVariant: Record<string, 'success' | 'danger' | 'warning'> = {
 };
 
 export default function Placements() {
-  const { placements, addPlacement, updatePlacement, jobSeekers, jobPostings, employers } = useData();
+  const { placements, candidates, jobs: jobPostings, employers, refresh } = useDatabase();
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [newPlacement, setNewPlacement] = useState({
     candidateId: '', jobId: '', placementDate: '', handoverDate: '', commission: '4000',
-    commissionStatus: 'Unpaid' as Placement['commissionStatus'], status: 'Active' as Placement['status'],
+    commissionStatus: 'Unpaid', status: 'Active',
   });
 
-  const totalRevenue = placements.reduce((s, p) => s + p.commission, 0);
-  const paidRevenue = placements.filter(p => p.commissionStatus === 'Paid').reduce((s, p) => s + p.commission, 0);
-  const unpaidRevenue = placements.filter(p => p.commissionStatus === 'Unpaid').reduce((s, p) => s + p.commission, 0);
+  const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
+  const candidateName = (id: string) => candidates.find((c: any) => c.id === id)?.profile_name || 'Unknown';
+  const jobTitle = (id: string) => jobPostings.find((j: any) => j.id === id)?.job_title || 'Unknown';
 
-  const handleAdd = () => {
-    const candidate = jobSeekers.find(c => c.id === newPlacement.candidateId);
-    const job = jobPostings.find(j => j.id === newPlacement.jobId);
-    const employer = employers.find(e => e.id === job?.employerId);
-    if (candidate && job && employer) {
-      const placement: Placement = {
-        id: `PL${String(Date.now()).slice(-6)}`,
-        candidateId: candidate.id,
-        candidateName: `${candidate.firstName} ${candidate.lastName}`,
-        jobId: job.id,
-        jobTitle: job.jobTitle,
-        employerId: employer.id,
-        companyName: employer.companyName,
-        placementDate: newPlacement.placementDate,
-        handoverDate: newPlacement.handoverDate,
+  const totalRevenue = placements.reduce((s: number, p: any) => s + (Number(p.commission) || 0), 0);
+  const paidRevenue = placements.filter((p: any) => p.commission_status === 'Paid').reduce((s: number, p: any) => s + (Number(p.commission) || 0), 0);
+  const unpaidRevenue = placements.filter((p: any) => p.commission_status === 'Unpaid').reduce((s: number, p: any) => s + (Number(p.commission) || 0), 0);
+
+  const handleAdd = async () => {
+    const job = jobPostings.find((j: any) => j.id === newPlacement.jobId);
+    if (!newPlacement.candidateId || !job || !newPlacement.placementDate) return;
+    setSaving(true);
+    try {
+      await createPlacement({
+        candidate_id: newPlacement.candidateId,
+        job_id: job.id,
+        employer_id: job.employer_id,
+        placement_date: newPlacement.placementDate,
+        handover_date: newPlacement.handoverDate || null,
         commission: parseInt(newPlacement.commission) || 4000,
-        commissionStatus: newPlacement.commissionStatus,
-        status: newPlacement.status,
-      };
-      addPlacement(placement);
+        commission_status: newPlacement.commissionStatus as any,
+        status: newPlacement.status as any,
+      } as any);
+      await refresh();
       setShowModal(false);
+      setNewPlacement({ candidateId: '', jobId: '', placementDate: '', handoverDate: '', commission: '4000', commissionStatus: 'Unpaid', status: 'Active' });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to record placement');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markPaid = async (placementId: string) => {
+    try {
+      await updatePlacementApi(placementId, { commission_status: 'Paid' } as any);
+      await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update placement');
     }
   };
 
@@ -104,25 +120,25 @@ export default function Placements() {
               </tr>
             </thead>
             <tbody>
-              {placements.map(p => (
+              {placements.map((p: any) => (
                 <tr key={p.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-bold text-[var(--navy)]">{p.candidateName}</p>
+                    <p className="text-sm font-bold text-[var(--navy)]">{candidateName(p.candidate_id)}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-[var(--navy)]">{p.jobTitle}</p>
-                    <p className="text-xs text-[var(--charcoal)]">{p.companyName}</p>
+                    <p className="text-sm font-medium text-[var(--navy)]">{jobTitle(p.job_id)}</p>
+                    <p className="text-xs text-[var(--charcoal)]">{employerName(p.employer_id)}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden sm:table-cell">{p.placementDate}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden md:table-cell">{p.handoverDate}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden sm:table-cell">{p.placement_date}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden md:table-cell">{p.handover_date || '—'}</td>
                   <td className="px-4 py-3">
-                    <p className="text-sm font-bold text-[var(--navy)]">₹{p.commission.toLocaleString()}</p>
-                    <Badge variant={commissionVariant[p.commissionStatus]} className="text-[10px]">{p.commissionStatus}</Badge>
+                    <p className="text-sm font-bold text-[var(--navy)]">₹{Number(p.commission || 0).toLocaleString()}</p>
+                    <Badge variant={commissionVariant[p.commission_status]} className="text-[10px]">{p.commission_status}</Badge>
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[p.status]}>{p.status}</Badge></td>
                   <td className="px-4 py-3">
-                    {p.commissionStatus === 'Unpaid' && (
-                      <Button variant="ghost" size="sm" onClick={() => updatePlacement(p.id, { commissionStatus: 'Paid' })} className="text-[var(--green)] text-xs font-semibold">
+                    {p.commission_status === 'Unpaid' && (
+                      <Button variant="ghost" size="sm" onClick={() => markPaid(p.id)} className="text-[var(--green)] text-xs font-semibold">
                         Mark Paid
                       </Button>
                     )}
@@ -142,13 +158,13 @@ export default function Placements() {
         <div className="space-y-4">
           <Select
             label="Select Candidate"
-            options={[{ value: '', label: 'Choose candidate...' }, ...jobSeekers.map(c => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))]}
+            options={[{ value: '', label: 'Choose candidate...' }, ...candidates.map((c: any) => ({ value: c.id, label: c.profile_name || c.id }))]}
             value={newPlacement.candidateId}
             onChange={e => setNewPlacement(prev => ({ ...prev, candidateId: e.target.value }))}
           />
           <Select
             label="Select Job"
-            options={[{ value: '', label: 'Choose job...' }, ...jobPostings.map(j => ({ value: j.id, label: `${j.jobTitle} at ${j.companyName}` }))]}
+            options={[{ value: '', label: 'Choose job...' }, ...jobPostings.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
             value={newPlacement.jobId}
             onChange={e => setNewPlacement(prev => ({ ...prev, jobId: e.target.value }))}
           />
@@ -166,7 +182,7 @@ export default function Placements() {
                 { value: 'Partial', label: 'Partial' },
               ]}
               value={newPlacement.commissionStatus}
-              onChange={e => setNewPlacement(prev => ({ ...prev, commissionStatus: e.target.value as Placement['commissionStatus'] }))}
+              onChange={e => setNewPlacement(prev => ({ ...prev, commissionStatus: e.target.value }))}
             />
           </div>
           <Select
@@ -177,10 +193,10 @@ export default function Placements() {
               { value: 'Terminated', label: 'Terminated' },
             ]}
             value={newPlacement.status}
-            onChange={e => setNewPlacement(prev => ({ ...prev, status: e.target.value as Placement['status'] }))}
+            onChange={e => setNewPlacement(prev => ({ ...prev, status: e.target.value }))}
           />
           <div className="flex gap-2 pt-2">
-            <Button onClick={handleAdd} variant="success" className="gap-1"><Award size={14} /> Save Placement</Button>
+            <Button onClick={handleAdd} disabled={saving} variant="success" className="gap-1"><Award size={14} /> {saving ? 'Saving...' : 'Save Placement'}</Button>
             <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
           </div>
         </div>

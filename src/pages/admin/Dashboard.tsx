@@ -1,27 +1,71 @@
-import { useState } from 'react';
-import { Users, Building2, Briefcase, Award, MessageSquare, IndianRupee, ArrowUpRight, ArrowDownRight, Clock, MapPin, Zap, BarChart3, Target } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Users, MapPin, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { UserAdd01Icon, Target02Icon, Chat01Icon, Award01Icon, Briefcase01Icon, Building02Icon, Coins01Icon } from '@hugeicons/core-free-icons';
-import { Card, Badge, Button } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { UserAdd01Icon, Target02Icon, Award01Icon, Briefcase01Icon, Building02Icon } from '@hugeicons/core-free-icons';
+import { Card, Badge } from '../../components/ui';
+import { useDatabase } from '../../context/DatabaseContext';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { jobSeekers, employers, jobPostings, matches, communications, placements } = useData();
+  const { candidates, employers, jobs, matches, placements, communications } = useDatabase();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('All');
 
+  const employersList = useMemo(() => employers.map(e => ({
+    id: e.id,
+    companyName: e.company_name,
+    industry: e.industry,
+    city: e.city,
+    state: e.state,
+    verified: e.verified,
+    createdAt: e.created_at,
+  })), [employers]);
+
+  const jobSeekers = useMemo(() => candidates.map(c => {
+    const nameParts = (c as any).profile_name?.split(' ') || ['', ''];
+    return {
+      id: c.id,
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      location: c.location || c.city || '',
+      state: c.state || '',
+      qualification: c.qualification || '',
+      totalExperience: String(c.total_experience_years || 0),
+      status: c.status,
+      createdAt: c.created_at,
+    };
+  }), [candidates]);
+
+  const jobPostingsList = useMemo(() => jobs.map(j => {
+    const employer = employersList.find(e => e.id === j.employer_id);
+    return {
+      id: j.id,
+      employerId: j.employer_id,
+      jobTitle: j.job_title,
+      companyName: employer?.companyName || '',
+      status: j.status,
+      city: j.city,
+      state: j.state,
+      salaryMin: String(j.salary_min || 0),
+      salaryMax: String(j.salary_max || 0),
+      numberOfOpenings: j.number_of_openings || 1,
+      employmentType: j.employment_type || 'Full-time',
+      skillsRequired: j.skills_required || [],
+      createdAt: j.created_at,
+    };
+  }), [jobs, employersList]);
+
   const totalCandidates = jobSeekers.length;
-  const totalJobs = jobPostings.length;
-  const activeJobs = jobPostings.filter(j => j.status === 'Open').length;
+  const totalJobs = jobPostingsList.length;
+  const activeJobs = jobPostingsList.filter((j: any) => j.status === 'Open').length;
   const totalMatches = matches.length;
   const totalPlacements = placements.length;
-  const totalRevenue = placements.reduce((sum, p) => sum + p.commission, 0);
-  const unpaidCommission = placements.filter(p => p.commissionStatus === 'Unpaid' || p.commissionStatus === 'Partial').reduce((sum, p) => sum + p.commission, 0);
-  const paidCommission = placements.filter(p => p.commissionStatus === 'Paid').reduce((sum, p) => sum + p.commission, 0);
-  const newThisWeek = jobSeekers.filter(j => j.status === 'New').length;
+  const totalRevenue = placements.reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
+  const unpaidCommission = placements.filter((p: any) => p.commission_status === 'Unpaid' || p.commission_status === 'Partial').reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
+  const paidCommission = placements.filter((p: any) => p.commission_status === 'Paid').reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
+  const newThisWeek = jobSeekers.filter((j: any) => j.status === 'New').length;
 
   const filterByDate = (dateStr: string) => {
     if (dateFilter === 'All') return true;
@@ -40,19 +84,59 @@ export default function Dashboard() {
   };
 
   const recentCandidates = [...jobSeekers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter(c => filterByDate(c.createdAt) && filterBySearch(c)).slice(0, 6);
-  const recentJobs = [...jobPostings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter(j => filterByDate(j.createdAt) && filterBySearch(j)).slice(0, 4);
-  const recentMatches = [...matches].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter(m => filterByDate(m.createdAt) && filterBySearch(m)).slice(0, 5);
+  const recentJobs = [...jobPostingsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter(j => filterByDate(j.createdAt) && filterBySearch(j)).slice(0, 4);
+  const recentMatches = useMemo(() => {
+    const enriched = matches.map(m => {
+      const candidate = candidates.find(c => c.id === m.candidate_id);
+      const job = jobs.find(j => j.id === m.job_id);
+      const employer = employersList.find(e => e.id === job?.employer_id);
+      return {
+        ...m,
+        candidateName: candidate?.profile_name || candidate?.id || 'Unknown',
+        jobTitle: job?.job_title || 'Unknown',
+        companyName: employer?.companyName || 'Unknown',
+        matchScore: m.match_score,
+        createdAt: m.created_at,
+      };
+    });
+    return enriched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).filter(m => filterByDate(m.createdAt) && filterBySearch(m)).slice(0, 5);
+  }, [matches, candidates, jobs, employersList, dateFilter, searchTerm]);
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const monthlyData = [
-    { month: 'Sep', candidates: 45, placements: 8, revenue: 24000 },
-    { month: 'Oct', candidates: 62, placements: 12, revenue: 36000 },
-    { month: 'Nov', candidates: 78, placements: 15, revenue: 45000 },
-    { month: 'Dec', candidates: 95, placements: 18, revenue: 54000 },
-    { month: 'Jan', candidates: 120, placements: 22, revenue: 66000 },
-    { month: 'Feb', candidates: 110, placements: 25, revenue: 75000 },
-  ];
+  const monthlyData = useMemo(() => {
+    const months: { key: string; month: string }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, month: d.toLocaleDateString('en-IN', { month: 'short' }) });
+    }
+    return months.map(({ key, month }) => {
+      const candidatesCount = jobSeekers.filter(c => {
+        const d = new Date(c.createdAt);
+        return `${d.getFullYear()}-${d.getMonth()}` === key;
+      }).length;
+      const placementsCount = placements.filter((p: any) => {
+        const d = new Date(p.placement_date || p.created_at);
+        return `${d.getFullYear()}-${d.getMonth()}` === key;
+      }).length;
+      return { month, candidates: candidatesCount, placements: placementsCount };
+    });
+  }, [jobSeekers, placements]);
+
+  const recentActivity = useMemo(() => {
+    const events: { icon: any; text: string; time: string; at: string }[] = [];
+    jobSeekers.slice(0, 5).forEach(c => events.push({ icon: UserAdd01Icon, text: `New candidate registered: ${c.firstName} ${c.lastName}`.trim(), time: c.createdAt, at: c.createdAt }));
+    recentMatches.slice(0, 5).forEach((m: any) => events.push({ icon: Target02Icon, text: `Match created: ${m.candidateName} → ${m.jobTitle} (${m.matchScore}%)`, time: m.createdAt, at: m.createdAt }));
+    placements.slice(0, 5).forEach((p: any) => events.push({ icon: Award01Icon, text: `Placement recorded (₹${Number(p.commission || 0).toLocaleString()} commission)`, time: p.created_at, at: p.created_at }));
+    jobPostingsList.slice(0, 5).forEach((j: any) => events.push({ icon: Briefcase01Icon, text: `New job posted: ${j.jobTitle} at ${j.companyName}`, time: j.createdAt, at: j.createdAt }));
+    employersList.slice(0, 5).forEach((e: any) => events.push({ icon: Building02Icon, text: `New employer registered: ${e.companyName}`, time: e.createdAt, at: e.createdAt }));
+    return events
+      .filter(e => e.at)
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 7)
+      .map(e => ({ ...e, time: new Date(e.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }));
+  }, [jobSeekers, recentMatches, placements, jobPostingsList, employersList]);
 
   const candidatesByStatus = [
     { name: 'New', value: jobSeekers.filter(j => j.status === 'New').length, color: '#F15A24' },
@@ -62,8 +146,8 @@ export default function Dashboard() {
   ].filter(d => d.value > 0);
 
   const jobsByIndustry = Object.entries(
-    jobPostings.reduce((acc: Record<string, number>, j) => {
-      const employer = employers.find(e => e.id === j.employerId);
+    jobPostingsList.reduce((acc: Record<string, number>, j: any) => {
+      const employer = employersList.find(e => e.id === j.employerId);
       const industry = employer?.industry || 'Other';
       acc[industry] = (acc[industry] || 0) + 1;
       return acc;
@@ -330,7 +414,7 @@ export default function Dashboard() {
           {recentJobs.map(job => (
             <div key={job.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-all hover:-translate-y-0.5 bg-white">
               <div className="flex items-start justify-between mb-2">
-                <Badge variant={job.status === 'Open' ? 'success' : 'default'} className="text-[10px]">{job.status}</Badge>
+                <Badge variant={job.status === 'Open' ? 'success' : job.status === 'Pending' ? 'warning' : 'default'} className="text-[10px]">{job.status}</Badge>
                 <span className="text-[10px] text-[var(--charcoal)] font-medium">{job.numberOfOpenings} openings</span>
               </div>
               <h4 className="font-bold text-[var(--navy)] text-sm line-clamp-1">{job.jobTitle}</h4>
@@ -343,7 +427,7 @@ export default function Dashboard() {
                 <span className="text-[10px] text-[var(--charcoal)] font-medium">{job.employmentType}</span>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
-                {job.skillsRequired.slice(0, 3).map(s => (
+                {job.skillsRequired.slice(0, 3).map((s: string) => (
                   <Badge key={s} variant="info" className="text-[9px]">{s}</Badge>
                 ))}
                 {job.skillsRequired.length > 3 && <Badge className="text-[9px]">+{job.skillsRequired.length - 3}</Badge>}
@@ -357,15 +441,10 @@ export default function Dashboard() {
       <div className="dash-surface dash-surface--pad">
         <div className="dash-section-title mb-1">Recent Activity</div>
         <div className="divide-y divide-[#EFEAE1]">
-          {[
-            { icon: UserAdd01Icon, text: 'New candidate registered: Kamla Sharma (MBA, HR)', time: '2 hours ago' },
-            { icon: Target02Icon, text: 'Match created: Asha Bhosle → Staff Nurse at Metro Hospital (92%)', time: '4 hours ago' },
-            { icon: Chat01Icon, text: 'Communication logged: Call with Dr. Revathi Subramaniam', time: '6 hours ago' },
-            { icon: Award01Icon, text: 'Placement confirmed: Sanjay Gupta → Welder at Northern Steel Works', time: '1 day ago' },
-            { icon: Briefcase01Icon, text: 'New job posted: ANM/GMN Nurse at CareWell Hospitals (10 openings)', time: '1 day ago' },
-            { icon: Building02Icon, text: 'New employer registered: CareWell Hospitals, Chennai', time: '2 days ago' },
-            { icon: Coins01Icon, text: 'Commission received: ₹4,000 from TechRural Solutions (Sunita Devi)', time: '3 days ago' },
-          ].map((activity, i) => (
+          {recentActivity.length === 0 && (
+            <p className="text-[13px] text-[var(--charcoal)] py-3">No recent activity yet.</p>
+          )}
+          {recentActivity.map((activity, i) => (
             <div key={i} className="flex items-start gap-3 py-2.5">
               <HugeiconsIcon icon={activity.icon} size={16} className="text-[var(--charcoal)] flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">

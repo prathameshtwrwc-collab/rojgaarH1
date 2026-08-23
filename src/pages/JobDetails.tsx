@@ -1,16 +1,106 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Briefcase, IndianRupee, Clock, ShieldCheck, Bookmark, Building2, CheckCircle, Mail, Phone, UserCheck, AlertCircle } from 'lucide-react';
 import { Badge, Button, Modal, Toast, Card } from '../components/ui';
-import { useData } from '../context/DataContext';
+import PageLoader from '../components/PageLoader';
+import { useAuth } from '../context/AuthContext';
+import { useDatabase } from '../context/DatabaseContext';
+import {
+  getJobPostingById, getOpenJobsPublic, getJobSkills,
+  getJobRequirements, getJobResponsibilities, createApplication, getAllEmployers,
+} from '../lib/supabase/data';
+
+function formatExperience(min: number | null, max: number | null): string {
+  if (min != null && max != null) return `${min}-${max} years`;
+  if (min != null) return `${min}+ years`;
+  return 'Not specified';
+}
+
+function mapEmployer(e: any) {
+  if (!e) return null;
+  return {
+    id: e.id,
+    companyName: e.company_name,
+    industry: e.industry || '',
+    companySize: e.company_size || '',
+    yearEstablished: e.year_established || '',
+    website: e.website || '',
+    address: e.address || '',
+    city: e.city || '',
+    contactName: e.contact_name || '',
+    contactEmail: e.contact_email || '',
+    contactPhone: e.contact_phone || '',
+  };
+}
+
+function mapJob(job: any, skills: string[], requirements: string[], responsibilities: string[], companyName: string) {
+  return {
+    id: job.id,
+    employerId: job.employer_id,
+    jobTitle: job.job_title,
+    companyName,
+    city: job.city || '',
+    state: job.state || '',
+    salaryMin: String(job.salary_min ?? 0),
+    salaryMax: String(job.salary_max ?? 0),
+    employmentType: job.employment_type,
+    qualificationRequired: job.qualification_required || '',
+    experienceRequired: formatExperience(job.experience_min_years, job.experience_max_years),
+    skillsRequired: skills,
+    jobDescription: job.job_description,
+    numberOfOpenings: job.number_of_openings,
+    createdAt: job.created_at,
+    isVerified: job.is_verified,
+    status: job.status,
+    benefits: job.benefits,
+    joiningTimeline: job.joining_timeline,
+    workingHours: job.working_hours,
+    accommodationProvided: job.accommodation_provided,
+    transportationProvided: job.transportation_provided,
+    deadline: job.deadline,
+    recruiterName: job.recruiter_name,
+    recruiterEmail: job.recruiter_email,
+    recruiterPhone: job.recruiter_phone,
+    requirements,
+    responsibilities,
+  };
+}
 
 export default function JobDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { jobPostings, employers, isCandidateLoggedIn, loggedCandidate, applyToJob } = useData();
+  const { user } = useAuth();
+  const { candidate, profile, applications, refresh } = useDatabase();
+  const isCandidateLoggedIn = user?.role === 'candidate';
 
-  const job = jobPostings.find(j => j.id === id);
-  const employer = job ? employers.find(e => e.id === job.employerId) : null;
+  const [job, setJob] = useState<any | null>(null);
+  const [employer, setEmployer] = useState<any | null>(null);
+  const [similarRaw, setSimilarRaw] = useState<any[]>([]);
+  const [employersMap, setEmployersMap] = useState<Map<string, any>>(new Map());
+  const [jobLoading, setJobLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setJobLoading(true);
+    (async () => {
+      const [rawJob, allOpenJobs, allEmployers] = await Promise.all([getJobPostingById(id), getOpenJobsPublic(), getAllEmployers()]);
+      const empMap = new Map(allEmployers.map((e: any) => [e.id, e]));
+      setEmployersMap(empMap);
+      if (!rawJob) { setJob(null); setJobLoading(false); return; }
+      const [skills, requirements, responsibilities] = await Promise.all([
+        getJobSkills(id),
+        getJobRequirements(id),
+        getJobResponsibilities(id),
+      ]);
+      const employerData = empMap.get(rawJob.employer_id);
+      setJob(mapJob(rawJob, skills, requirements, responsibilities, employerData?.company_name || 'Company'));
+      setEmployer(mapEmployer(employerData));
+      setSimilarRaw(allOpenJobs.filter((j: any) => j.id !== id));
+      setJobLoading(false);
+    })();
+  }, [id]);
+
+  const appliedJobIds = new Set(applications.map((a: any) => a.job_id));
 
   // Bookmarked Jobs
   const [isSaved, setIsSaved] = useState(() => {
@@ -24,6 +114,11 @@ export default function JobDetails() {
 
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+
+  if (jobLoading) {
+    return <PageLoader label="Loading job details..." />;
+  }
 
   if (!job) {
     return (
@@ -38,7 +133,7 @@ export default function JobDetails() {
     );
   }
 
-  const isApplied = loggedCandidate ? job.applicants.includes(loggedCandidate.id) : false;
+  const isApplied = appliedJobIds.has(job.id);
 
   const toggleBookmark = () => {
     try {
@@ -67,18 +162,34 @@ export default function JobDetails() {
     setShowApplyModal(true);
   };
 
-  const handleConfirmApply = () => {
-    if (loggedCandidate) {
-      applyToJob(job.id, loggedCandidate.id);
+  const handleConfirmApply = async () => {
+    if (!user) return;
+    setApplying(true);
+    try {
+      await createApplication({ candidate_id: user.id, job_id: job.id, status: 'applied' } as any);
+      await refresh();
       setShowApplyModal(false);
       setToastMessage(`Application for ${job.jobTitle} submitted successfully!`);
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to submit application.');
+    } finally {
+      setApplying(false);
     }
   };
 
   // Similar Jobs
-  const similarJobs = jobPostings
-    .filter(j => j.id !== job.id && j.status === 'Open' && (j.city === job.city || j.qualificationRequired === job.qualificationRequired))
-    .slice(0, 3);
+  const similarJobs = similarRaw
+    .filter((j: any) => j.city === job.city || j.qualification_required === job.qualificationRequired)
+    .slice(0, 3)
+    .map((j: any) => ({
+      id: j.id,
+      jobTitle: j.job_title,
+      companyName: employersMap.get(j.employer_id)?.company_name || 'Company',
+      city: j.city || '',
+      employmentType: j.employment_type,
+      salaryMin: String(j.salary_min ?? 0),
+      salaryMax: String(j.salary_max ?? 0),
+    }));
 
   return (
     <div className="min-h-screen bg-[var(--bg-warm)] py-8 transition-colors duration-300" style={{ fontFamily: "var(--font)" }}>
@@ -173,7 +284,7 @@ export default function JobDetails() {
                   Key Responsibilities
                 </h2>
                 <ul className="space-y-2.5 text-sm sm:text-base text-[var(--charcoal)]">
-                  {job.responsibilities.map((resp, i) => (
+                  {job.responsibilities.map((resp: string, i: number) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <span className="w-2 h-2 rounded-full bg-[var(--orange)] mt-2 flex-shrink-0" />
                       <span>{resp}</span>
@@ -190,7 +301,7 @@ export default function JobDetails() {
               </h2>
               {job.requirements && job.requirements.length > 0 ? (
                 <ul className="space-y-2.5 text-sm sm:text-base text-[var(--charcoal)] mb-4">
-                  {job.requirements.map((req, i) => (
+                  {job.requirements.map((req: string, i: number) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <CheckCircle size={16} className="text-[var(--green)] mt-1 flex-shrink-0" />
                       <span>{req}</span>
@@ -206,7 +317,7 @@ export default function JobDetails() {
               {/* Skills required tags */}
               <p className="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-2">Required Technical & Soft Skills</p>
               <div className="flex flex-wrap gap-2">
-                {job.skillsRequired.map(skill => (
+                {job.skillsRequired.map((skill: string) => (
                   <Badge key={skill} variant="info" className="px-3 py-1 text-xs sm:text-sm font-medium">
                     {skill}
                   </Badge>
@@ -365,7 +476,7 @@ export default function JobDetails() {
         title="Confirm Application"
         size="md"
       >
-        {loggedCandidate && (
+        {user && (
           <div className="space-y-5">
             <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
               <p className="text-xs text-[var(--orange)] font-semibold uppercase tracking-wider">Applying For</p>
@@ -376,17 +487,17 @@ export default function JobDetails() {
             </div>
 
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-sm space-y-2">
-              <p><span className="text-slate-400">Candidate Name:</span> <strong className="text-[var(--navy)]">{loggedCandidate.firstName} {loggedCandidate.lastName}</strong></p>
-              <p><span className="text-slate-400">Email:</span> <span className="text-[var(--navy)]">{loggedCandidate.email}</span></p>
-              <p><span className="text-slate-400">Qualification:</span> <span className="text-[var(--navy)]">{loggedCandidate.qualification}</span></p>
+              <p><span className="text-slate-400">Candidate Name:</span> <strong className="text-[var(--navy)]">{profile?.full_name || 'N/A'}</strong></p>
+              <p><span className="text-slate-400">Email:</span> <span className="text-[var(--navy)]">{user.email}</span></p>
+              <p><span className="text-slate-400">Qualification:</span> <span className="text-[var(--navy)]">{candidate?.qualification || 'N/A'}</span></p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setShowApplyModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleConfirmApply} variant="success" className="gap-1.5">
-                <UserCheck size={16} /> Confirm Application
+              <Button onClick={handleConfirmApply} disabled={applying} variant="success" className="gap-1.5">
+                <UserCheck size={16} /> {applying ? 'Submitting...' : 'Confirm Application'}
               </Button>
             </div>
           </div>

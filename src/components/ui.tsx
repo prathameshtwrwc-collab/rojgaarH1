@@ -207,7 +207,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         </div>
 
         {/* Body: the ONLY scrollable region */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
       </div>
     </div>
   );
@@ -430,7 +430,7 @@ export function SkillTags({ label, value, onChange, suggestions = [], placeholde
         />
       </div>
       {showSuggestions && filtered.length > 0 && (
-        <div className="mt-1 border border-slate-200 rounded-lg bg-white shadow-xl max-h-40 overflow-y-auto z-20 relative">
+        <div className="mt-1 border border-slate-200 rounded-lg bg-white shadow-xl max-h-40 overflow-y-auto z-20 relative" data-lenis-prevent>
           {filtered.slice(0, 8).map(s => (
             <button key={s} type="button" onClick={() => addTag(s)} className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-cream)] text-[var(--navy)]">{s}</button>
           ))}

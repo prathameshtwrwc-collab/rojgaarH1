@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import Reveal from '../components/Reveal';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 const testimonialCards = [
   {
@@ -92,16 +95,40 @@ function Landing() {
             </div>
 
             <h1 className="hero-title">
-              <span className="title-rojgaar">Rojgaar</span>
-              <span className="title-hai">Hai!</span>
+              <motion.span
+                className="title-rojgaar"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              >
+                Rojgaar
+              </motion.span>
+              <motion.span
+                className="title-hai"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+              >
+                Hai!
+              </motion.span>
             </h1>
 
-            <p className="hero-description">
+            <motion.p
+              className="hero-description"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
               A better career. The right talent.<br />
               Real connections that build the future.
-            </p>
+            </motion.p>
 
-            <div className="hero-actions">
+            <motion.div
+              className="hero-actions"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
               <Link to="/register/job-seeker" className="btn btn-hero btn-primary">
                 <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>I am a Job Seeker</span>
@@ -112,7 +139,7 @@ function Landing() {
                 <span>I am an Employer</span>
                 <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
-            </div>
+            </motion.div>
           </div>
 
         </div>
@@ -120,7 +147,7 @@ function Landing() {
 
       {/* Section 02: For Job Seekers */}
       <section className="job-seeker-section">
-        <div className="job-seeker-inner">
+        <Reveal className="job-seeker-inner">
           <div className="job-seeker-content">
             <h2 className="job-seeker-heading">
               <span>For</span>
@@ -161,12 +188,12 @@ function Landing() {
             </Link>
           </div>
 
-        </div>
+        </Reveal>
       </section>
 
       {/* Section 03: For Employers */}
       <section className="employer-section">
-        <div className="employer-inner">
+        <Reveal className="employer-inner">
           <div className="employer-content">
             <h2 className="employer-heading">
               <span>For</span>
@@ -189,12 +216,12 @@ function Landing() {
           </div>
 
           <div className="employer-visual" aria-hidden="true" />
-        </div>
+        </Reveal>
       </section>
 
       {/* Section 04: How It Works */}
       <section className="how-it-works" aria-label="How It Works">
-        <div className="how-inner">
+        <Reveal className="how-inner">
           <div className="how-heading">
             <h2>
               <span className="line-white">Simple Steps.</span>
@@ -240,13 +267,13 @@ function Landing() {
               <p className="step-desc">Build your future.<br />Together.</p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Section 05: Features */}
       <section className="features-section" aria-label="Features">
         <div className="features-background" aria-hidden="true" />
-        <div className="features-inner">
+        <Reveal className="features-inner">
           <div className="features-heading">
             <h2>
               <span>All the right</span>
@@ -288,12 +315,12 @@ function Landing() {
               <p className="feature-desc">Never miss an opportunity.</p>
             </article>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Section 06: Stats */}
       <section className="stats-section" aria-label="Stats">
-        <div className="stats-inner">
+        <Reveal className="stats-inner">
           <div className="stats-content">
             <h2 className="stats-heading">
               <span>Trusted by thousands.</span>
@@ -302,33 +329,33 @@ function Landing() {
 
             <div className="stats-grid">
               <div className="stat-item">
-                <strong className="stat-number">50K+</strong>
+                <strong className="stat-number"><AnimatedCounter value={50} suffix="K+" /></strong>
                 <span className="stat-label-text">Job Seekers</span>
               </div>
               <div className="stat-item">
-                <strong className="stat-number">5K+</strong>
+                <strong className="stat-number"><AnimatedCounter value={5} suffix="K+" /></strong>
                 <span className="stat-label-text">Employers</span>
               </div>
               <div className="stat-item">
-                <strong className="stat-number">20K+</strong>
+                <strong className="stat-number"><AnimatedCounter value={20} suffix="K+" /></strong>
                 <span className="stat-label-text">Jobs Posted</span>
               </div>
               <div className="stat-item">
-                <strong className="stat-number">95%</strong>
+                <strong className="stat-number"><AnimatedCounter value={95} suffix="%" /></strong>
                 <span className="stat-label-text">Satisfaction Rate</span>
               </div>
             </div>
           </div>
 
           <div className="stats-visual" aria-hidden="true" />
-        </div>
+        </Reveal>
       </section>
 
       {/* Section 07: Testimonials */}
       <section className="testimonials-section" aria-label="Testimonials">
         <div className="testimonials-background" aria-hidden="true" />
 
-        <div className="testimonials-inner">
+        <Reveal className="testimonials-inner">
           <div className="featured-testimonial">
             <span className="quote-mark" aria-hidden="true">“</span>
             <p className="featured-quote">
@@ -380,7 +407,7 @@ function Landing() {
               );
             })}
           </div>
-        </div>
+        </Reveal>
 
         <div className="carousel-dots">
           {testimonialCards.map((card, i) => (
@@ -407,7 +434,7 @@ function Landing() {
         <div className="final-cta">
           <div className="final-cta-background" aria-hidden="true" />
 
-          <div className="final-cta-inner">
+          <Reveal className="final-cta-inner">
             <div className="final-cta-content">
               <h2 className="final-cta-heading">
                 <span>Your next opportunity</span>
@@ -426,7 +453,7 @@ function Landing() {
             </div>
 
             <div className="cta-visual" aria-hidden="true" />
-          </div>
+          </Reveal>
         </div>
 
         <footer className="site-footer">
@@ -436,11 +463,11 @@ function Landing() {
             </Link>
 
             <nav className="footer-navigation" aria-label="Footer navigation">
-              <Link to="/contact">About Us</Link>
+              <Link to="/about">About Us</Link>
               <Link to="/contact">Contact</Link>
-              <a href="#blog">Blog</a>
-              <a href="#privacy">Privacy Policy</a>
-              <a href="#terms">Terms</a>
+              <Link to="/blog">Blog</Link>
+              <Link to="/privacy">Privacy Policy</Link>
+              <Link to="/terms">Terms</Link>
             </nav>
 
             <div className="footer-socials" aria-label="Social media">

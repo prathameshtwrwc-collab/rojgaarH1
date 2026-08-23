@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, User, Briefcase, MapPin } from 'lucide-react';
-import { Button, Input, Select, ProgressBar, StepIndicator, Toggle, SkillTags, FileUpload, Toast } from '../components/ui';
+import { Button, Input, Select, ProgressBar, StepIndicator, SkillTags, FileUpload, Toast } from '../components/ui';
 import { useData, JobSeeker } from '../context/DataContext';
 
 const indianStates = [

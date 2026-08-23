@@ -1,10 +1,15 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { useDatabase } from '../context/DatabaseContext';
+import { TableSkeleton } from './Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const sidebarItems = [
   { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+  { to: '/admin/jobs', label: 'Jobs', icon: <Briefcase size={20} /> },
   { to: '/admin/candidates', label: 'Candidates', icon: <Users size={20} /> },
   { to: '/admin/employers', label: 'Employers', icon: <Building2 size={20} /> },
   { to: '/admin/matching', label: 'Matching', icon: <GitMerge size={20} /> },
@@ -17,12 +22,20 @@ function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { adminLogout } = useData();
+  const { logout: authLogout } = useAuth();
+  const { loading: dataLoading } = useDatabase();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    adminLogout();
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      adminLogout();
+      navigate('/admin/login');
+    }
   };
 
   return (
@@ -48,7 +61,7 @@ function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3.5 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3.5 py-4 space-y-0.5 overflow-y-auto" data-lenis-prevent>
           {sidebarItems.map(item => (
             <Link
               key={item.to}
@@ -90,8 +103,18 @@ function AdminLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
-          {children}
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto" data-lenis-prevent>
+          <AnimatePresence mode="wait">
+            {dataLoading ? (
+              <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <TableSkeleton rows={6} />
+              </motion.div>
+            ) : (
+              <motion.div key={location.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+                {children}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
     </div>

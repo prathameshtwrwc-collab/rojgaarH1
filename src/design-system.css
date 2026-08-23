@@ -3,6 +3,24 @@
    Reusable utility classes for landing pages
    ============================================ */
 
+/* Skeleton shimmer loader */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #ECE7DC 25%, #F5F1E8 37%, #ECE7DC 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
 /* 1. Landing Section - basic section wrapper */
 .landing-section {
   padding: clamp(48px, 6vw, 80px) 0;

@@ -383,7 +383,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
           {/* LEFT TABS SIDEBAR (Desktop 2-col, Mobile scrollable pills) */}
-          <div className="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto flex-shrink-0">
+          <div className="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
             {sectionTabs.map(tab => (
               <button
                 key={tab.id}
@@ -401,7 +401,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
 
           {/* RIGHT SCROLLABLE SECTION EDITOR */}
-          <div className="flex-1 min-h-0 p-5 sm:p-8 overflow-y-auto space-y-8 bg-white">
+          <div className="flex-1 min-h-0 p-5 sm:p-8 overflow-y-auto space-y-8 bg-white" data-lenis-prevent>
             
             {/* ═══ SECTION 1: PERSONAL INFORMATION ═══ */}
             {activeSection === 'personal' && (

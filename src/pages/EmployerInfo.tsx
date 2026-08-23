@@ -2,16 +2,11 @@ import { Link } from 'react-router-dom';
 import {
   Building2, FileText, Users, CheckCircle, Zap,
   ArrowRight, TrendingUp, Award, Star, HardHat, Factory,
-  Truck, Stethoscope, Wheat, ShieldCheck, HeartHandshake, ChevronDown, Sparkles, Rocket
+  Truck, Stethoscope, Wheat, ShieldCheck, HeartHandshake, Rocket
 } from 'lucide-react';
-import { Button, Badge } from '../components/ui';
+import { Button } from '../components/ui';
 
 function EmployerInfo() {
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const whyChooseUs = [
     {
       title: 'Verified Candidates',

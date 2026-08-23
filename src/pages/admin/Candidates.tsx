@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Search, Eye, Mail, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Filter } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Toast } from '../../components/ui';
-import { useData, JobSeeker } from '../../context/DataContext';
+import { useDatabase } from '../../context/DatabaseContext';
+import { hireCandidate as hireCandidateApi } from '../../lib/supabase/data';
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
   'New': 'info', 'Contacted': 'warning', 'Interviewed': 'default', 'Placed': 'success', 'Inactive': 'danger',
@@ -71,7 +72,39 @@ function checkDateMatch(
 }
 
 export default function Candidates() {
-  const { jobSeekers, jobPostings, matches, hireCandidate } = useData();
+  const { candidates, jobs: jobPostings, employers, matches, refresh } = useDatabase();
+
+  const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
+
+  const jobSeekers = candidates.map((c: any) => {
+    const [firstName, ...rest] = (c.profile_name || 'Unnamed').split(' ');
+    return {
+      ...c,
+      firstName: firstName || 'Unnamed',
+      lastName: rest.join(' '),
+      phone: c.profile_phone || '',
+      email: '',
+      dob: c.date_of_birth || '',
+      location: c.location || c.city || '',
+      skills: c.skills || [],
+      totalExperience: String(c.total_experience_years ?? 0),
+      expectedSalary: String(c.expected_salary_min ?? 0),
+      preferredJobType: c.preferred_job_type || '',
+      willingToRelocate: c.willing_to_relocate ?? false,
+      preferredLocations: [] as string[],
+      resumeFile: c.resume_url || '',
+      profilePhotoFile: c.profile_photo_url || '',
+      createdAt: c.created_at ? c.created_at.split('T')[0] : '',
+    };
+  });
+
+  const jobPostingsDisplay = jobPostings.map((j: any) => ({
+    ...j,
+    jobTitle: j.job_title,
+    companyName: employerName(j.employer_id),
+    salaryMin: String(j.salary_min ?? 0),
+    salaryMax: String(j.salary_max ?? 0),
+  }));
 
   // Filter States
   const [search, setSearch] = useState('');
@@ -81,10 +114,11 @@ export default function Candidates() {
   const [endDate, setEndDate] = useState('');
 
   // Modals & Toast State
-  const [selectedCandidate, setSelectedCandidate] = useState<JobSeeker | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showHireModal, setShowHireModal] = useState(false);
   const [hireJobId, setHireJobId] = useState('');
+  const [hiring, setHiring] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const resetFilters = () => {
@@ -103,9 +137,8 @@ export default function Candidates() {
       c.firstName.toLowerCase().includes(q) ||
       c.lastName.toLowerCase().includes(q) ||
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-      c.email.toLowerCase().includes(q) ||
       c.location.toLowerCase().includes(q) ||
-      c.skills.some(s => s.toLowerCase().includes(q));
+      c.skills.some((s: string) => s.toLowerCase().includes(q));
 
     const matchStatus = !statusFilter || c.status === statusFilter;
     const matchDate = checkDateMatch(c.createdAt, dateFilter, startDate, endDate);
@@ -113,29 +146,44 @@ export default function Candidates() {
     return matchSearch && matchStatus && matchDate;
   });
 
-  const openDetail = (candidate: JobSeeker) => {
+  const openDetail = (candidate: any) => {
     setSelectedCandidate(candidate);
     setShowDetailModal(true);
   };
 
-  const openHire = (candidate: JobSeeker) => {
+  const openHire = (candidate: any) => {
     setSelectedCandidate(candidate);
     setHireJobId('');
     setShowHireModal(true);
   };
 
-  const handleHire = () => {
+  const handleHire = async () => {
     if (!selectedCandidate || !hireJobId) return;
-    hireCandidate(selectedCandidate.id, hireJobId);
-    const job = jobPostings.find(j => j.id === hireJobId);
-    setToast({ message: `${selectedCandidate.firstName} ${selectedCandidate.lastName} has been hired for ${job?.jobTitle} at ${job?.companyName}!`, type: 'success' });
-    setShowHireModal(false);
-    setSelectedCandidate(null);
+    const job = jobPostingsDisplay.find(j => j.id === hireJobId);
+    if (!job) return;
+    setHiring(true);
+    try {
+      const existingMatch = matches.find((m: any) => m.candidate_id === selectedCandidate.id && m.job_id === hireJobId);
+      await hireCandidateApi(selectedCandidate.id, hireJobId, job.employer_id, existingMatch?.id);
+      await refresh();
+      setToast({ message: `${selectedCandidate.firstName} ${selectedCandidate.lastName} has been hired for ${job.jobTitle} at ${job.companyName}!`, type: 'success' });
+      setShowHireModal(false);
+      setSelectedCandidate(null);
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : 'Failed to hire candidate', type: 'error' });
+    } finally {
+      setHiring(false);
+    }
   };
 
-  const getCandidateMatches = (candidateId: string) => matches.filter(m => m.candidateId === candidateId);
+  const getCandidateMatches = (candidateId: string) => matches
+    .filter((m: any) => m.candidate_id === candidateId)
+    .map((m: any) => {
+      const job = jobPostingsDisplay.find(j => j.id === m.job_id);
+      return { ...m, jobTitle: job?.jobTitle || 'Unknown', companyName: job?.companyName || 'Unknown', matchScore: m.match_score };
+    });
 
-  const openJobs = jobPostings.filter(j => j.status === 'Open');
+  const openJobs = jobPostingsDisplay.filter(j => j.status === 'Open');
 
   return (
     <div className="space-y-6">
@@ -280,7 +328,7 @@ export default function Candidates() {
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <div className="flex flex-wrap gap-1">
-                      {candidate.skills.slice(0, 2).map(s => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}
+                      {candidate.skills.slice(0, 2).map((s: string) => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}
                       {candidate.skills.length > 2 && <Badge className="text-[10px]">+{candidate.skills.length - 2}</Badge>}
                     </div>
                   </td>
@@ -380,7 +428,7 @@ export default function Candidates() {
               </div>
               <div className="mt-3">
                 <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1.5">Key Skills</p>
-                <div className="flex flex-wrap gap-1.5">{selectedCandidate.skills.map(s => <Badge key={s} variant="default">{s}</Badge>)}</div>
+                <div className="flex flex-wrap gap-1.5">{selectedCandidate.skills.map((s: string) => <Badge key={s} variant="default">{s}</Badge>)}</div>
               </div>
             </div>
 
@@ -402,7 +450,7 @@ export default function Candidates() {
               {selectedCandidate.willingToRelocate && selectedCandidate.preferredLocations.length > 0 && (
                 <div className="mt-3">
                   <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1.5">Preferred Locations</p>
-                  <div className="flex flex-wrap gap-1.5">{selectedCandidate.preferredLocations.map(l => <Badge key={l} variant="info">{l}</Badge>)}</div>
+                  <div className="flex flex-wrap gap-1.5">{selectedCandidate.preferredLocations.map((l: string) => <Badge key={l} variant="info">{l}</Badge>)}</div>
                 </div>
               )}
             </div>
@@ -481,7 +529,7 @@ export default function Candidates() {
               <p className="text-xs text-[var(--orange)] text-[var(--orange)] font-semibold">Candidate</p>
               <p className="text-lg font-bold text-[var(--navy)]">{selectedCandidate.firstName} {selectedCandidate.lastName}</p>
               <p className="text-sm text-[var(--charcoal)]">{selectedCandidate.qualification} • {selectedCandidate.totalExperience} yrs • ₹{parseInt(selectedCandidate.expectedSalary).toLocaleString()}/month</p>
-              <div className="flex flex-wrap gap-1 mt-2">{selectedCandidate.skills.map(s => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1 mt-2">{selectedCandidate.skills.map((s: string) => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}</div>
             </div>
 
             <div>
@@ -497,7 +545,7 @@ export default function Candidates() {
             </div>
 
             {hireJobId && (() => {
-              const job = jobPostings.find(j => j.id === hireJobId);
+              const job = jobPostingsDisplay.find(j => j.id === hireJobId);
               if (!job) return null;
               const salaryFit = parseInt(selectedCandidate.expectedSalary) >= parseInt(job.salaryMin) && parseInt(selectedCandidate.expectedSalary) <= parseInt(job.salaryMax);
               return (
@@ -524,14 +572,14 @@ export default function Candidates() {
             {hireJobId && (
               <div className="bg-[var(--bg-warm)] rounded-xl p-4 border border-slate-200">
                 <h4 className="text-sm font-bold text-[var(--navy)] mb-2">Hire Summary</h4>
-                <p className="text-sm text-[var(--charcoal)]">You are about to hire <span className="font-bold text-[var(--navy)]">{selectedCandidate.firstName} {selectedCandidate.lastName}</span> for the position of <span className="font-bold text-[var(--navy)]">{jobPostings.find(j => j.id === hireJobId)?.jobTitle}</span> at <span className="font-bold text-[var(--navy)]">{jobPostings.find(j => j.id === hireJobId)?.companyName}</span>.</p>
+                <p className="text-sm text-[var(--charcoal)]">You are about to hire <span className="font-bold text-[var(--navy)]">{selectedCandidate.firstName} {selectedCandidate.lastName}</span> for the position of <span className="font-bold text-[var(--navy)]">{jobPostingsDisplay.find(j => j.id === hireJobId)?.jobTitle}</span> at <span className="font-bold text-[var(--navy)]">{jobPostingsDisplay.find(j => j.id === hireJobId)?.companyName}</span>.</p>
                 <p className="text-xs text-[var(--charcoal)] mt-1">This will: update candidate status to "Placed", mark the match as "Hired", and create a placement record with ₹4,000 commission.</p>
               </div>
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button variant="success" onClick={handleHire} disabled={!hireJobId} className="gap-1.5">
-                <UserCheck size={16} /> Confirm Hiring
+              <Button variant="success" onClick={handleHire} disabled={!hireJobId || hiring} className="gap-1.5">
+                <UserCheck size={16} /> {hiring ? 'Hiring...' : 'Confirm Hiring'}
               </Button>
               <Button variant="ghost" onClick={() => setShowHireModal(false)}>Cancel</Button>
             </div>

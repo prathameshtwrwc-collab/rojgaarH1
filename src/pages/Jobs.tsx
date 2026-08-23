@@ -1,12 +1,79 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, Briefcase, IndianRupee, Clock, ShieldCheck, Bookmark, ArrowRight, X, Filter, CheckCircle, GraduationCap, Building2, UserCheck, Sparkles } from 'lucide-react';
 import { Badge, Button, Modal, Select, Toast } from '../components/ui';
-import { useData, JobPosting } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { useDatabase } from '../context/DatabaseContext';
+import { getOpenJobsPublic, getAllEmployers, getAllJobSkills, createApplication } from '../lib/supabase/data';
+import { computeMatch } from '../lib/matching';
+
+function formatExperience(min: number | null, max: number | null): string {
+  if (min != null && max != null) return `${min}-${max} years`;
+  if (min != null) return `${min}+ years`;
+  return 'Not specified';
+}
+
+function mapJob(job: any, employer: any, skills: string[]) {
+  return {
+    id: job.id,
+    employerId: job.employer_id,
+    jobTitle: job.job_title,
+    companyName: employer?.company_name || 'Company',
+    city: job.city || '',
+    state: job.state || '',
+    salaryMin: String(job.salary_min ?? 0),
+    salaryMax: String(job.salary_max ?? 0),
+    employmentType: job.employment_type,
+    qualificationRequired: job.qualification_required || '',
+    experienceRequired: formatExperience(job.experience_min_years, job.experience_max_years),
+    skillsRequired: skills,
+    jobDescription: job.job_description,
+    numberOfOpenings: job.number_of_openings,
+    createdAt: job.created_at,
+    isVerified: job.is_verified,
+    status: job.status,
+  };
+}
 
 export default function Jobs() {
-  const { jobPostings, isCandidateLoggedIn, loggedCandidate, applyToJob, employers } = useData();
+  const { user } = useAuth();
+  const { candidate, profile, applications, refresh } = useDatabase();
   const navigate = useNavigate();
+
+  const [rawJobs, setRawJobs] = useState<any[]>([]);
+  const [employersList, setEmployersList] = useState<any[]>([]);
+  const [jobSkillsMap, setJobSkillsMap] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    (async () => {
+      const [openJobs, allEmployers] = await Promise.all([getOpenJobsPublic(), getAllEmployers()]);
+      setRawJobs(openJobs);
+      setEmployersList(allEmployers);
+      const skillsMap = await getAllJobSkills(openJobs.map((j: any) => j.id));
+      setJobSkillsMap(skillsMap);
+    })();
+  }, []);
+
+  const employersMap = useMemo(() => new Map(employersList.map((e: any) => [e.id, e])), [employersList]);
+  const jobPostings = useMemo(
+    () => rawJobs.map(j => mapJob(j, employersMap.get(j.employer_id), jobSkillsMap[j.id] || [])),
+    [rawJobs, employersMap, jobSkillsMap]
+  );
+
+  const isCandidateLoggedIn = user?.role === 'candidate';
+  const appliedJobIds = useMemo(() => new Set(applications.map((a: any) => a.job_id)), [applications]);
+
+  const [activeTab, setActiveTab] = useState<'all' | 'forYou'>('all');
+
+  const matchScores = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!isCandidateLoggedIn || !candidate) return map;
+    rawJobs.forEach((j: any) => {
+      const { score } = computeMatch(candidate, { ...j, skills_required: jobSkillsMap[j.id] || [] });
+      map.set(j.id, score);
+    });
+    return map;
+  }, [isCandidateLoggedIn, candidate, rawJobs, jobSkillsMap]);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,9 +95,10 @@ export default function Jobs() {
   });
 
   // Apply Modal State
-  const [applyingJob, setApplyingJob] = useState<JobPosting | null>(null);
+  const [applyingJob, setApplyingJob] = useState<any | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const toggleSaveJob = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -47,7 +115,7 @@ export default function Jobs() {
     localStorage.setItem('rojgaarhai_saved_jobs', JSON.stringify(updated));
   };
 
-  const handleApplyClick = (job: JobPosting, e?: React.MouseEvent) => {
+  const handleApplyClick = (job: any, e?: React.MouseEvent) => {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     if (!isCandidateLoggedIn) {
       navigate('/login/candidate');
@@ -57,12 +125,19 @@ export default function Jobs() {
     setShowApplyModal(true);
   };
 
-  const handleConfirmApply = () => {
-    if (applyingJob && loggedCandidate) {
-      applyToJob(applyingJob.id, loggedCandidate.id);
+  const handleConfirmApply = async () => {
+    if (!applyingJob || !user) return;
+    setApplying(true);
+    try {
+      await createApplication({ candidate_id: user.id, job_id: applyingJob.id, status: 'applied' } as any);
+      await refresh();
       setShowApplyModal(false);
       setToastMessage(`Your application for ${applyingJob.jobTitle} at ${applyingJob.companyName} has been submitted successfully!`);
       setApplyingJob(null);
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to submit application.');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -76,11 +151,11 @@ export default function Jobs() {
   const industries = useMemo(() => {
     const set = new Set<string>();
     jobPostings.forEach(j => {
-      const emp = employers.find(e => e.id === j.employerId);
+      const emp = employersMap.get(j.employerId);
       if (emp?.industry) set.add(emp.industry);
     });
     return Array.from(set).sort();
-  }, [jobPostings, employers]);
+  }, [jobPostings, employersMap]);
 
   // Filtered & Sorted Jobs
   const filteredJobs = useMemo(() => {
@@ -113,7 +188,7 @@ export default function Jobs() {
 
       // Industry
       if (selectedIndustry) {
-        const emp = employers.find(e => e.id === job.employerId);
+        const emp = employersMap.get(job.employerId);
         if (emp?.industry !== selectedIndustry) return false;
       }
 
@@ -141,7 +216,14 @@ export default function Jobs() {
       if (sortBy === 'lowestSalary') return parseInt(a.salaryMin) - parseInt(b.salaryMin);
       return 0;
     });
-  }, [jobPostings, employers, searchTerm, selectedLocation, selectedJobType, selectedSalary, selectedExperience, selectedEducation, selectedIndustry, sortBy]);
+  }, [jobPostings, employersMap, searchTerm, selectedLocation, selectedJobType, selectedSalary, selectedExperience, selectedEducation, selectedIndustry, sortBy]);
+
+  const visibleJobs = useMemo(() => {
+    if (activeTab !== 'forYou') return filteredJobs;
+    return [...filteredJobs]
+      .filter(j => (matchScores.get(j.id) || 0) >= 30)
+      .sort((a, b) => (matchScores.get(b.id) || 0) - (matchScores.get(a.id) || 0));
+  }, [filteredJobs, activeTab, matchScores]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -270,8 +352,8 @@ export default function Jobs() {
           {/* Sorting & Filter Actions Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs sm:text-sm">
             <div className="flex items-center gap-2 text-slate-500">
-              <span className="font-semibold text-[var(--navy)] text-base">{filteredJobs.length}</span>
-              <span>{filteredJobs.length === 1 ? 'job available' : 'jobs available'}</span>
+              <span className="font-semibold text-[var(--navy)] text-base">{visibleJobs.length}</span>
+              <span>{visibleJobs.length === 1 ? 'job available' : 'jobs available'}</span>
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
@@ -299,15 +381,42 @@ export default function Jobs() {
           </div>
         </div>
 
+        {/* ═══ ALL JOBS / FOR YOU TABS ═══ */}
+        {isCandidateLoggedIn && (
+          <div className="flex items-center gap-2 mb-6">
+            <div className="inline-flex bg-slate-100 rounded-full p-1">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${activeTab === 'all' ? 'bg-white text-[var(--navy)] shadow-sm' : 'text-[var(--charcoal)]'}`}
+              >
+                All Jobs
+              </button>
+              <button
+                onClick={() => setActiveTab('forYou')}
+                className={`px-5 py-2 rounded-full text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'forYou' ? 'bg-white text-[var(--navy)] shadow-sm' : 'text-[var(--charcoal)]'}`}
+              >
+                <Sparkles size={14} className="text-[var(--orange)]" /> For You
+              </button>
+            </div>
+            {activeTab === 'forYou' && (
+              <span className="text-xs text-[var(--charcoal)]">Matched to your skills, experience, salary expectation & location</span>
+            )}
+          </div>
+        )}
+
         {/* ═══ JOBS GRID ═══ */}
-        {filteredJobs.length === 0 ? (
+        {visibleJobs.length === 0 ? (
           <div className="card-landing p-12 text-center my-8 shadow-sm">
               <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
               <Filter size={32} />
             </div>
-            <h3 className="text-xl font-bold text-[var(--navy)]">No jobs match your criteria</h3>
+            <h3 className="text-xl font-bold text-[var(--navy)]">
+              {activeTab === 'forYou' ? 'No strong matches yet' : 'No jobs match your criteria'}
+            </h3>
             <p className="text-[var(--charcoal)] text-sm mt-1 max-w-md mx-auto">
-              Try adjusting your search terms or clearing some filters to see more available opportunities.
+              {activeTab === 'forYou'
+                ? 'Complete your profile with skills and preferences to get better matches, or browse All Jobs.'
+                : 'Try adjusting your search terms or clearing some filters to see more available opportunities.'}
             </p>
             <Button onClick={resetFilters} variant="outline" className="mt-5">
               Reset Filters
@@ -315,9 +424,10 @@ export default function Jobs() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredJobs.map(job => {
+            {visibleJobs.map(job => {
               const isSaved = savedJobIds.includes(job.id);
-              const isApplied = loggedCandidate ? job.applicants.includes(loggedCandidate.id) : false;
+              const isApplied = appliedJobIds.has(job.id);
+              const matchScore = matchScores.get(job.id);
 
               return (
                 <div
@@ -368,6 +478,20 @@ export default function Jobs() {
                           {job.companyName}
                         </p>
                       </div>
+                      {matchScore != null && (
+                        <div
+                          className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl border text-center ${
+                            matchScore >= 80 ? 'bg-[rgba(13,96,74,0.06)] border-[rgba(13,96,74,0.2)] text-[var(--green)]'
+                            : matchScore >= 60 ? 'bg-[rgba(241,90,36,0.06)] border-[rgba(241,90,36,0.2)] text-[var(--orange)]'
+                            : matchScore >= 40 ? 'bg-amber-50 border-amber-200 text-amber-700'
+                            : 'bg-slate-50 border-slate-200 text-slate-500'
+                          }`}
+                          title="Match score based on your skills, experience, salary expectation and location"
+                        >
+                          <span className="text-sm font-extrabold leading-none">{matchScore}%</span>
+                          <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5">Match</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Quick Specs Grid */}
@@ -456,7 +580,7 @@ export default function Jobs() {
         title="Confirm Your Application"
         size="md"
       >
-        {applyingJob && loggedCandidate && (
+        {applyingJob && (
           <div className="space-y-5">
               <div className="bg-[rgba(241,90,36,0.1)] rounded-xl p-4 border border-[rgba(241,90,36,0.2)]">
                 <p className="text-xs text-[var(--orange)] font-semibold uppercase tracking-wider">Applying For</p>
@@ -471,19 +595,19 @@ export default function Jobs() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-slate-400">Name</p>
-                  <p className="font-semibold text-[var(--navy)]">{loggedCandidate.firstName} {loggedCandidate.lastName}</p>
+                  <p className="font-semibold text-[var(--navy)]">{profile?.full_name || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">Email</p>
-                  <p className="font-semibold text-[var(--navy)] truncate">{loggedCandidate.email}</p>
+                  <p className="font-semibold text-[var(--navy)] truncate">{user?.email}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">Qualification</p>
-                  <p className="font-semibold text-[var(--navy)]">{loggedCandidate.qualification}</p>
+                  <p className="font-semibold text-[var(--navy)]">{candidate?.qualification || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">Experience</p>
-                  <p className="font-semibold text-[var(--navy)]">{loggedCandidate.totalExperience} years</p>
+                  <p className="font-semibold text-[var(--navy)]">{candidate?.total_experience_years ?? 0} years</p>
                 </div>
               </div>
             </div>
@@ -496,8 +620,8 @@ export default function Jobs() {
               <Button variant="ghost" onClick={() => setShowApplyModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleConfirmApply} variant="success" className="gap-1.5">
-                <UserCheck size={16} /> Confirm Application
+              <Button onClick={handleConfirmApply} disabled={applying} variant="success" className="gap-1.5">
+                <UserCheck size={16} /> {applying ? 'Submitting...' : 'Confirm Application'}
               </Button>
             </div>
           </div>

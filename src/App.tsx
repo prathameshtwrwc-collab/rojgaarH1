@@ -1,42 +1,81 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { DatabaseProvider } from './context/DatabaseContext';
 import Landing from './pages/Landing';
 import PublicLayout from './components/PublicLayout';
 import AdminLayout from './components/AdminLayout';
 import JobSeekerInfo from './pages/JobSeekerInfo';
 import EmployerInfo from './pages/EmployerInfo';
 import Contact from './pages/Contact';
+import AboutUs from './pages/AboutUs';
+import Blog from './pages/Blog';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 import Jobs from './pages/Jobs';
 import JobDetails from './pages/JobDetails';
-import JobSeekerRegistration from './pages/JobSeekerRegistration';
-import EmployerRegistration from './pages/EmployerRegistration';
-import AdminLogin from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import Candidates from './pages/admin/Candidates';
 import Employers from './pages/admin/Employers';
 import Matching from './pages/admin/Matching';
 import Communications from './pages/admin/Communications';
 import Placements from './pages/admin/Placements';
-import { CandidateLogin, CandidateDashboard } from './pages/dashboards/CandidateDashboard';
-import { EmployerLogin, EmployerDashboard } from './pages/dashboards/EmployerDashboard';
+import EmployerDetail from './pages/admin/EmployerDetail';
+import JobApprovals from './pages/admin/JobApprovals';
+import CandidateLogin from './pages/auth/CandidateLogin';
+import EmployerLogin from './pages/auth/EmployerLogin';
+import AdminLoginPage from './pages/auth/AdminLogin';
+import CandidateSignup from './pages/auth/CandidateSignup';
+import EmployerSignup from './pages/auth/EmployerSignup';
+import { CandidateDashboard } from './pages/dashboards/CandidateDashboard';
+import { EmployerDashboard } from './pages/dashboards/EmployerDashboard';
+import PostJob from './pages/dashboards/PostJob';
 import { ReactNode } from 'react';
+import PageLoader from './components/PageLoader';
+import ScrollRestoration from './components/ScrollRestoration';
+import { useSmoothScroll } from './hooks/useSmoothScroll';
+
+function AuthGate() {
+  return <PageLoader />;
+}
 
 function ProtectedAdminRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
   const { isAdminLoggedIn } = useData();
-  if (!isAdminLoggedIn) return <Navigate to="/admin/login" replace />;
-  return <AdminLayout>{children}</AdminLayout>;
+
+  if (loading) return <AuthGate />;
+
+  if (isAdminLoggedIn || user?.role === 'superadmin') {
+    return <AdminLayout>{children}</AdminLayout>;
+  }
+
+  return <Navigate to="/admin/login" replace />;
 }
 
 function ProtectedCandidateRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
   const { isCandidateLoggedIn } = useData();
-  if (!isCandidateLoggedIn) return <Navigate to="/login/candidate" replace />;
-  return <>{children}</>;
+
+  if (loading) return <AuthGate />;
+
+  if (isCandidateLoggedIn || user?.role === 'candidate') {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/login/candidate" replace />;
 }
 
 function ProtectedEmployerRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
   const { isEmployerLoggedIn } = useData();
-  if (!isEmployerLoggedIn) return <Navigate to="/login/employer" replace />;
-  return <>{children}</>;
+
+  if (loading) return <AuthGate />;
+
+  if (isEmployerLoggedIn || user?.role === 'employer') {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/login/employer" replace />;
 }
 
 function AppRoutes() {
@@ -51,24 +90,37 @@ function AppRoutes() {
       <Route element={<PublicLayout><JobSeekerInfo /></PublicLayout>} path="/job-seeker-info" />
       <Route element={<PublicLayout><EmployerInfo /></PublicLayout>} path="/employer-info" />
       <Route element={<PublicLayout><Contact /></PublicLayout>} path="/contact" />
+      <Route element={<PublicLayout><AboutUs /></PublicLayout>} path="/about" />
+      <Route element={<PublicLayout><Blog /></PublicLayout>} path="/blog" />
+      <Route element={<PublicLayout><PrivacyPolicy /></PublicLayout>} path="/privacy" />
+      <Route element={<PublicLayout><Terms /></PublicLayout>} path="/terms" />
 
       {/* Registration portals */}
-      <Route element={<PublicLayout><JobSeekerRegistration /></PublicLayout>} path="/register/job-seeker" />
-      <Route element={<PublicLayout><EmployerRegistration /></PublicLayout>} path="/register/employer" />
+      <Route element={<PublicLayout><CandidateSignup /></PublicLayout>} path="/register/job-seeker" />
+      <Route element={<PublicLayout><EmployerSignup /></PublicLayout>} path="/register/employer" />
+
+      {/* Candidate Auth */}
+      <Route element={<PublicLayout><CandidateLogin /></PublicLayout>} path="/login/candidate" />
+
+      {/* Employer Auth */}
+      <Route element={<PublicLayout><EmployerLogin /></PublicLayout>} path="/login/employer" />
+
+      {/* Admin Auth */}
+      <Route element={<AdminLoginPage />} path="/admin/login" />
 
       {/* Candidate Dashboard */}
-      <Route element={<PublicLayout><CandidateLogin /></PublicLayout>} path="/login/candidate" />
       <Route path="/dashboard/candidate" element={<ProtectedCandidateRoute><CandidateDashboard /></ProtectedCandidateRoute>} />
 
       {/* Employer Dashboard */}
-      <Route element={<PublicLayout><EmployerLogin /></PublicLayout>} path="/login/employer" />
       <Route path="/dashboard/employer" element={<ProtectedEmployerRoute><EmployerDashboard /></ProtectedEmployerRoute>} />
+      <Route path="/dashboard/employer/post-job" element={<ProtectedEmployerRoute><PostJob /></ProtectedEmployerRoute>} />
 
       {/* Admin */}
-      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<ProtectedAdminRoute><Dashboard /></ProtectedAdminRoute>} />
+      <Route path="/admin/jobs" element={<ProtectedAdminRoute><JobApprovals /></ProtectedAdminRoute>} />
       <Route path="/admin/candidates" element={<ProtectedAdminRoute><Candidates /></ProtectedAdminRoute>} />
       <Route path="/admin/employers" element={<ProtectedAdminRoute><Employers /></ProtectedAdminRoute>} />
+      <Route path="/employer/:id" element={<ProtectedAdminRoute><EmployerDetail /></ProtectedAdminRoute>} />
       <Route path="/admin/matching" element={<ProtectedAdminRoute><Matching /></ProtectedAdminRoute>} />
       <Route path="/admin/communications" element={<ProtectedAdminRoute><Communications /></ProtectedAdminRoute>} />
       <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />
@@ -80,11 +132,17 @@ function AppRoutes() {
 }
 
 function App() {
+  useSmoothScroll();
   return (
     <BrowserRouter>
-      <DataProvider>
-        <AppRoutes />
-      </DataProvider>
+      <AuthProvider>
+        <DataProvider>
+          <DatabaseProvider>
+            <ScrollRestoration />
+            <AppRoutes />
+          </DatabaseProvider>
+        </DataProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -1,132 +1,274 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Building2, Briefcase, Users, MapPin, FileText, LogOut, ArrowRight, Eye, IndianRupee,
-  CheckCircle, Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
-  TrendingUp, Download, Clock, Copy, Share2, PauseCircle,
-  XCircle, MessageSquare, Video, AlertCircle
+  Building2, Briefcase, Users, MapPin, FileText, LogOut, Eye, IndianRupee,
+  Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
+  Download, Copy, Share2, PauseCircle,
+  XCircle, Video, Link2, UserPlus2
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Activity03Icon } from '@hugeicons/core-free-icons';
-import { Card, Badge, Button, Modal, Toast } from '../../components/ui';
-import { useData, JobSeeker, JobPosting } from '../../context/DataContext';
+import { Badge, Button, Modal, Toast } from '../../components/ui';
+import { useDatabase } from '../../context/DatabaseContext';
+import { useAuth } from '../../context/AuthContext';
+import { updateJobPosting, getCandidatesReferredByEmployer, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCandidateAccountByEmployer } from '../../lib/supabase/data';
+import { DashboardSkeleton } from '../../components/Skeleton';
 
-function EmployerLogin() {
-  const { employerLogin } = useData();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+function formatExperience(min: number | null, max: number | null): string {
+  if (min != null && max != null) return `${min}-${max} years`;
+  if (min != null) return `${min}+ years`;
+  return 'Not specified';
+}
 
-  const demoEmails = [
-    { email: 'sanjay@bharatmfg.com', name: 'Sanjay Mehta', category: 'Bharat Mfg.' },
-    { email: 'rohit@techrural.com', name: 'Rohit Agarwal', category: 'TechRural' },
-    { email: 'krao@metrohospital.org', name: 'Dr. K. Rao', category: 'Metro Hospital' },
-    { email: 'kapil@northernsteel.in', name: 'Kapil Sharma', category: 'Northern Steel' },
-  ];
-
-  const handleLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (employerLogin(email)) {
-      navigate('/dashboard/employer');
-    } else {
-      setError('Employer not found. Select a demo account below.');
-    }
+function mapJob(job: any, employerName: string, skillsMap: Record<string, string[]>): any {
+  return {
+    id: job.id,
+    employerId: job.employer_id,
+    companyName: employerName,
+    jobTitle: job.job_title,
+    numberOfOpenings: job.number_of_openings,
+    city: job.city || '',
+    state: job.state || '',
+    salaryMin: job.salary_min?.toString() || '0',
+    salaryMax: job.salary_max?.toString() || '0',
+    employmentType: job.employment_type,
+    qualificationRequired: job.qualification_required || '',
+    experienceRequired: formatExperience(job.experience_min_years, job.experience_max_years),
+    skillsRequired: skillsMap[job.id] || [],
+    jobDescription: job.job_description,
+    benefits: job.benefits || '',
+    joiningTimeline: job.joining_timeline || '',
+    accommodationProvided: job.accommodation_provided,
+    transportationProvided: job.transportation_provided,
+    additionalNotes: job.additional_notes || '',
+    status: job.status,
+    createdAt: job.created_at,
+    isVerified: job.is_verified,
+    approvedBy: job.approved_by,
+    approvedAt: job.approved_at,
+    deadline: job.deadline,
+    workingHours: job.working_hours,
+    recruiterName: job.recruiter_name,
+    recruiterEmail: job.recruiter_email,
+    recruiterPhone: job.recruiter_phone,
   };
+}
 
-  return (
-    <div className="min-h-[calc(100vh-76px)] bg-[var(--bg-warm)] flex items-center justify-center px-4 sm:px-6 py-10 sm:py-16" style={{ fontFamily: 'var(--font)' }}>
-      <div className="w-full max-w-[460px]">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--navy)]/10 text-[var(--navy)] mb-4">
-            <Building2 size={28} />
-          </div>
-          <h1 className="text-[32px] sm:text-[36px] font-extrabold text-[var(--navy)] tracking-tight leading-tight mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-            Employer Portal
-          </h1>
-          <p className="text-base text-[var(--charcoal)] leading-relaxed">
-            Sign in to manage job postings and your hiring pipeline
-          </p>
-        </div>
+function mapCandidateToApplicant(candidate: any): any {
+  const fullName = candidate.profile_name || '';
+  const nameParts = fullName.split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-[15px] font-semibold text-[var(--navy)] mb-2">
-                Contact Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="your@company.com"
-                className="w-full px-4 h-[50px] rounded-xl border border-slate-300 focus:ring-2 focus:ring-[rgba(241,90,36,0.2)] focus:border-[var(--orange)] focus:outline-none text-[15px] bg-white text-[var(--navy)] placeholder:text-[var(--charcoal)]"
-              />
-            </div>
-            {error && (
-              <p className="text-sm font-semibold text-red-600 flex items-center gap-1.5">
-                <AlertCircle size={14} />
-                {error}
-              </p>
-            )}
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              className="bg-[var(--orange)] text-white font-bold rounded-full h-[50px] text-[15px] shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
-            >
-              Sign in to Workspace
-            </Button>
-          </form>
-
-          <div className="mt-7 pt-6 border-t border-slate-200">
-            <p className="text-sm font-semibold text-[var(--navy)] mb-1">Demo one-click accounts</p>
-            <p className="text-xs text-[var(--charcoal)] mb-4">Preview the employer workspace using a demo profile.</p>
-            <div className="space-y-2">
-              {demoEmails.map(d => (
-                <button
-                  key={d.email}
-                  onClick={() => { setEmail(d.email); employerLogin(d.email); navigate('/dashboard/employer'); }}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left rounded-xl border border-slate-200 hover:border-[var(--orange)]/30 hover:bg-[rgba(241,90,36,0.04)] transition-all group"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-[var(--navy)] group-hover:text-[var(--orange)] transition-colors">{d.name}</span>
-                    <span className="text-xs text-[var(--charcoal)]">{d.category}</span>
-                  </div>
-                  <ArrowRight size={16} className="text-[var(--orange)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return {
+    id: candidate.id,
+    firstName,
+    lastName,
+    phone: candidate.profile_phone || '',
+    email: '',
+    dob: candidate.date_of_birth || '',
+    location: candidate.location || candidate.city || '',
+    state: candidate.state || '',
+    country: candidate.country || '',
+    gender: candidate.gender || '',
+    qualification: candidate.qualification || '',
+    skills: candidate.skills || [],
+    previousCompany: '',
+    totalExperience: `${candidate.total_experience_years || 0} years`,
+    willingToRelocate: candidate.willing_to_relocate,
+    expectedSalary: candidate.expected_salary_min?.toString() || candidate.expected_salary_max?.toString() || '0',
+    preferredJobType: candidate.preferred_job_type || '',
+    status: candidate.status || 'New',
+    createdAt: candidate.created_at,
+    resumeFile: candidate.resume_url || '',
+    profilePhotoFile: candidate.profile_photo_url || '',
+    linkedin: candidate.linkedin_url || '',
+    github: candidate.github_url || '',
+    portfolio: candidate.portfolio_url || '',
+    website: candidate.website_url || '',
+    bio: candidate.bio || '',
+    aadhaarNumber: candidate.aadhaar_number || '',
+    panNumber: candidate.pan_number || '',
+    nationality: candidate.nationality || '',
+    maritalStatus: candidate.marital_status || '',
+    currentStatus: candidate.current_status || '',
+    immediateJoining: candidate.immediate_joining,
+    noticePeriod: candidate.notice_period || '',
+    preferredShift: candidate.preferred_shift || '',
+    specialization: candidate.specialization || '',
+    referredBy: candidate.referred_by || '',
+    referralCodeUsed: candidate.referral_code_used || '',
+  };
 }
 
 function EmployerDashboard() {
-  const { loggedEmployer, employerLogout, jobPostings, jobSeekers, matches, placements, updateJobPosting } = useData();
+  const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, loading, refresh } = useDatabase();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
-  // Local interactive states
   const [expandedJobIds, setExpandedJobIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('All');
-  const [viewingApplicant, setViewingApplicant] = useState<JobSeeker | null>(null);
+  const [viewingApplicant, setViewingApplicant] = useState<any | null>(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [shortlistedCandidateIds, setShortlistedCandidateIds] = useState<string[]>([]);
-  const [rejectedCandidateIds, setRejectedCandidateIds] = useState<string[]>([]);
+  const [referredCandidates, setReferredCandidates] = useState<any[]>([]);
+  const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
+  const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
+  const [companyForm, setCompanyForm] = useState<any>(null);
+  const [savingCompany, setSavingCompany] = useState(false);
+  const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
+  const [addCandidateForm, setAddCandidateForm] = useState({ fullName: '', phone: '', email: '' });
+  const [addingCandidate, setAddingCandidate] = useState(false);
+  const [newCandidateCreds, setNewCandidateCreds] = useState<{ email: string; password: string } | null>(null);
 
-  if (!loggedEmployer) { navigate('/login/employer'); return null; }
+  const mappedEmployer = useMemo(() => {
+    if (!employerData) return null;
+    return {
+      id: employerData.id,
+      companyName: employerData.company_name || '',
+      companyNameSet: Boolean(employerData.company_name),
+      industry: employerData.industry || '',
+      companySize: employerData.company_size || '',
+      yearEstablished: employerData.year_established?.toString() || '',
+      website: employerData.website || '',
+      address: employerData.address || '',
+      city: employerData.city || '',
+      state: employerData.state || '',
+      contactName: employerData.contact_name || '',
+      contactEmail: employerData.contact_email || '',
+      contactPhone: employerData.contact_phone || '',
+      gstNumber: employerData.gst_number || '',
+      verified: employerData.verified,
+      referralCode: employerData.referral_code,
+      createdAt: employerData.created_at,
+    };
+  }, [employerData]);
 
-  const employer = loggedEmployer;
-  const myJobs = jobPostings.filter(j => j.employerId === employer.id);
-  const myPlacements = placements.filter(p => p.employerId === employer.id);
-  const totalApplicants = myJobs.reduce((sum, j) => sum + j.applicants.length, 0);
-  const activeJobs = myJobs.filter(j => j.status === 'Open').length;
+  const candidatesMap = useMemo(() => {
+    return new Map(candidates.map((c: any) => [c.id, c]));
+  }, [candidates]);
+
+  const referralLink = mappedEmployer ? `${window.location.origin}/register/job-seeker?ref=${mappedEmployer.referralCode}` : '';
+
+  const myJobs = useMemo(() => {
+    if (!mappedEmployer) return [];
+    return jobs.map(j => mapJob(j, mappedEmployer.companyName, jobSkills));
+  }, [jobs, mappedEmployer, jobSkills]);
+
+  const myPlacements = useMemo(() => {
+    if (!mappedEmployer) return [];
+    return placements.filter((p: any) => p.employer_id === mappedEmployer.id);
+  }, [placements, mappedEmployer]);
+
+  const totalApplicants = useMemo(() => {
+    return myJobs.reduce((sum, j) => sum + applications.filter((a: any) => a.job_id === j.id).length, 0);
+  }, [myJobs, applications]);
+
+  const activeJobs = useMemo(() => {
+    return myJobs.filter(j => j.status === 'Open').length;
+  }, [myJobs]);
+
+  const interviewsScheduled = useMemo(() => {
+    const myJobIds = new Set(myJobs.map(j => j.id));
+    return matches.filter((m: any) => myJobIds.has(m.job_id) && m.status === 'Interview Scheduled').length;
+  }, [matches, myJobs]);
+
+  useEffect(() => {
+    if (!mappedEmployer) return;
+    getCandidatesReferredByEmployer(mappedEmployer.id).then(setReferredCandidates);
+  }, [mappedEmployer?.id]);
+
+  useEffect(() => {
+    if (!mappedEmployer || mappedEmployer.companyNameSet) return;
+    const dismissedKey = `rojgaarhai_company_profile_skipped_${mappedEmployer.id}`;
+    if (localStorage.getItem(dismissedKey)) return;
+    setCompanyForm({
+      companyName: '', industry: '', companySize: '', website: '', address: '',
+      city: mappedEmployer.city, state: mappedEmployer.state,
+      contactName: mappedEmployer.contactName, contactEmail: mappedEmployer.contactEmail, contactPhone: mappedEmployer.contactPhone,
+    });
+    setShowEditCompanyModal(true);
+  }, [mappedEmployer?.id, mappedEmployer?.companyNameSet]);
+
+  const employerActivities = useMemo(() => {
+    const activities: any[] = [];
+    jobs.slice(0, 3).forEach((job: any) => {
+      activities.push({
+        id: job.id,
+        text: `Published new job opening for ${job.job_title} (${job.number_of_openings} vacancies)`,
+        date: new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        icon: <Briefcase size={14} className="text-teal-500" />,
+      });
+    });
+    applications.slice(0, 3).forEach((app: any) => {
+      const candidate = candidatesMap.get(app.candidate_id);
+      const job = jobs.find((j: any) => j.id === app.job_id);
+      if (candidate && job) {
+        activities.push({
+          id: app.id,
+          text: `${candidate.profile_name || 'A candidate'} applied for ${job.job_title} position`,
+          date: new Date(app.applied_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+          icon: <Users size={14} className="text-[var(--orange)]" />,
+        });
+      }
+    });
+    return activities.slice(0, 5);
+  }, [jobs, applications, candidatesMap]);
+
+  const employerNotifications = useMemo(() => {
+    const notifications: any[] = [];
+    const newApplicants = applications.filter((a: any) => {
+      const diffMs = Date.now() - new Date(a.applied_at).getTime();
+      return diffMs < 24 * 60 * 60 * 1000;
+    });
+    if (newApplicants.length > 0) {
+      notifications.push({
+        id: 'new-apps',
+        title: `${newApplicants.length} New Applicant${newApplicants.length > 1 ? 's' : ''}`,
+        text: `Candidates applied to your postings recently.`,
+        time: 'Today',
+      });
+    }
+    matches.filter((m: any) => m.status === 'Interview Scheduled').slice(0, 2).forEach((match: any) => {
+      const job = jobs.find((j: any) => j.id === match.job_id);
+      const candidate = candidatesMap.get(match.candidate_id);
+      if (job && candidate) {
+        notifications.push({
+          id: match.id,
+          title: 'Interview Scheduled',
+          text: `Interview set with ${candidate.profile_name || 'a candidate'} for ${job.job_title}.`,
+          time: 'Upcoming',
+        });
+      }
+    });
+    return notifications.slice(0, 5);
+  }, [applications, matches, jobs, candidatesMap]);
+
+  const atsInsights = useMemo(() => {
+    const totalMatches = matches.length;
+    const avgMatchScore = totalMatches > 0 ? Math.round(matches.reduce((sum: number, m: any) => sum + (m.match_score || 0), 0) / totalMatches) : 0;
+    const respondedCount = applications.filter((a: any) => a.status !== 'applied').length;
+    const responseRate = applications.length > 0 ? Math.round((respondedCount / applications.length) * 100) : 0;
+    return {
+      avgMatchScore,
+      responseRate,
+      totalApplications: applications.length,
+    };
+  }, [matches, applications]);
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (!mappedEmployer) {
+    navigate('/login/employer');
+    return null;
+  }
+
+  const employer = mappedEmployer;
 
   const toggleExpandJob = (jobId: string) => {
     if (expandedJobIds.includes(jobId)) {
@@ -137,15 +279,21 @@ function EmployerDashboard() {
   };
 
   const getApplicantsForJob = (jobId: string) => {
-    const job = myJobs.find(j => j.id === jobId);
-    if (!job) return [];
-    return job.applicants.map(id => jobSeekers.find(s => s.id === id)).filter(Boolean) as JobSeeker[];
+    const jobApplications = applications.filter((a: any) => a.job_id === jobId);
+    return jobApplications
+      .map((a: any) => {
+        const c = candidatesMap.get(a.candidate_id);
+        if (!c) return null;
+        return { ...mapCandidateToApplicant(c), applicationId: a.id, applicationStatus: a.status };
+      })
+      .filter(Boolean);
   };
 
-  const getMatchesForJob = (jobId: string) => matches.filter(m => m.jobId === jobId);
+  const getMatchesForJob = (jobId: string) => {
+    return matches.filter((m: any) => m.job_id === jobId);
+  };
 
-  // Filtered jobs
-  const filteredJobs = myJobs.filter(job => {
+  const filteredJobs = myJobs.filter((job: any) => {
     if (statusFilter !== 'All' && job.status !== statusFilter) return false;
     if (employmentTypeFilter !== 'All' && job.employmentType !== employmentTypeFilter) return false;
     if (dateFilter !== 'All' && job.createdAt) {
@@ -159,64 +307,143 @@ function EmployerDashboard() {
       const q = searchTerm.toLowerCase();
       const matchTitle = job.jobTitle.toLowerCase().includes(q);
       const matchCity = job.city.toLowerCase().includes(q);
-      const matchSkill = job.skillsRequired.some(s => s.toLowerCase().includes(q));
+      const matchSkill = job.skillsRequired.some((s: string) => s.toLowerCase().includes(q));
       if (!matchTitle && !matchCity && !matchSkill) return false;
     }
     return true;
   });
 
-  // Action handlers
-  const handleJobAction = (action: string, job: JobPosting, e: React.MouseEvent) => {
+  const handleJobAction = async (action: string, job: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (action === 'Pause') {
-      updateJobPosting(job.id, { status: job.status === 'On Hold' ? 'Open' : 'On Hold' });
-      setToastMessage(`Job "${job.jobTitle}" status changed to ${job.status === 'On Hold' ? 'Open' : 'On Hold'}.`);
-    } else if (action === 'Close') {
-      updateJobPosting(job.id, { status: 'Closed' });
-      setToastMessage(`Job "${job.jobTitle}" marked as Closed.`);
-    } else if (action === 'Duplicate') {
-      setToastMessage(`Created duplicate draft for "${job.jobTitle}".`);
-    } else if (action === 'Share') {
-      setToastMessage(`Job link for "${job.jobTitle}" copied to clipboard!`);
-    }
-  };
-
-  const handleCandidateAction = (action: string, candidate: JobSeeker, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (action === 'Shortlist') {
-      if (shortlistedCandidateIds.includes(candidate.id)) {
-        setShortlistedCandidateIds(shortlistedCandidateIds.filter(id => id !== candidate.id));
-        setToastMessage(`${candidate.firstName} ${candidate.lastName} removed from shortlist.`);
-      } else {
-        setShortlistedCandidateIds([...shortlistedCandidateIds, candidate.id]);
-        setToastMessage(`${candidate.firstName} ${candidate.lastName} shortlisted successfully!`);
+    try {
+      if (action === 'Pause') {
+        const newStatus = job.status === 'On Hold' ? 'Open' : 'On Hold';
+        await updateJobPosting(job.id, { status: newStatus });
+        setToastMessage(`Job "${job.jobTitle}" status changed to ${newStatus}.`);
+        await refresh();
+      } else if (action === 'Close') {
+        await updateJobPosting(job.id, { status: 'Closed' });
+        setToastMessage(`Job "${job.jobTitle}" marked as Closed.`);
+        await refresh();
+      } else if (action === 'Duplicate') {
+        await duplicateJobPosting(job.id);
+        setToastMessage(`Duplicated "${job.jobTitle}" as a new draft pending approval.`);
+        await refresh();
+      } else if (action === 'Share') {
+        const link = `${window.location.origin}/jobs/${job.id}`;
+        await navigator.clipboard.writeText(link);
+        setToastMessage(`Job link for "${job.jobTitle}" copied to clipboard!`);
       }
-    } else if (action === 'Interview') {
-      setToastMessage(`Interview scheduled invitation sent to ${candidate.firstName} ${candidate.lastName}.`);
-    } else if (action === 'Reject') {
-      setRejectedCandidateIds([...rejectedCandidateIds, candidate.id]);
-      setToastMessage(`Application for ${candidate.firstName} ${candidate.lastName} moved to rejected.`);
-    } else if (action === 'Download') {
-      setToastMessage(`Downloading resume for ${candidate.firstName} ${candidate.lastName}...`);
-    } else if (action === 'Message') {
-      setToastMessage(`Direct message window opened for ${candidate.firstName}.`);
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Action failed. Please try again.');
     }
   };
 
-  // Recent activity logs
-  const employerActivities = [
-    { id: 1, text: 'Published new job opening for Machine Operator (5 vacancies)', date: 'Today, 9:30 AM', icon: <Briefcase size={14} className="text-teal-500" /> },
-    { id: 2, text: 'Rajesh Kumar applied for Machine Operator position', date: 'Yesterday, 3:15 PM', icon: <Users size={14} className="text-[var(--orange)]" /> },
-    { id: 3, text: 'Shortlisted Priya Sharma for Staff Nurse interview', date: '2 Feb 2024', icon: <Star size={14} className="text-amber-500" /> },
-    { id: 4, text: 'Confirmed placement for Manoj Tiwari (Commission Paid)', date: '28 Jan 2024', icon: <CheckCircle size={14} className="text-emerald-500" /> },
-  ];
+  const handleCandidateAction = async (action: string, applicant: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (action === 'Shortlist') {
+        await updateApplicationStatus(applicant.applicationId, 'shortlisted');
+        setToastMessage(`${applicant.firstName} ${applicant.lastName} shortlisted successfully!`);
+        await refresh();
+      } else if (action === 'Interview') {
+        await updateApplicationStatus(applicant.applicationId, 'interview_scheduled');
+        await createCommunication({
+          type: 'call',
+          contact_type: 'candidate',
+          candidate_id: applicant.id,
+          employer_id: employer.id,
+          contact_name: `${applicant.firstName} ${applicant.lastName}`,
+          subject: 'Interview Scheduled',
+          notes: `Interview invitation sent for application ${applicant.applicationId}.`,
+        } as any);
+        setToastMessage(`Interview scheduled invitation sent to ${applicant.firstName} ${applicant.lastName}.`);
+        await refresh();
+      } else if (action === 'Reject') {
+        await updateApplicationStatus(applicant.applicationId, 'rejected');
+        setToastMessage(`Application for ${applicant.firstName} ${applicant.lastName} moved to rejected.`);
+        await refresh();
+      } else if (action === 'Download') {
+        if (applicant.resumeFile) {
+          window.open(applicant.resumeFile, '_blank');
+        } else {
+          setToastMessage(`${applicant.firstName} ${applicant.lastName} has not uploaded a resume yet.`);
+        }
+      } else if (action === 'Message') {
+        await createCommunication({
+          type: 'email',
+          contact_type: 'candidate',
+          candidate_id: applicant.id,
+          employer_id: employer.id,
+          contact_name: `${applicant.firstName} ${applicant.lastName}`,
+          subject: 'Message from Recruiter',
+          notes: `Recruiter reached out to ${applicant.firstName} regarding their application.`,
+        } as any);
+        setToastMessage(`Message logged for ${applicant.firstName}. Our team will follow up.`);
+        await refresh();
+      }
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Action failed. Please try again.');
+    }
+  };
 
-  // Employer notifications
-  const employerNotifications = [
-    { id: 1, title: '5 New Applicants', text: '5 candidates applied to Machine Operator in Pune.', time: '1h ago' },
-    { id: 2, title: 'Interview Tomorrow', text: 'Online interview set with Priya Sharma at 11:00 AM.', time: '3h ago' },
-    { id: 3, title: 'Candidate Accepted Offer', text: 'Amit Patel accepted offer for Machine Operator.', time: '1d ago' },
-  ];
+  const openEditCompany = () => {
+    setCompanyForm({
+      companyName: employer.companyName,
+      industry: employer.industry,
+      companySize: employer.companySize,
+      website: employer.website,
+      address: employer.address,
+      city: employer.city,
+      state: employer.state,
+      contactName: employer.contactName,
+      contactEmail: employer.contactEmail,
+      contactPhone: employer.contactPhone,
+    });
+    setShowEditCompanyModal(true);
+  };
+
+  const saveCompanyEdit = async () => {
+    if (!companyForm) return;
+    setSavingCompany(true);
+    try {
+      await updateEmployerProfile(employer.id, {
+        company_name: companyForm.companyName,
+        industry: companyForm.industry,
+        company_size: companyForm.companySize,
+        website: companyForm.website,
+        address: companyForm.address,
+        city: companyForm.city,
+        state: companyForm.state,
+        contact_name: companyForm.contactName,
+        contact_email: companyForm.contactEmail,
+        contact_phone: companyForm.contactPhone,
+      } as any);
+      setToastMessage('Company details updated successfully.');
+      setShowEditCompanyModal(false);
+      await refresh();
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to update company details.');
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  const handleAddCandidate = async () => {
+    if (!addCandidateForm.fullName || !addCandidateForm.phone || !addCandidateForm.email) return;
+    setAddingCandidate(true);
+    try {
+      const { password } = await createCandidateAccountByEmployer(employer.id, addCandidateForm);
+      setNewCandidateCreds({ email: addCandidateForm.email, password });
+      setAddCandidateForm({ fullName: '', phone: '', email: '' });
+      const referred = await getCandidatesReferredByEmployer(employer.id);
+      setReferredCandidates(referred);
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to create candidate account.');
+    } finally {
+      setAddingCandidate(false);
+    }
+  };
 
   return (
     <div className="dash-shell text-[var(--navy)] pb-16" style={{ fontFamily: 'var(--font)' }}>
@@ -236,16 +463,16 @@ function EmployerDashboard() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <Link to="/register/employer">
+            <Link to="/dashboard/employer/post-job">
               <button className="dash-btn dash-btn-primary dash-btn--compact hidden sm:inline-flex">
                 <Plus size={14} /> Post New Job
               </button>
             </Link>
 
             <div className="flex items-center gap-3 pl-3 border-l border-[#E7E2D9]">
-              <div className="dash-avatar">{employer.companyName.charAt(0)}</div>
+              <div className="dash-avatar">{employer.companyName.charAt(0) || '🏢'}</div>
               <button
-                onClick={() => { employerLogout(); navigate('/'); }}
+                onClick={async () => { await logout(); navigate('/'); }}
                 className="text-[var(--charcoal)] hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100"
                 title="Log Out"
               >
@@ -265,21 +492,21 @@ function EmployerDashboard() {
         <div className="dash-header">
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="dash-header__title">{employer.companyName}</h1>
-              <span className="dash-status dash-status--success"><ShieldCheck size={11} /> Verified</span>
+              <h1 className="dash-header__title">{employer.companyName || 'Complete Your Company Profile'}</h1>
+              {employer.verified && <span className="dash-status dash-status--success"><ShieldCheck size={11} /> Verified</span>}
             </div>
             <p className="dash-header__subtitle">
               Recruiter Workspace · {employer.industry} · {employer.city}, {employer.state} · Contact: {employer.contactName}
             </p>
           </div>
           <div className="flex items-center gap-2 self-start">
-            <button onClick={() => setToastMessage('Company details editor opened.')} className="dash-btn dash-btn-secondary dash-btn--compact">
+            <button onClick={openEditCompany} className="dash-btn dash-btn-secondary dash-btn--compact">
               Edit Company
             </button>
-            <button onClick={() => setToastMessage(`Public recruiter profile URL: https://rojgaarhai.com/company/${employer.id}`)} className="dash-btn dash-btn-secondary dash-btn--compact">
-              View Public Profile
+            <button onClick={() => setShowProfilePreviewModal(true)} className="dash-btn dash-btn-secondary dash-btn--compact">
+              Preview Profile
             </button>
-            <Link to="/register/employer">
+            <Link to="/dashboard/employer/post-job">
               <button className="dash-btn dash-btn-primary">
                 <Plus size={15} /> Post New Job
               </button>
@@ -300,7 +527,7 @@ function EmployerDashboard() {
             <div className="dash-metric__trend">↑ 18% this week</div>
           </div>
           <div className="dash-metric">
-            <div className="dash-metric__value">2</div>
+            <div className="dash-metric__value">{interviewsScheduled}</div>
             <div className="dash-metric__label">Interviews Scheduled</div>
           </div>
           <div className="dash-metric">
@@ -308,7 +535,7 @@ function EmployerDashboard() {
             <div className="dash-metric__label">Placements Joined</div>
           </div>
           <div className="dash-metric">
-            <div className="dash-metric__value">₹{myJobs.reduce((sum, j) => sum + parseInt(j.salaryMax), 0).toLocaleString()}</div>
+            <div className="dash-metric__value">₹{myJobs.reduce((sum, j) => sum + (parseInt(j.salaryMax) || 0), 0).toLocaleString()}</div>
             <div className="dash-metric__label">Monthly Salary Budget</div>
           </div>
         </div>
@@ -380,7 +607,7 @@ function EmployerDashboard() {
               <p className="text-xs text-[var(--charcoal)] mt-1 max-w-sm mx-auto">
                 No job postings match your current filter. Create a new vacancy requirement to start receiving pre-screened applicants.
               </p>
-              <Link to="/register/employer">
+              <Link to="/dashboard/employer/post-job">
                 <button className="dash-btn dash-btn-primary mt-4 mx-auto">
                   <Plus size={16} /> Create First Job Posting
                 </button>
@@ -388,11 +615,11 @@ function EmployerDashboard() {
             </div>
           ) : (
             <div className="dash-surface divide-y divide-[#EFEAE1]">
-              {filteredJobs.map(job => {
+              {filteredJobs.map((job: any) => {
                 const isExpanded = expandedJobIds.includes(job.id);
                 const applicants = getApplicantsForJob(job.id);
                 const jobMatches = getMatchesForJob(job.id);
-                const statusVariant = job.status === 'Open' ? 'success' : job.status === 'On Hold' ? 'warning' : 'danger';
+                const statusVariant = job.status === 'Open' ? 'success' : job.status === 'Pending' ? 'warning' : job.status === 'On Hold' ? 'warning' : 'danger';
 
                 return (
                   <div key={job.id}>
@@ -410,7 +637,7 @@ function EmployerDashboard() {
                               {job.jobTitle}
                             </h4>
                             <span className={`dash-status dash-status--${statusVariant}`}>
-                              {job.status === 'Open' ? 'Open' : job.status === 'On Hold' ? 'Paused' : 'Closed'}
+                              {job.status === 'Open' ? 'Open' : job.status === 'Pending' ? 'Pending Approval' : job.status === 'On Hold' ? 'Paused' : 'Closed'}
                             </span>
                           </div>
 
@@ -472,20 +699,20 @@ function EmployerDashboard() {
                     {isExpanded && (
                        <div className="p-5 sm:p-6 bg-[#FAF7F0] border-t border-[#EFEAE1] space-y-6">
 
-                         {/* HIRING PIPELINE TRACKER */}
-                         <div className="dash-surface dash-surface--pad">
-                          <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] mb-3">
-                            Recruitment Pipeline Progress
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs font-bold">
-                            <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Applied ({applicants.length})</div>
-                            <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Reviewed ({applicants.length})</div>
-                            <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Shortlisted ({shortlistedCandidateIds.length})</div>
-                            <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Interview (2)</div>
-                            <div className="p-2 rounded-lg bg-[var(--green)] text-white">Selected (1)</div>
-                            <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--charcoal)] border border-[#E7E2D9]">Joined (0)</div>
-                          </div>
-                        </div>
+                          {/* HIRING PIPELINE TRACKER */}
+                          <div className="dash-surface dash-surface--pad">
+                           <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] mb-3">
+                             Recruitment Pipeline Progress
+                           </div>
+                           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs font-bold">
+                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Applied ({applicants.length})</div>
+                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Reviewed ({applicants.length})</div>
+                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Shortlisted ({applicants.filter((a: any) => a.applicationStatus === 'shortlisted').length})</div>
+                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Interview ({applicants.filter((a: any) => a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed').length})</div>
+                             <div className="p-2 rounded-lg bg-[var(--green)] text-white">Selected ({applicants.filter((a: any) => a.applicationStatus === 'selected').length})</div>
+                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--charcoal)] border border-[#E7E2D9]">Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})</div>
+                           </div>
+                         </div>
 
                         {/* APPLICANT CARDS */}
                         <div>
@@ -496,14 +723,14 @@ function EmployerDashboard() {
 
                           {applicants.length === 0 ? (
                                <p className="text-sm text-[var(--charcoal)] py-6 text-center bg-[var(--white)] rounded-2xl border border-slate-200">
-                              No candidate has applied to this posting yet.
-                            </p>
+                             No candidate has applied to this posting yet.
+                           </p>
                           ) : (
                             <div className="space-y-4">
-                              {applicants.map(applicant => {
-                                const match = jobMatches.find(m => m.candidateId === applicant.id);
-                                const isShortlisted = shortlistedCandidateIds.includes(applicant.id);
-                                const isRejected = rejectedCandidateIds.includes(applicant.id);
+                              {applicants.map((applicant: any) => {
+                                const match = jobMatches.find((m: any) => m.candidate_id === applicant.id);
+                                const isShortlisted = applicant.applicationStatus === 'shortlisted';
+                                const isRejected = applicant.applicationStatus === 'rejected';
 
                                 return (
                                   <div
@@ -517,7 +744,7 @@ function EmployerDashboard() {
                                     }`}
                                   >
                                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                      
+
                                       {/* Candidate Info */}
                                       <div className="flex items-start gap-4">
                                         <div className="dash-avatar w-11 h-11 text-[13px]">
@@ -542,17 +769,17 @@ function EmployerDashboard() {
                                           </div>
 
                                           <p className="text-xs text-[var(--charcoal)] font-medium mt-0.5">
-                                            {applicant.qualification} • {applicant.totalExperience} Years Exp • {applicant.location}, {applicant.state}
+                                            {applicant.qualification} • {applicant.totalExperience} • {applicant.location}, {applicant.state}
                                           </p>
 
                                           <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--charcoal)] mt-2 font-medium">
                                              <span>Expected: <strong className="text-emerald-600 font-bold">₹{parseInt(applicant.expectedSalary).toLocaleString()}/mo</strong></span>
-                                            <span>• Availability: ⚡ Immediate</span>
-                                            <span>• Resume: 📄 Uploaded</span>
+                                            <span>• Availability: ⚡ {applicant.immediateJoining ? 'Immediate' : 'As per notice period'}</span>
+                                            <span>• Resume: 📄 {applicant.resumeFile ? 'Uploaded' : 'Not uploaded'}</span>
                                           </div>
 
                                           <div className="flex flex-wrap gap-1.5 mt-2.5">
-                                            {applicant.skills.slice(0, 4).map(s => (
+                                            {applicant.skills.slice(0, 4).map((s: string) => (
                                               <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>
                                             ))}
                                           </div>
@@ -563,7 +790,7 @@ function EmployerDashboard() {
                                       <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
                                         {/* Match Indicator */}
                                         <div className="text-center px-3 py-1.5 rounded-lg bg-[var(--orange)]/8 text-[var(--orange)]">
-                                          <p className="text-lg font-extrabold leading-tight">{match?.matchScore || 88}%</p>
+                                          <p className="text-lg font-extrabold leading-tight">{match?.match_score || 88}%</p>
                                           <p className="text-[9px] font-bold uppercase tracking-wider">Match</p>
                                         </div>
 
@@ -604,6 +831,84 @@ function EmployerDashboard() {
           )}
         </div>
 
+        {/* ═══ YOUR CANDIDATE NETWORK (unique link + manual onboarding) ═══ */}
+        <div>
+          <div className="dash-section-title mb-4">Your Candidate Network ({referredCandidates.length})</div>
+
+          <div className="dash-surface dash-surface--pad mb-4">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">
+                <Link2 size={18} />
+              </div>
+              <div>
+                <p className="font-bold text-[var(--navy)] text-[14px]">Your Unique Referral Link</p>
+                <p className="text-xs text-[var(--charcoal)]">Share this with candidates — anyone who registers through it is automatically mapped to your account.</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch gap-2">
+              <div className="flex-1 px-3.5 py-2.5 bg-[var(--bg-warm)] border border-[#E7E2D9] rounded-xl text-xs sm:text-sm font-mono text-[var(--navy)] truncate">
+                {referralLink}
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => { navigator.clipboard.writeText(referralLink); setToastMessage('Referral link copied to clipboard!'); }}
+                  className="gap-1"
+                >
+                  <Copy size={14} /> Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try { await navigator.share({ title: `Join ${employer.companyName} on Rojgaar Hai`, text: 'Register as a candidate using my referral link:', url: referralLink }); }
+                      catch { /* user cancelled share */ }
+                    } else {
+                      navigator.clipboard.writeText(referralLink);
+                      setToastMessage('Sharing not supported on this device — link copied instead!');
+                    }
+                  }}
+                  className="gap-1"
+                >
+                  <Share2 size={14} /> Share
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="dash-surface dash-surface--pad mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-[var(--navy)] text-[14px]">Onboard a candidate in person</p>
+              <p className="text-xs text-[var(--charcoal)]">For candidates without internet access or tech familiarity — create their account for them at their doorstep.</p>
+            </div>
+            <Button onClick={() => setShowAddCandidateModal(true)} className="gap-1.5 flex-shrink-0">
+              <UserPlus2 size={16} /> Add Candidate
+            </Button>
+          </div>
+
+          <div className="dash-surface dash-surface--pad">
+            {referredCandidates.length === 0 ? (
+              <p className="text-sm text-[var(--charcoal)] text-center py-4">
+                No candidates in your network yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-[#EFEAE1]">
+                {referredCandidates.map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between py-2.5">
+                    <div>
+                      <p className="font-semibold text-[13px] text-[var(--navy)]">{c.profile_name || 'Unnamed candidate'}</p>
+                      <p className="text-[11px] text-[var(--charcoal)]">{c.profile_phone} · Registered {new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                    <Badge variant="info" className="text-[10px]">{c.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* ═══ RECRUITMENT INSIGHTS, ACTIVITY & NOTIFICATIONS ═══ */}
         <div className="grid lg:grid-cols-3 gap-8">
 
@@ -614,19 +919,19 @@ function EmployerDashboard() {
               <div>
                 <div className="flex items-baseline justify-between">
                   <span className="text-[13px] font-semibold text-[var(--charcoal)]">Average Match Score</span>
-                  <span className="text-base font-extrabold text-[var(--orange)]">84%</span>
+                  <span className="text-base font-extrabold text-[var(--orange)]">{atsInsights.avgMatchScore}%</span>
                 </div>
                 <div className="dash-progress mt-2">
-                  <div className="dash-progress__fill" style={{ width: '84%' }} />
+                  <div className="dash-progress__fill" style={{ width: `${atsInsights.avgMatchScore}%` }} />
                 </div>
               </div>
               <div className="flex items-baseline justify-between pt-1">
                 <span className="text-[13px] font-semibold text-[var(--charcoal)]">Response Rate</span>
-                <span className="text-base font-extrabold text-[var(--navy)]">95%</span>
+                <span className="text-base font-extrabold text-[var(--navy)]">{atsInsights.responseRate}%</span>
               </div>
               <div className="flex items-baseline justify-between pt-1">
-                <span className="text-[13px] font-semibold text-[var(--charcoal)]">Total Resume Downloads</span>
-                <span className="text-base font-extrabold text-[var(--navy)]">36</span>
+                <span className="text-[13px] font-semibold text-[var(--charcoal)]">Total Applications</span>
+                <span className="text-base font-extrabold text-[var(--navy)]">{atsInsights.totalApplications}</span>
               </div>
             </div>
           </div>
@@ -635,7 +940,7 @@ function EmployerDashboard() {
           <div className="dash-surface dash-surface--pad">
             <div className="dash-section-title mb-1">Recent Activity</div>
             <div className="divide-y divide-[#EFEAE1]">
-              {employerActivities.map(act => (
+              {employerActivities.map((act: any) => (
                 <div key={act.id} className="flex items-start gap-2.5 py-2.5">
                   <HugeiconsIcon icon={Activity03Icon} size={15} className="text-[var(--charcoal)] flex-shrink-0 mt-0.5" />
                   <div>
@@ -644,6 +949,9 @@ function EmployerDashboard() {
                   </div>
                 </div>
               ))}
+              {employerActivities.length === 0 && (
+                <p className="text-xs text-[var(--charcoal)] py-4 text-center">No recent activity.</p>
+              )}
             </div>
           </div>
 
@@ -651,7 +959,7 @@ function EmployerDashboard() {
           <div className="dash-surface dash-surface--pad">
             <div className="dash-section-title mb-1">Hiring Notifications</div>
             <div className="divide-y divide-[#EFEAE1]">
-              {employerNotifications.map(n => (
+              {employerNotifications.map((n: any) => (
                 <div key={n.id} className="py-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-bold text-[13px] text-[var(--navy)]">{n.title}</p>
@@ -660,6 +968,9 @@ function EmployerDashboard() {
                   <p className="text-[13px] text-[var(--charcoal)] leading-relaxed mt-0.5">{n.text}</p>
                 </div>
               ))}
+              {employerNotifications.length === 0 && (
+                <p className="text-xs text-[var(--charcoal)] py-4 text-center">No new notifications.</p>
+              )}
             </div>
           </div>
         </div>
@@ -689,13 +1000,13 @@ function EmployerDashboard() {
                 {[
                   { label: 'Full Name', value: `${viewingApplicant.firstName} ${viewingApplicant.lastName}` },
                   { label: 'Phone Number', value: viewingApplicant.phone },
-                  { label: 'Email Address', value: viewingApplicant.email },
+                  { label: 'Email Address', value: viewingApplicant.email || 'Not available' },
                   { label: 'Date of Birth', value: viewingApplicant.dob },
                   { label: 'Gender', value: viewingApplicant.gender },
                   { label: 'Current Location', value: `${viewingApplicant.location}, ${viewingApplicant.state}` },
                   { label: 'Highest Qualification', value: viewingApplicant.qualification },
                   { label: 'Previous Company', value: viewingApplicant.previousCompany || 'N/A (Fresher)' },
-                  { label: 'Total Experience', value: `${viewingApplicant.totalExperience} years` },
+                  { label: 'Total Experience', value: viewingApplicant.totalExperience },
                   { label: 'Expected Salary', value: `₹${parseInt(viewingApplicant.expectedSalary).toLocaleString()}/month` },
                   { label: 'Preferred Job Type', value: viewingApplicant.preferredJobType },
                   { label: 'Willing to Relocate', value: viewingApplicant.willingToRelocate ? 'Yes' : 'No' },
@@ -711,7 +1022,7 @@ function EmployerDashboard() {
             {/* Skills */}
             <div>
               <p className="text-xs text-[var(--charcoal)] font-bold mb-1.5">Candidate Skills</p>
-              <div className="flex flex-wrap gap-1.5">{viewingApplicant.skills.map(s => <Badge key={s} variant="default">{s}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1.5">{viewingApplicant.skills.map((s: string) => <Badge key={s} variant="default">{s}</Badge>)}</div>
             </div>
 
             {/* Resume File */}
@@ -724,11 +1035,161 @@ function EmployerDashboard() {
                      <p className="text-sm text-[var(--navy)] font-bold">{viewingApplicant.resumeFile}</p>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setToastMessage(`Downloading ${viewingApplicant.resumeFile}...`)} className="bg-[var(--orange)]">
+                <Button size="sm" variant="outline" onClick={() => window.open(viewingApplicant.resumeFile, '_blank')} className="bg-[var(--orange)]">
                   <Download size={14} className="mr-1" /> Download
                 </Button>
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* ═══ EDIT COMPANY MODAL ═══ */}
+      <Modal
+        isOpen={showEditCompanyModal}
+        onClose={() => setShowEditCompanyModal(false)}
+        title={mappedEmployer?.companyNameSet ? 'Edit Company Details' : 'Complete Your Company Profile'}
+        size="md"
+      >
+        {companyForm && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Company Name</label>
+              <input value={companyForm.companyName} onChange={e => setCompanyForm({ ...companyForm, companyName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Industry</label>
+                <input value={companyForm.industry} onChange={e => setCompanyForm({ ...companyForm, industry: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Company Size</label>
+                <input value={companyForm.companySize} onChange={e => setCompanyForm({ ...companyForm, companySize: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Website</label>
+              <input value={companyForm.website} onChange={e => setCompanyForm({ ...companyForm, website: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Address</label>
+              <input value={companyForm.address} onChange={e => setCompanyForm({ ...companyForm, address: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">City</label>
+                <input value={companyForm.city} onChange={e => setCompanyForm({ ...companyForm, city: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">State</label>
+                <input value={companyForm.state} onChange={e => setCompanyForm({ ...companyForm, state: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Name</label>
+              <input value={companyForm.contactName} onChange={e => setCompanyForm({ ...companyForm, contactName: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Email</label>
+                <input value={companyForm.contactEmail} onChange={e => setCompanyForm({ ...companyForm, contactEmail: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Contact Phone</label>
+                <input value={companyForm.contactPhone} onChange={e => setCompanyForm({ ...companyForm, contactPhone: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={saveCompanyEdit} disabled={savingCompany} variant="success">{savingCompany ? 'Saving...' : 'Save Changes'}</Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (!mappedEmployer?.companyNameSet && mappedEmployer) {
+                    localStorage.setItem(`rojgaarhai_company_profile_skipped_${mappedEmployer.id}`, '1');
+                  }
+                  setShowEditCompanyModal(false);
+                }}
+              >
+                {mappedEmployer?.companyNameSet ? 'Cancel' : 'Skip for now'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ═══ PROFILE PREVIEW MODAL ═══ */}
+      <Modal isOpen={showProfilePreviewModal} onClose={() => setShowProfilePreviewModal(false)} title="Your Company Profile" size="lg">
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="dash-avatar w-14 h-14 text-xl">{employer.companyName.charAt(0) || '🏢'}</div>
+            <div>
+              <h3 className="text-lg font-bold text-[var(--navy)]">{employer.companyName || 'Unnamed Company'}</h3>
+              <p className="text-sm text-[var(--charcoal)]">{employer.industry} · {employer.city}, {employer.state}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div><span className="text-slate-400">Contact</span><p className="font-semibold text-[var(--navy)]">{employer.contactName}</p></div>
+            <div><span className="text-slate-400">Email</span><p className="font-semibold text-[var(--navy)]">{employer.contactEmail}</p></div>
+            <div><span className="text-slate-400">Phone</span><p className="font-semibold text-[var(--navy)]">{employer.contactPhone}</p></div>
+            <div><span className="text-slate-400">Website</span><p className="font-semibold text-[var(--navy)]">{employer.website || 'N/A'}</p></div>
+          </div>
+          <div className="pt-3 border-t border-slate-100">
+            <p className="text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider mb-2">Active Job Openings ({activeJobs})</p>
+            <div className="space-y-2">
+              {myJobs.filter(j => j.status === 'Open').map(j => (
+                <div key={j.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-sm">
+                  <span className="font-semibold text-[var(--navy)]">{j.jobTitle}</span>
+                  <span className="text-xs text-[var(--charcoal)]">{j.city}, {j.state}</span>
+                </div>
+              ))}
+              {activeJobs === 0 && <p className="text-sm text-[var(--charcoal)]">No open jobs right now.</p>}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ ADD CANDIDATE MODAL ═══ */}
+      <Modal
+        isOpen={showAddCandidateModal}
+        onClose={() => { setShowAddCandidateModal(false); setNewCandidateCreds(null); }}
+        title="Add Candidate on Their Behalf"
+        size="md"
+      >
+        {newCandidateCreds ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+              <UserPlus2 size={28} className="text-[var(--green)] mx-auto mb-2" />
+              <p className="font-bold text-[var(--navy)]">Candidate account created!</p>
+              <p className="text-xs text-[var(--charcoal)] mt-1">Share these login details with the candidate so they can access their account anytime.</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2 text-sm">
+              <p><span className="text-slate-400">Email:</span> <strong className="text-[var(--navy)]">{newCandidateCreds.email}</strong></p>
+              <p><span className="text-slate-400">Temporary Password:</span> <strong className="text-[var(--navy)] font-mono">{newCandidateCreds.password}</strong></p>
+            </div>
+            <p className="text-xs text-[var(--charcoal)]">They can log in at /login/candidate and complete their own profile details afterward.</p>
+            <Button onClick={() => { setShowAddCandidateModal(false); setNewCandidateCreds(null); }} className="w-full">Done</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-xs text-[var(--charcoal)]">
+              Create a candidate account for someone without internet access or comfort with signing up themselves. They'll be mapped to your network automatically.
+            </p>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Full Name</label>
+              <input value={addCandidateForm.fullName} onChange={e => setAddCandidateForm({ ...addCandidateForm, fullName: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="Candidate's full name" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Phone Number</label>
+              <input value={addCandidateForm.phone} onChange={e => setAddCandidateForm({ ...addCandidateForm, phone: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="+91 98765 43210" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--navy)] mb-1">Email Address</label>
+              <input type="email" value={addCandidateForm.email} onChange={e => setAddCandidateForm({ ...addCandidateForm, email: e.target.value })} className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm" placeholder="candidate@example.com" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleAddCandidate} disabled={addingCandidate} variant="success">{addingCandidate ? 'Creating...' : 'Create Account'}</Button>
+              <Button variant="ghost" onClick={() => setShowAddCandidateModal(false)}>Cancel</Button>
+            </div>
           </div>
         )}
       </Modal>
@@ -741,4 +1202,4 @@ function EmployerDashboard() {
   );
 }
 
-export { EmployerLogin, EmployerDashboard };
+export { EmployerDashboard };
