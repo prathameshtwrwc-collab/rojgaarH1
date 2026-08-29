@@ -777,24 +777,122 @@ body {
   .employer-description {
     font-size: 14px;
     line-height: 1.45;
-    margin-bottom: 18px;
+    margin-bottom: 10px;
     max-width: none;
   }
   .employer-section .circle-cta {
-    gap: 11px;
+    gap: 9px;
   }
   .employer-section .circle-cta-text {
-    font-size: 13.5px;
+    font-size: 12.5px;
   }
   .employer-section .circle-cta-icon {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
   }
   .employer-section .circle-cta-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
   .employer-visual {
     display: none;
+  }
+}
+
+/* ============================================
+   EMPLOYER INFO PAGE — HERO (mobile background swap)
+   ============================================ */
+@media (max-width: 767px) {
+  .employer-info-hero {
+    background-image: url('/assets/foremployers/foremployersmobilebg.png') !important;
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    aspect-ratio: 887 / 1774 !important;
+  }
+  .employer-info-hero-inner {
+    display: block !important;
+    height: auto !important;
+    position: static !important;
+  }
+  .employer-info-hero-content {
+    width: 90% !important;
+    padding: 56px 0 0 !important;
+  }
+
+  /* Eyebrow — must stay on one line */
+  .employer-info-hero-eyebrow {
+    white-space: nowrap !important;
+    font-size: clamp(11.5px, 3.3vw, 13px) !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  /* Heading — each phrase stays on one line, own width independent of description */
+  .employer-info-hero-heading {
+    width: 100% !important;
+    margin-top: 24px !important;
+  }
+  .employer-info-hero-heading-1 {
+    font-size: clamp(30px, 9vw, 36px) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+  .employer-info-hero-heading-2 {
+    font-size: clamp(42px, 13vw, 50px) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    margin-top: 8px !important;
+  }
+
+  /* Description — narrower than heading, kept clear of the illustration */
+  .employer-info-hero-desc {
+    width: 56% !important;
+    max-width: none !important;
+    margin-top: 32px !important;
+    font-size: 14.5px !important;
+    line-height: 1.5 !important;
+  }
+
+  .employer-info-hero-icons {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px 6px !important;
+    max-width: none !important;
+    width: 100% !important;
+    margin-top: 176px !important;
+  }
+  .employer-info-hero-icons > div > div:first-child {
+    width: 46px !important;
+    height: 46px !important;
+  }
+  .employer-info-hero-icons svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .employer-info-hero-icons p {
+    font-size: 11.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  .employer-info-hero-actions {
+    position: absolute !important;
+    left: 20px !important;
+    right: 20px !important;
+    bottom: 24px !important;
+    top: auto !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
+    margin-top: 0 !important;
+    gap: 14px !important;
+  }
+  .employer-info-hero-actions a {
+    display: block !important;
+    width: 100% !important;
+  }
+  .employer-info-hero-actions a > * {
+    width: 100% !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    border-radius: 16px !important;
+    font-size: 16px !important;
   }
 }

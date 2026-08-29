@@ -132,21 +132,21 @@ function EmployerInfo() {
           SECTION 1: HERO SECTION
           ═══════════════════════════════════════════════════════ */}
       <section
-        className="relative bg-[var(--bg-warm)] bg-no-repeat bg-cover bg-center overflow-hidden"
+        className="employer-info-hero relative bg-[var(--bg-warm)] bg-no-repeat bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: "url('/assets/foremployers/foremployers.png')", aspectRatio: '1825 / 862' }}
       >
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="w-full sm:w-[54%] lg:w-[46%] py-16 sm:py-0">
+        <div className="employer-info-hero-inner relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
+          <div className="employer-info-hero-content w-[62%] sm:w-[54%] lg:w-[46%] py-16 sm:py-0">
 
-            <p className="text-[13px] sm:text-sm font-extrabold uppercase tracking-[0.08em] text-[var(--navy)]">
+            <p className="employer-info-hero-eyebrow text-[13px] sm:text-sm font-extrabold uppercase tracking-[0.08em] text-[var(--navy)]">
               Better People. Better <span className="text-[var(--purple)]">Futures.</span>
             </p>
 
-            <h1 className="mt-3">
-              <span className="block font-extrabold leading-[0.95] tracking-tight text-[var(--navy)] text-4xl sm:text-5xl lg:text-6xl" style={{ fontFamily: 'var(--font-display)' }}>
+            <h1 className="employer-info-hero-heading mt-3">
+              <span className="employer-info-hero-heading-1 block font-extrabold leading-[0.95] tracking-tight text-[var(--navy)] text-4xl sm:text-5xl lg:text-6xl" style={{ fontFamily: 'var(--font-display)' }}>
                 Great Teams
               </span>
-              <span className="relative inline-block mt-1 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
+              <span className="employer-info-hero-heading-2 relative inline-block mt-1 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
                 Start Here.
                 <svg className="absolute left-0 -bottom-3 w-[92%]" viewBox="0 0 200 14" fill="none" aria-hidden="true">
                   <path d="M3 7C40 2 90 1 140 5C160 6.5 180 9 197 6" stroke="var(--purple)" strokeWidth="3" strokeLinecap="round" />
@@ -154,12 +154,12 @@ function EmployerInfo() {
               </span>
             </h1>
 
-            <p className="mt-6 text-base sm:text-lg text-[var(--charcoal)] leading-relaxed max-w-md">
+            <p className="employer-info-hero-desc mt-6 text-base sm:text-lg text-[var(--charcoal)] leading-relaxed max-w-md">
               Post jobs, connect with verified talent, and build the workforce of your dreams.
             </p>
 
             {/* Feature icons row */}
-            <div className="mt-8 grid grid-cols-4 gap-3 max-w-sm">
+            <div className="employer-info-hero-icons mt-8 grid grid-cols-4 gap-3 max-w-sm">
               {[
                 { label: 'Verified', sub: 'Talent', icon: <Users size={22} className="text-[var(--green)]" />, bg: 'rgba(13,96,74,0.1)' },
                 { label: 'Quality', sub: 'Checked', icon: <ShieldCheck size={22} className="text-[var(--purple)]" />, bg: 'rgba(118,85,217,0.1)' },
@@ -178,7 +178,7 @@ function EmployerInfo() {
             </div>
 
             {/* CTAs */}
-            <div className="mt-9 flex flex-wrap gap-3.5">
+            <div className="employer-info-hero-actions mt-9 flex flex-wrap gap-3.5">
               <Link to="/register/employer">
                 <Button size="lg" className="bg-[var(--purple)] text-white hover:bg-[#6647c2] font-bold shadow-lg hover:-translate-y-0.5 transition-all">
                   Post a Job <ArrowRight size={18} className="ml-1" />
