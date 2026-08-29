@@ -587,17 +587,212 @@ body {
     width: 100%;
     max-width: 460px;
   }
-}
-@media (max-width: 480px) {
-  .hero-actions {
+  .employer-inner {
+    min-height: 0;
     flex-direction: column;
-    width: 100%;
-    max-width: 320px;
+    align-items: flex-start;
+    padding-top: 48px;
+    padding-bottom: 0;
   }
-  .btn {
+  .employer-content {
+    flex: none;
     width: 100%;
+    max-width: 480px;
+    padding: 0 0 32px;
   }
   .employer-visual {
-    height: 220px;
+    position: relative;
+    width: calc(100% + 48px);
+    margin: 0 -24px;
+    height: 280px;
+    top: auto;
+    right: auto;
+  }
+}
+@media (max-width: 767px) {
+  /* ---- Hero: section is an aspect-ratio box matching hero_mobile.png (887x1774) exactly, no crop ---- */
+  .hero {
+    background-image: none;
+    padding-top: 64px;
+  }
+  .hero-inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 887 / 1774;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+    background-image: url('/assets/hero/hero_mobile.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: block;
+    padding: 0;
+  }
+  .hero-content {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    padding: 46px 20px 0;
+  }
+  .hero-eyebrow {
+    font-size: 13px;
+    padding-left: 22px;
+    max-width: none;
+    line-height: 1.25;
+    margin-bottom: 14px;
+  }
+  .title-rojgaar {
+    font-size: 52px;
+    line-height: 0.95;
+  }
+  .title-hai {
+    font-size: 62px;
+    line-height: 0.9;
+    margin-top: -4px;
+    padding-left: 14px;
+  }
+  .hero-description {
+    font-size: 15px;
+    line-height: 1.45;
+    margin-top: 18px;
+    margin-bottom: 0;
+    max-width: 260px;
+  }
+  .hero-actions {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 22px;
+    flex-direction: column;
+    width: auto;
+    gap: 10px;
+    margin-top: 0;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    min-height: 52px;
+    height: 52px;
+    font-size: 14.5px;
+    padding-inline: 19px;
+  }
+  .hero-actions .btn-icon-left {
+    width: 19px;
+    height: 19px;
+  }
+  .hero-actions .btn-icon-right {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ---- For Job Seekers: section2bgmobile.png (941x1672), text in the open upper-left, runner stays full size ---- */
+  .job-seeker-section {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 941 / 1672;
+    background-image: url('/assets/section2/section2bgmobile.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: block;
+  }
+  .job-seeker-inner {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    display: block;
+    padding: 0;
+  }
+  .job-seeker-content {
+    position: absolute;
+    top: 9%;
+    left: 6%;
+    width: 56%;
+    max-width: none;
+    padding: 0;
+  }
+  .job-seeker-heading {
+    font-size: 36px;
+    line-height: 0.95;
+  }
+  .js-swoosh {
+    width: 140px;
+    margin-top: 6px;
+    margin-bottom: 14px;
+  }
+  .job-seeker-description {
+    font-size: 13.5px;
+    line-height: 1.45;
+    margin-bottom: 18px;
+    max-width: none;
+  }
+  .job-seeker-section .circle-cta {
+    gap: 11px;
+  }
+  .job-seeker-section .circle-cta-text {
+    font-size: 13.5px;
+  }
+  .job-seeker-section .circle-cta-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .job-seeker-section .circle-cta-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ---- For Employers: section3bgmobile.png (1024x1536), text in the open upper-left, staircase stays full size ---- */
+  .employer-section {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1024 / 1536;
+    background-image: url('/assets/section3/section3bgmobile.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .employer-inner {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+    display: block;
+    padding: 0;
+  }
+  .employer-content {
+    position: absolute;
+    top: 9%;
+    left: 6%;
+    width: 55%;
+    max-width: none;
+    padding: 0;
+  }
+  .employer-heading {
+    font-size: 36px;
+    line-height: 0.95;
+    margin-bottom: 12px;
+  }
+  .employer-description {
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 18px;
+    max-width: none;
+  }
+  .employer-section .circle-cta {
+    gap: 11px;
+  }
+  .employer-section .circle-cta-text {
+    font-size: 13.5px;
+  }
+  .employer-section .circle-cta-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .employer-section .circle-cta-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .employer-visual {
+    display: none;
   }
 }

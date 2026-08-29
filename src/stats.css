@@ -127,12 +127,48 @@
   }
 }
 
-@media (max-width: 480px) {
-  .stats-heading {
-    font-size: 28px;
+@media (max-width: 767px) {
+  .stats-section {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 853 / 1844;
+    background-image: url('/assets/section6/section6bgmobile.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
   }
-
+  .stats-inner {
+    position: absolute;
+    left: 7%;
+    top: 8%;
+    width: 58%;
+    min-height: 0;
+    padding: 0;
+  }
+  .stats-content {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+  .stats-heading {
+    font-size: clamp(28px, 8vw, 32px);
+    line-height: 1.06;
+    margin-bottom: 26px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+    gap: 24px 28px;
+  }
+  .stat-number {
+    font-size: 32px;
+  }
+  .stat-label-text {
+    font-size: 12.5px;
+    margin-top: 6px;
+  }
   .stats-visual {
-    height: 220px;
+    display: none;
   }
 }
