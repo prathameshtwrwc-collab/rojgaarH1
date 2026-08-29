@@ -475,13 +475,13 @@ function Landing() {
             </nav>
 
             <div className="footer-socials" aria-label="Social media">
-              <a href="#linkedin" aria-label="LinkedIn">
+              <a href="https://in.linkedin.com/in/team-rojgaarhai-ba080b427" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9v9M6 6.5v.01M10 18v-5a4 4 0 0 1 8 0v5M10 9v9" /></svg>
               </a>
-              <a href="#twitter" aria-label="Twitter X">
+              <a href="https://x.com/rojgaarhaiRH" target="_blank" rel="noopener noreferrer" aria-label="Twitter X">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" /></svg>
               </a>
-              <a href="#instagram" aria-label="Instagram">
+              <a href="https://www.instagram.com/rojgaarhai.co" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="12" cy="12" r="3.5" /><path d="M17.5 6.5h.01" /></svg>
               </a>
             </div>
