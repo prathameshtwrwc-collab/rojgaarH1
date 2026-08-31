@@ -2,7 +2,7 @@
 // Documentation: https://app.smslocal.in/api/smsapi?key=Account key&route=Route&sender=Sender id&number=Number(s)&sms=Message&templateid=DLT_Templateid
 
 const SMS_API_KEY = '77ea51970317a132650e3ca5f9f1938d';
-const SMS_ENDPOINT = 'https://app.smslocal.in/api/smsapi';
+const SMS_ENDPOINT = import.meta.env.DEV ? '/api/sms' : 'https://app.smslocal.in/api/smsapi';
 
 export interface SmsConfig {
   route?: string;

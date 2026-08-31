@@ -15,4 +15,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  server: {
+    proxy: {
+      "/api/sms": {
+        target: "https://app.smslocal.in",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/sms/, "/api/smsapi"),
+      },
+    },
+  },
 });
