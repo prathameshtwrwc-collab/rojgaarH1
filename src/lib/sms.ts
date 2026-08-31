@@ -46,7 +46,7 @@ export async function sendSms(params: SendSmsParams): Promise<{ success: boolean
       return { success: true, message: 'SMS sent successfully' };
     } else {
       console.error('SMS API Error:', data);
-      return { success: false, message: data.message || 'Failed to send SMS' };
+      return { success: false, message: data.message || data.error || `SMS failed (code: ${data.error_code || 'unknown'})` };
     }
   } catch (error) {
     console.error('SMS Send Error:', error);
@@ -67,7 +67,7 @@ export async function sendOtpSms(phone: string, otp: string): Promise<{ success:
     phone,
     message,
     config: {
-      route: '6',
+      route: '4', // Transactional/OTP route
       sender: 'ROJGAH',
     },
   });
