@@ -19,6 +19,11 @@ CREATE INDEX IF NOT EXISTS idx_otp_verifications_expires ON public.otp_verificat
 -- Enable RLS
 ALTER TABLE public.otp_verifications ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies (idempotent)
+DROP POLICY IF EXISTS "Allow insert OTP" ON public.otp_verifications;
+DROP POLICY IF EXISTS "Allow select OTP" ON public.otp_verifications;
+DROP POLICY IF EXISTS "Allow update OTP" ON public.otp_verifications;
+
 -- RLS Policies (service role bypasses RLS, so these are for anon/authenticated)
 -- Allow insert (creating OTP)
 CREATE POLICY "Allow insert OTP" ON public.otp_verifications
@@ -44,6 +49,10 @@ $$ LANGUAGE plpgsql;
 -- RLS Bypass Functions for Auth Flow (SECURITY DEFINER)
 -- These run with function owner privileges, bypassing RLS
 -- ============================================================
+
+-- Drop existing functions (idempotent)
+DROP FUNCTION IF EXISTS check_phone_exists(TEXT, TEXT);
+DROP FUNCTION IF EXISTS get_email_by_phone(TEXT);
 
 -- Function to check phone exists (bypasses RLS for auth flow)
 CREATE OR REPLACE FUNCTION check_phone_exists(check_phone TEXT, check_role TEXT)
