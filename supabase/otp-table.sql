@@ -60,7 +60,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.profiles 
-    WHERE phone = check_phone AND role = check_role
+    WHERE phone = check_phone AND role = check_role::user_role
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
