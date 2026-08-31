@@ -26,11 +26,11 @@ export async function sendSms(params: SendSmsParams): Promise<{ success: boolean
 
   const queryParams = new URLSearchParams({
     key: SMS_API_KEY,
-    route: config?.route || '6', // Default route (Transactional)
-    sender: config?.sender || 'ROJGAH', // Default sender ID
+    route: config?.route || '2', // Default route: 2 = OTP
+    sender: config?.sender || 'ROJGAH', // Sender ID (must be registered with SMSLocal.in)
     number: phone,
-    message: message,
-    templateid: config?.templateid || '', // DLT template ID if required
+    sms: message, // API parameter is 'sms', not 'message'
+    templateid: config?.templateid || '', // DLT Template ID (required for Indian telecom)
   });
 
   const url = `${SMS_ENDPOINT}?${queryParams.toString()}`;
@@ -70,8 +70,9 @@ export async function sendOtpSms(phone: string, otp: string): Promise<{ success:
     phone,
     message,
     config: {
-      route: '1', // Try route 1 (Promotional) - check your SMSLocal.in dashboard for available routes
-      sender: 'ROJGAH',
+      route: '2', // OTP route per SMSLocal.in docs
+      sender: 'ROJGAH', // Must be registered sender ID
+      // templateid: 'YOUR_DLT_TEMPLATE_ID', // Required for Indian telecom
     },
   });
 }
