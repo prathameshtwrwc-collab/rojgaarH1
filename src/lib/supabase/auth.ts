@@ -129,21 +129,30 @@ export async function updateProfile(updates: { fullName?: string; phone?: string
 
 /**
  * Check if a phone number exists in the candidates/profiles table
+ * Uses SECURITY DEFINER function to bypass RLS
  */
 export async function checkPhoneExists(phone: string): Promise<{ exists: boolean; email?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, phone, role, email')
-      .eq('phone', phone)
-      .eq('role', 'candidate')
-      .single();
+    const { data, error } = await supabase.rpc('check_phone_exists', {
+      check_phone: phone,
+      check_role: 'candidate',
+    });
 
-    if (error || !data) {
+    if (error) {
+      console.error('Error checking phone:', error);
       return { exists: false };
     }
 
-    return { exists: true, email: data.email };
+    if (!data) {
+      return { exists: false };
+    }
+
+    // Get email separately
+    const { data: emailData, error: emailError } = await supabase.rpc('get_email_by_phone', {
+      check_phone: phone,
+    });
+
+    return { exists: true, email: emailError ? undefined : emailData || undefined };
   } catch (err) {
     console.error('Error checking phone:', err);
     return { exists: false };
@@ -240,21 +249,18 @@ export async function verifyOtp(phone: string, otp: string): Promise<{ success: 
  * Sign in with phone and password (after OTP verification)
  */
 export async function signInWithPhone(phone: string, password: string) {
-  // First get the email associated with this phone
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('email')
-    .eq('phone', phone)
-    .eq('role', 'candidate')
-    .single();
+  // Get email using RPC function (bypasses RLS)
+  const { data: emailData, error: profileError } = await supabase.rpc('get_email_by_phone', {
+    check_phone: phone,
+  });
 
-  if (profileError || !profile) {
+  if (profileError || !emailData) {
     throw new Error('No account found with this phone number');
   }
 
   // Sign in with email and password
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: profile.email,
+    email: emailData,
     password,
   });
 

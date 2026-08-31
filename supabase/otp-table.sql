@@ -39,3 +39,40 @@ BEGIN
   DELETE FROM public.otp_verifications WHERE expires_at < NOW();
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- RLS Bypass Functions for Auth Flow (SECURITY DEFINER)
+-- These run with function owner privileges, bypassing RLS
+-- ============================================================
+
+-- Function to check phone exists (bypasses RLS for auth flow)
+CREATE OR REPLACE FUNCTION check_phone_exists(check_phone TEXT, check_role TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE phone = check_phone AND role = check_role
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get email by phone (bypasses RLS for auth flow)
+CREATE OR REPLACE FUNCTION get_email_by_phone(check_phone TEXT)
+RETURNS TEXT AS $$
+DECLARE
+  user_email TEXT;
+BEGIN
+  SELECT email INTO user_email 
+  FROM public.profiles 
+  WHERE phone = check_phone AND role = 'candidate'
+  LIMIT 1;
+  
+  RETURN user_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute to anon role (for unauthenticated users during login)
+GRANT EXECUTE ON FUNCTION check_phone_exists(TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_email_by_phone(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION check_phone_exists(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_email_by_phone(TEXT) TO authenticated;
