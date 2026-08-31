@@ -41,12 +41,15 @@ export async function sendSms(params: SendSmsParams): Promise<{ success: boolean
     });
 
     const data = await response.json();
+    console.log('SMS API Full Response:', data);
 
-    if (response.ok && data.status === 'success') {
+    if (response.ok && (data.status === 'success' || data.type === 'success')) {
       return { success: true, message: 'SMS sent successfully' };
     } else {
       console.error('SMS API Error:', data);
-      return { success: false, message: data.message || data.error || `SMS failed (code: ${data.error_code || 'unknown'})` };
+      const errorCode = data.error_code || data.code || data.status_code;
+      const errorMessage = data.message || data.error || data.msg;
+      return { success: false, message: errorMessage || `SMS failed (code: ${errorCode || 'unknown'})` };
     }
   } catch (error) {
     console.error('SMS Send Error:', error);
@@ -67,7 +70,7 @@ export async function sendOtpSms(phone: string, otp: string): Promise<{ success:
     phone,
     message,
     config: {
-      route: '4', // Transactional/OTP route
+      route: '1', // Try route 1 (Promotional) - check your SMSLocal.in dashboard for available routes
       sender: 'ROJGAH',
     },
   });
