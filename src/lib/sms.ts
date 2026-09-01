@@ -12,16 +12,16 @@ export interface SendOtpResult {
 
 /**
  * Send OTP SMS via HanuOTP API
- * @param phone - Phone number (with or without country code)
+ * @param phone - 10-digit Indian phone number (starting with 6,7,8,9)
  * @returns Response with OTP (if auto-generated) and status
  */
 export async function sendOtpSms(phone: string): Promise<SendOtpResult> {
-  // Ensure phone has country code (India = 91)
-  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
+  // HanuOTP expects raw 10-digit Indian number (no country code)
+  const formattedPhone = phone.replace(/^\+?91/, '').replace(/\D/g, '');
 
   const params = new URLSearchParams({
     number: formattedPhone,
-    OTP: '', // Leave empty for auto-generated OTP, or pass custom OTP
+    OTP: '', // Leave empty for auto-generated OTP
     apikey: HANU_API_KEY,
     templatesid: 'default',
   });
@@ -63,7 +63,8 @@ export async function sendOtpSms(phone: string): Promise<SendOtpResult> {
  * @returns Response from API
  */
 export async function sendCustomOtpSms(phone: string, otp: string): Promise<SendOtpResult> {
-  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
+  // HanuOTP expects raw 10-digit Indian number (no country code)
+  const formattedPhone = phone.replace(/^\+?91/, '').replace(/\D/g, '');
 
   const params = new URLSearchParams({
     number: formattedPhone,
