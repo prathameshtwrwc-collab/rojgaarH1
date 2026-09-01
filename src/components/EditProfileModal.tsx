@@ -83,22 +83,36 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const handleSectorInputChange = (value: string) => {
     setSectorInput(value);
     setIndustry(value);
-    const filtered = getSectorsList().filter(s =>
+    const allSectors = getSectorsList();
+    const filtered = allSectors.filter(s =>
       s.toLowerCase().includes(value.toLowerCase())
     );
+    // Add custom option at top if value doesn't exactly match any sector
+    const hasExactMatch = allSectors.some(s => s.toLowerCase() === value.toLowerCase());
+    if (value && !hasExactMatch) {
+      filtered.unshift(`✏️ Custom: ${value}`);
+    }
     setFilteredSectors(filtered);
     setSectorDropdownOpen(true);
   };
 
   const handleSectorSelect = (sector: string) => {
-    setSectorInput(sector);
-    setIndustry(sector);
+    // Check if custom option selected
+    if (sector.startsWith('✏️ Custom: ')) {
+      const customValue = sector.replace('✏️ Custom: ', '');
+      setSectorInput(customValue);
+      setIndustry(customValue);
+    } else {
+      setSectorInput(sector);
+      setIndustry(sector);
+    }
     setSectorDropdownOpen(false);
     // Reset department when sector changes
     setDeptInput('');
     setDepartment('');
-    // Load subsectors for selected sector
-    const subsectors = getSubsectorsForSector(sector);
+    // Load subsectors for selected sector (use actual sector, not custom)
+    const actualSector = sector.startsWith('✏️ Custom: ') ? '' : sector;
+    const subsectors = getSubsectorsForSector(actualSector);
     setFilteredDepts(subsectors);
   };
 
@@ -109,6 +123,27 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     const filtered = subsectors.filter(d =>
       d.toLowerCase().includes(value.toLowerCase())
     );
+    // Add custom option at top if value doesn't exactly match any department
+    const hasExactMatch = subsectors.some(d => d.toLowerCase() === value.toLowerCase());
+    if (value && !hasExactMatch) {
+      filtered.unshift(`✏️ Custom: ${value}`);
+    }
+    setFilteredDepts(filtered);
+    setDeptDropdownOpen(true);
+  };
+
+  const handleDeptSelect = (dept: string) => {
+    // Check if custom option selected
+    if (dept.startsWith('✏️ Custom: ')) {
+      const customValue = dept.replace('✏️ Custom: ', '');
+      setDeptInput(customValue);
+      setDepartment(customValue);
+    } else {
+      setDeptInput(dept);
+      setDepartment(dept);
+    }
+    setDeptDropdownOpen(false);
+  };
     setFilteredDepts(filtered);
     setDeptDropdownOpen(true);
   };
