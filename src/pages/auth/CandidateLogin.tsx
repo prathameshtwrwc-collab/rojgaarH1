@@ -25,8 +25,8 @@ export default function CandidateLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
+  const [_otpSent, setOtpSent] = useState(false);
+  const [_otpVerified, setOtpVerified] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   const { user, loading: authLoading, refresh } = useAuth();

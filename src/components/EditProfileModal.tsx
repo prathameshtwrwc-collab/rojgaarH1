@@ -11,6 +11,7 @@ import {
   JobSeeker, EducationEntry, ExperienceEntry, LanguageEntry, CertificationEntry
 } from '../context/DataContext';
 import { getSectorsList, getSubsectorsForSector } from '../constants/sectors';
+import { uploadCandidateDocument } from '../lib/supabase/data';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -145,6 +146,34 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     setDeptDropdownOpen(false);
   };
 
+  // Document Upload States
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [docUrls, setDocUrls] = useState<Record<string, string | null>>({
+    resume: candidate.resumeUrl || candidate.resumeFile || null,
+    photo: candidate.profilePhotoUrl || null,
+    aadhaar: candidate.aadhaarUrl || null,
+    pan: candidate.panUrl || null,
+    certificate: candidate.certificateUrl || null,
+    experience_letter: candidate.experienceLetterUrl || null,
+  });
+
+  const handleDocumentUpload = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDoc(docType);
+    try {
+      const userId = candidate.id || candidate.email || 'temp-user';
+      const url = await uploadCandidateDocument(userId, file, docType as any);
+      setDocUrls(prev => ({ ...prev, [docType]: url }));
+      setToastMessage(`${docType.replace('_', ' ')} uploaded successfully!`);
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
 
   // SECTION 4: Education
   const [educationList, setEducationList] = useState<EducationEntry[]>(candidate.educationList || [
@@ -157,13 +186,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [skills, setSkills] = useState<string[]>(candidate.skills || []);
   const [skillInput, setSkillInput] = useState('');
 
-  // SECTION 6: Resume & Files
-  const [resumeFile, setResumeFile] = useState(candidate.resumeFile || 'Rajesh_Kumar_Resume.pdf');
-  const [profilePhotoFile, setProfilePhotoFile] = useState(candidate.profilePhotoFile || 'rajesh_photo.jpg');
-  const [aadhaarFile, setAadhaarFile] = useState(candidate.aadhaarFile || 'Aadhaar_Copy.pdf');
-  const [panFile, setPanFile] = useState(candidate.panFile || 'PAN_Copy.pdf');
-  const [certificatesFile, setCertificatesFile] = useState(candidate.certificatesFile || 'Degree_Certificate.pdf');
-  const [experienceLetterFile, setExperienceLetterFile] = useState(candidate.experienceLetterFile || 'Experience_Letter.pdf');
+  // SECTION 6: Resume & Files (now using docUrls for uploads)
+  const [resumeFile] = useState(candidate.resumeFile || 'Rajesh_Kumar_Resume.pdf');
+  const [profilePhotoFile] = useState(candidate.profilePhotoFile || 'rajesh_photo.jpg');
+  const [aadhaarFile] = useState(candidate.aadhaarFile || 'Aadhaar_Copy.pdf');
+  const [panFile] = useState(candidate.panFile || 'PAN_Copy.pdf');
+  const [certificatesFile] = useState(candidate.certificatesFile || 'Degree_Certificate.pdf');
+  const [experienceLetterFile] = useState(candidate.experienceLetterFile || 'Experience_Letter.pdf');
 
   // SECTION 7: Experience Entries
   const [experienceList, setExperienceList] = useState<ExperienceEntry[]>(candidate.experienceList || [
@@ -383,6 +412,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       languageList,
       certificationList,
       currentStatus,
+      // Document URLs
+      resumeUrl: docUrls.resume || undefined,
+      profilePhotoUrl: docUrls.photo || undefined,
+      aadhaarUrl: docUrls.aadhaar || undefined,
+      panUrl: docUrls.pan || undefined,
+      certificateUrl: docUrls.certificate || undefined,
+      experienceLetterUrl: docUrls.experience_letter || undefined,
     };
 
     onSave(updatedProfile);
@@ -926,9 +962,6 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <Button variant="primary" size="sm" onClick={() => setToastMessage('Select a file to replace current resume')} className="gap-1">
                     <Upload size={14} /> Replace
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setResumeFile('New_Updated_Resume.pdf')} className="gap-1">
-                    <RefreshCw size={14} /> Re-Scan ATS
-                  </Button>
                 </div>
               </div>
             )}
@@ -1052,29 +1085,41 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <Shield className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">9. Documents Vault (Dummy Verification)</h3>
+                  <h3 className="text-lg font-bold text-slate-900">9. Documents Vault</h3>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   {[
-                    { title: 'Resume Document', file: resumeFile, setFile: setResumeFile },
-                    { title: 'Profile Photo', file: profilePhotoFile, setFile: setProfilePhotoFile },
-                    { title: 'Aadhaar Card Copy', file: aadhaarFile, setFile: setAadhaarFile },
-                    { title: 'PAN Card Copy', file: panFile, setFile: setPanFile },
-                    { title: 'Educational Degree Certificates', file: certificatesFile, setFile: setCertificatesFile },
-                    { title: 'Work Experience Letter', file: experienceLetterFile, setFile: setExperienceLetterFile },
-                  ].map((doc, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                      <div>
+                    { key: 'resume', title: 'Resume Document', accept: '.pdf,.doc,.docx', url: docUrls.resume },
+                    { key: 'photo', title: 'Profile Photo', accept: 'image/*', url: docUrls.photo },
+                    { key: 'aadhaar', title: 'Aadhaar Card Copy', accept: '.pdf,image/*', url: docUrls.aadhaar },
+                    { key: 'pan', title: 'PAN Card Copy', accept: '.pdf,image/*', url: docUrls.pan },
+                    { key: 'certificate', title: 'Educational Degree Certificates', accept: '.pdf,image/*', url: docUrls.certificate },
+                    { key: 'experience_letter', title: 'Work Experience Letter', accept: '.pdf,image/*', url: docUrls.experience_letter },
+                  ].map((doc) => (
+                    <div key={doc.key} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
                         <p className="font-bold text-xs text-slate-900">{doc.title}</p>
-                        <p className="text-[11px] text-[var(--orange)] font-semibold mt-0.5">{doc.file}</p>
+                        {doc.url ? (
+                          <p className="text-[11px] text-green-600 font-semibold mt-0.5 truncate">✓ Uploaded</p>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Not uploaded</p>
+                        )}
                       </div>
-                      <Button size="sm" variant="outline" className="text-xs" onClick={() => setToastMessage(`Uploaded new file for ${doc.title}`)}>
-                        <Upload size={12} className="mr-1" /> Upload
-                      </Button>
+                      <label className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${uploadingDoc === doc.key ? 'bg-slate-200 text-slate-500' : 'bg-[var(--orange)] text-white hover:bg-orange-600'}`}>
+                        <Upload size={12} />
+                        {uploadingDoc === doc.key ? 'Uploading...' : doc.url ? 'Replace' : 'Upload'}
+                        <input
+                          type="file"
+                          accept={doc.accept}
+                          className="hidden"
+                          onChange={(e) => handleDocumentUpload(doc.key, e)}
+                        />
+                      </label>
                     </div>
                   ))}
                 </div>
+                <p className="text-xs text-slate-500">Supported formats: PDF, DOC, DOCX, JPG, PNG. Max file size: 10MB.</p>
               </div>
             )}
 
@@ -1089,21 +1134,50 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">LinkedIn Profile</label>
-                    <input value={linkedin} onChange={e => setLinkedin(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                    <div className="flex gap-2">
+                      <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/yourprofile" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                      {linkedin && (
+                        <a href={linkedin} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
+                          <Eye size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">GitHub Profile</label>
-                    <input value={github} onChange={e => setGithub(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                    <div className="flex gap-2">
+                      <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/yourusername" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                      {github && (
+                        <a href={github} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
+                          <Eye size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Portfolio Website</label>
-                    <input value={portfolio} onChange={e => setPortfolio(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                    <div className="flex gap-2">
+                      <input value={portfolio} onChange={e => setPortfolio(e.target.value)} placeholder="https://yourportfolio.com" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                      {portfolio && (
+                        <a href={portfolio} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
+                          <Eye size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Personal Website / Blog</label>
-                    <input value={website} onChange={e => setWebsite(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                    <div className="flex gap-2">
+                      <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
+                      {website && (
+                        <a href={website} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
+                          <Eye size={16} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
+                <p className="text-xs text-slate-500">Add your social profiles and portfolio links. Click the eye icon to preview.</p>
               </div>
             )}
 
@@ -1116,8 +1190,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Career Objective & Bio Highlights</label>
-                  <textarea value={bio} onChange={e => setBio(e.target.value)} rows={6} className="w-full px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-900 text-sm leading-relaxed" />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">Career Objective & Bio Highlights</label>
+                    <span className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-slate-400'}`}>{bio.length}/600</span>
+                  </div>
+                  <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 600))} rows={6} placeholder="Write a brief professional summary highlighting your skills, experience, and career goals..." className="w-full px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-900 text-sm leading-relaxed resize-none" />
+                  <p className="text-xs text-slate-400 mt-1">Tip: Keep it concise (2-3 sentences). Mention your key skills and what you're looking for.</p>
                 </div>
               </div>
             )}

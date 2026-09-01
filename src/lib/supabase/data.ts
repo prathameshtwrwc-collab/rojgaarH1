@@ -329,6 +329,12 @@ export async function updateCandidateProfile(userId: string, updates: Record<str
     portfolio_url: updates.portfolio || null,
     website_url: updates.website || null,
     bio: updates.bio || null,
+    resume_url: updates.resumeUrl || null,
+    profile_photo_url: updates.profilePhotoUrl || null,
+    aadhaar_url: updates.aadhaarUrl || null,
+    pan_url: updates.panUrl || null,
+    certificate_url: updates.certificateUrl || null,
+    experience_letter_url: updates.experienceLetterUrl || null,
   };
   const { error: candErr } = await supabase.from('candidates').update(candidatePatch as never).eq('id', userId);
   if (candErr) throw candErr;
@@ -744,6 +750,29 @@ export async function uploadCandidateResume(userId: string, file: File): Promise
   if (updateError) throw updateError;
 
   return resumeUrl;
+}
+
+export async function uploadCandidateDocument(userId: string, file: File, docType: 'photo' | 'aadhaar' | 'pan' | 'certificate' | 'experience_letter'): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const path = `${userId}/${docType}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from('resumes').upload(path, file, { upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage.from('resumes').getPublicUrl(path);
+  const fileUrl = urlData.publicUrl;
+
+  const columnMap: Record<string, string> = {
+    photo: 'profile_photo_url',
+    aadhaar: 'aadhaar_url',
+    pan: 'pan_url',
+    certificate: 'certificate_url',
+    experience_letter: 'experience_letter_url',
+  };
+
+  const { error: updateError } = await supabase.from('candidates').update({ [columnMap[docType]]: fileUrl } as never).eq('id', userId);
+  if (updateError) throw updateError;
+
+  return fileUrl;
 }
 
 export async function updateEmployerProfile(employerId: string, updates: Partial<EmployerRow>): Promise<void> {

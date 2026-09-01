@@ -136,7 +136,7 @@ export async function checkPhoneExists(phone: string): Promise<{ exists: boolean
     const { data, error } = await supabase.rpc('check_phone_exists', {
       check_phone: phone,
       check_role: 'candidate',
-    });
+    } as any);
 
     if (error) {
       console.error('Error checking phone:', error);
@@ -150,7 +150,7 @@ export async function checkPhoneExists(phone: string): Promise<{ exists: boolean
     // Get email separately
     const { data: emailData, error: emailError } = await supabase.rpc('get_email_by_phone', {
       check_phone: phone,
-    });
+    } as any);
 
     return { exists: true, email: emailError ? undefined : emailData || undefined };
   } catch (err) {
@@ -173,13 +173,13 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
 
     // Store OTP in database
     const { error: dbError } = await supabase
-      .from('otp_verifications')
+      .from('otp_verifications' as any)
       .insert({
         phone,
         otp,
         expires_at: expiresAt,
         verified: false,
-      });
+      } as any);
 
     if (dbError) {
       console.error('Error storing OTP:', dbError);
@@ -192,7 +192,7 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
     if (!smsResult.success) {
       // Clean up stored OTP if SMS failed
       await supabase
-        .from('otp_verifications')
+        .from('otp_verifications' as any)
         .delete()
         .eq('phone', phone)
         .eq('otp', otp);
@@ -213,7 +213,7 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
 export async function verifyOtp(phone: string, otp: string): Promise<{ success: boolean; message: string }> {
   try {
     const { data, error } = await supabase
-      .from('otp_verifications')
+      .from('otp_verifications' as any)
       .select('*')
       .eq('phone', phone)
       .eq('otp', otp)
@@ -228,10 +228,10 @@ export async function verifyOtp(phone: string, otp: string): Promise<{ success: 
     }
 
     // Mark OTP as verified
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('otp_verifications')
       .update({ verified: true })
-      .eq('id', data.id);
+      .eq('id', (data as any).id);
 
     if (updateError) {
       console.error('Error updating OTP:', updateError);
@@ -252,7 +252,7 @@ export async function signInWithPhone(phone: string, password: string) {
   // Get email using RPC function (bypasses RLS)
   const { data: emailData, error: profileError } = await supabase.rpc('get_email_by_phone', {
     check_phone: phone,
-  });
+  } as any);
 
   if (profileError || !emailData) {
     throw new Error('No account found with this phone number');

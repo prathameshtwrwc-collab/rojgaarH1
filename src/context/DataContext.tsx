@@ -73,6 +73,11 @@ export interface JobSeeker {
   noticePeriod?: string;
   immediateJoining?: boolean;
   resumeUrl?: string;
+  profilePhotoUrl?: string;
+  aadhaarUrl?: string;
+  panUrl?: string;
+  certificateUrl?: string;
+  experienceLetterUrl?: string;
   profilePhoto?: string;
   status: 'New' | 'Contacted' | 'Interviewed' | 'Placed' | 'Inactive';
   createdAt: string;
