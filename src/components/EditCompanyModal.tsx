@@ -3,6 +3,7 @@ import { Building2, MapPin, User, CheckCircle } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from './ui';
+import { getSectorsList } from '../constants/sectors';
 
 export interface CompanyForm {
   companyName: string;
@@ -43,6 +44,9 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   const [form, setForm] = useState<CompanyForm>(initial);
   const [activeStep, setActiveStep] = useState(0);
   const [visited, setVisited] = useState<Set<number>>(new Set([0]));
+  const [sectorInput, setSectorInput] = useState(initial.industry || '');
+  const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false);
+  const [filteredSectors, setFilteredSectors] = useState<string[]>(getSectorsList());
 
   useEffect(() => {
     if (isOpen) {
@@ -75,6 +79,32 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   const goStep = (delta: number) => goToStep(Math.min(steps.length - 1, Math.max(0, activeStep + delta)));
 
   const update = (patch: Partial<CompanyForm>) => setForm(prev => ({ ...prev, ...patch }));
+
+  // Sector combobox handlers
+  const handleSectorInputChange = (value: string) => {
+    setSectorInput(value);
+    update({ industry: value });
+    const allSectors = getSectorsList();
+    const filtered = allSectors.filter(s => s.toLowerCase().includes(value.toLowerCase()));
+    const hasExactMatch = allSectors.some(s => s.toLowerCase() === value.toLowerCase());
+    if (value && !hasExactMatch) {
+      filtered.unshift(`✏️ Custom: ${value}`);
+    }
+    setFilteredSectors(filtered);
+    setSectorDropdownOpen(true);
+  };
+
+  const handleSectorSelect = (sector: string) => {
+    if (sector.startsWith('✏️ Custom: ')) {
+      const customValue = sector.replace('✏️ Custom: ', '');
+      setSectorInput(customValue);
+      update({ industry: customValue });
+    } else {
+      setSectorInput(sector);
+      update({ industry: sector });
+    }
+    setSectorDropdownOpen(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
@@ -183,9 +213,39 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                   <input value={form.companyName} onChange={e => update({ companyName: e.target.value })} className={inputClass} placeholder="e.g. Bharat Manufacturing Co." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
+                  <div className="relative">
                     <label className={labelClass}>Industry</label>
-                    <input value={form.industry} onChange={e => update({ industry: e.target.value })} className={inputClass} placeholder="e.g. Manufacturing" />
+                    <div className="relative">
+                      <input
+                        value={sectorInput}
+                        onChange={(e) => handleSectorInputChange(e.target.value)}
+                        onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }}
+                        onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)}
+                        className={inputClass}
+                        placeholder="Type or select industry..."
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <svg className={`w-4 h-4 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                    </div>
+                    {sectorDropdownOpen && filteredSectors.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {filteredSectors.map((sector) => (
+                          <button
+                            key={sector}
+                            type="button"
+                            onMouseDown={() => handleSectorSelect(sector)}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}
+                          >
+                            {sector}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className={labelClass}>Company Size</label>

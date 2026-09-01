@@ -379,7 +379,7 @@ export default function JobDetails() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Posted Date</span>
-                  <span className="font-semibold text-[var(--navy)]">{job.createdAt}</span>
+                  <span className="font-semibold text-[var(--navy)]">{job.createdAt ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</span>
                 </div>
                 {job.deadline && (
                   <div className="flex items-center justify-between">

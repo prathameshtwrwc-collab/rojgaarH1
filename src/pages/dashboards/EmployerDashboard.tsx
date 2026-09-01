@@ -633,7 +633,7 @@ function EmployerDashboard() {
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-[13px] font-semibold">
                             <span className="text-[var(--navy)]">{applicants.length} Applicants</span>
                             <span className="text-[var(--charcoal)]">{jobMatches.length} Compatible Matches</span>
-                            <span className="text-[12px] text-[var(--charcoal)] font-medium">Posted {job.createdAt} · Expires {job.deadline || '15 May 2024'}</span>
+                            <span className="text-[12px] text-[var(--charcoal)] font-medium">Posted {job.createdAt ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'} · Expires {job.deadline || 'N/A'}</span>
                           </div>
                         </div>
 
@@ -887,7 +887,7 @@ function EmployerDashboard() {
                  <h3 className="text-xl font-extrabold text-[var(--navy)]">{viewingApplicant.firstName} {viewingApplicant.lastName}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant={viewingApplicant.status === 'Placed' ? 'success' : 'info'}>{viewingApplicant.status}</Badge>
-                  <span className="text-xs text-[var(--charcoal)]">Registered {viewingApplicant.createdAt}</span>
+                  <span className="text-xs text-[var(--charcoal)]">Registered {viewingApplicant.createdAt ? new Date(viewingApplicant.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</span>
                 </div>
               </div>
             </div>
