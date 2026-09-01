@@ -144,15 +144,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     }
     setDeptDropdownOpen(false);
   };
-    setFilteredDepts(filtered);
-    setDeptDropdownOpen(true);
-  };
 
-  const handleDeptSelect = (dept: string) => {
-    setDeptInput(dept);
-    setDepartment(dept);
-    setDeptDropdownOpen(false);
-  };
 
   // SECTION 4: Education
   const [educationList, setEducationList] = useState<EducationEntry[]>(candidate.educationList || [
