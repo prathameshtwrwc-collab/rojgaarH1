@@ -763,7 +763,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       </div>
                     )}
                   </div>
-                </div>                </div>
+                </div>
               </div>
             )}
 
