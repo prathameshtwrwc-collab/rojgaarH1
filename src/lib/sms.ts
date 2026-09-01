@@ -1,84 +1,96 @@
-// SMS Service for SMSLocal.in
-// Documentation: https://app.smslocal.in/api/smsapi?key=Account key&route=Route&sender=Sender id&number=Number(s)&sms=Message&templateid=DLT_Templateid
+// SMS Service for HanuOTP
+// Endpoint: https://api.hanuotp.in/sms-otp.php?number=mobile_number&OTP=otp&apikey=apikey&templatesid=default
 
-const SMS_API_KEY = '77ea51970317a132650e3ca5f9f1938d';
-const SMS_ENDPOINT = import.meta.env.DEV ? '/api/sms' : 'https://app.smslocal.in/api/smsapi';
+const HANU_API_KEY = 'bc6aa8f3afb502ddfa3bdbcf4c6c357f';
+const HANU_ENDPOINT = import.meta.env.DEV ? '/api/hanuotp' : 'https://api.hanuotp.in/sms-otp.php';
 
-export interface SmsConfig {
-  route?: string;
-  sender?: string;
-  templateid?: string;
-}
-
-export interface SendSmsParams {
-  phone: string;
+export interface SendOtpResult {
+  success: boolean;
   message: string;
-  config?: SmsConfig;
+  otp?: string;
 }
 
 /**
- * Send SMS via SMSLocal.in API
- * @param params - SMS parameters
- * @returns Response from SMS API
+ * Send OTP SMS via HanuOTP API
+ * @param phone - Phone number (with or without country code)
+ * @returns Response with OTP (if auto-generated) and status
  */
-export async function sendSms(params: SendSmsParams): Promise<{ success: boolean; message: string }> {
-  const { phone, message, config } = params;
+export async function sendOtpSms(phone: string): Promise<SendOtpResult> {
+  // Ensure phone has country code (India = 91)
+  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
 
-  const queryParams = new URLSearchParams({
-    key: SMS_API_KEY,
-    route: config?.route || '2', // Default route: 2 = OTP
-    sender: config?.sender || 'ROJGAH', // Sender ID (must be registered with SMSLocal.in)
-    number: phone,
-    sms: message, // API parameter is 'sms', not 'message'
-    templateid: config?.templateid || '', // DLT Template ID (required for Indian telecom)
+  const params = new URLSearchParams({
+    number: formattedPhone,
+    OTP: '', // Leave empty for auto-generated OTP, or pass custom OTP
+    apikey: HANU_API_KEY,
+    templatesid: 'default',
   });
 
-  const url = `${SMS_ENDPOINT}?${queryParams.toString()}`;
+  const url = `${HANU_ENDPOINT}?${params.toString()}`;
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-    });
-
+    const response = await fetch(url, { method: 'GET' });
     const data = await response.json();
-    console.log('SMS API Full Response:', data);
 
-    if (response.ok && (data.status === 'success' || data.type === 'success')) {
-      return { success: true, message: 'SMS sent successfully' };
+    console.log('HanuOTP Response:', data);
+
+    // HanuOTP returns status: "success" on success
+    if (data.status === 'success' || data.type === 'success') {
+      return {
+        success: true,
+        message: data.message || 'OTP sent successfully',
+        otp: data.otp || data.OTP || undefined,
+      };
     } else {
-      console.error('SMS API Error:', data);
-      const errorCode = data.error_code || data.code || data.status_code;
-      const errorMessage = data.message || data.error || data.msg;
-      return { success: false, message: errorMessage || `SMS failed (code: ${errorCode || 'unknown'})` };
+      return {
+        success: false,
+        message: data.message || data.error || 'Failed to send OTP',
+      };
     }
   } catch (error) {
-    console.error('SMS Send Error:', error);
+    console.error('HanuOTP Error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}
+
+/**
+ * Send custom OTP via HanuOTP (if you want to use your own OTP)
+ * @param phone - Phone number
+ * @param otp - Custom OTP code
+ * @returns Response from API
+ */
+export async function sendCustomOtpSms(phone: string, otp: string): Promise<SendOtpResult> {
+  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`;
+
+  const params = new URLSearchParams({
+    number: formattedPhone,
+    OTP: otp,
+    apikey: HANU_API_KEY,
+    templatesid: 'default',
+  });
+
+  const url = `${HANU_ENDPOINT}?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, { method: 'GET' });
+    const data = await response.json();
+
+    if (data.status === 'success' || data.type === 'success') {
+      return { success: true, message: 'OTP sent successfully' };
+    } else {
+      return { success: false, message: data.message || data.error || 'Failed to send OTP' };
+    }
+  } catch (error) {
+    console.error('HanuOTP Error:', error);
     return { success: false, message: error instanceof Error ? error.message : 'Network error' };
   }
 }
 
 /**
- * Send OTP SMS
- * @param phone - Phone number
- * @param otp - OTP code
- * @returns Response from SMS API
- */
-export async function sendOtpSms(phone: string, otp: string): Promise<{ success: boolean; message: string }> {
-  const message = `Your Rojgaar Hai verification code is: ${otp}. This code expires in 5 minutes. Do not share it with anyone.`;
-
-  return sendSms({
-    phone,
-    message,
-    config: {
-      route: '2', // OTP route per SMSLocal.in docs
-      sender: 'ROJGAH', // Must be registered sender ID
-      // templateid: 'YOUR_DLT_TEMPLATE_ID', // Required for Indian telecom
-    },
-  });
-}
-
-/**
- * Generate a 6-digit OTP
+ * Generate a 6-digit OTP (for use with sendCustomOtpSms)
  * @returns 6-digit OTP string
  */
 export function generateOtp(): string {

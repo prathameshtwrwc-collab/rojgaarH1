@@ -17,10 +17,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api/sms": {
-        target: "https://app.smslocal.in",
+      "/api/hanuotp": {
+        target: "https://api.hanuotp.in",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/sms/, "/api/smsapi"),
+        rewrite: (path) => path.replace(/^\/api\/hanuotp/, "/sms-otp.php"),
       },
     },
   },

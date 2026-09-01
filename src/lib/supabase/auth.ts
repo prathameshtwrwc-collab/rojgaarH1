@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { sendOtpSms, generateOtp } from '../sms';
+import { sendCustomOtpSms, generateOtp } from '../sms';
 
 export type UserRole = 'superadmin' | 'employer' | 'candidate' | 'recruiter';
 
