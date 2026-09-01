@@ -187,7 +187,7 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; messag
     }
 
     // Send SMS
-    const smsResult = await sendOtpSms(phone, otp);
+    const smsResult = await sendCustomOtpSms(phone, otp);
 
     if (!smsResult.success) {
       // Clean up stored OTP if SMS failed
