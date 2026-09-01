@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Building2, Briefcase, Users, MapPin, FileText, LogOut, Eye, IndianRupee,
   Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
-  Download, Copy, Share2, PauseCircle,
+  Download, Copy, Share2, PauseCircle, Trash2,
   XCircle, Video
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -12,6 +12,7 @@ import { Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile } from '../../lib/supabase/data';
+import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
 
@@ -117,6 +118,9 @@ function EmployerDashboard() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [applicantStageFilter, setApplicantStageFilter] = useState<string>('all');
   const [companyForm, setCompanyForm] = useState<any>(null);
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -376,6 +380,22 @@ function EmployerDashboard() {
     }
   };
 
+  const handleDeleteJob = async () => {
+    if (!jobToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('job_postings').delete().eq('id', jobToDelete.id);
+      if (error) throw error;
+      setToastMessage(`Job "${jobToDelete.jobTitle}" deleted successfully.`);
+      setJobToDelete(null);
+      await refresh();
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to delete job.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const openEditCompany = () => {
     setCompanyForm({
       companyName: employer.companyName,
@@ -511,10 +531,6 @@ function EmployerDashboard() {
             <div className="dash-metric__value">{myPlacements.length}</div>
             <div className="dash-metric__label">Placements Joined</div>
           </div>
-          <div className="dash-metric">
-            <div className="dash-metric__value">₹{myJobs.reduce((sum, j) => sum + (parseInt(j.salaryMax) || 0), 0).toLocaleString()}</div>
-            <div className="dash-metric__label">Monthly Salary Budget</div>
-          </div>
         </div>
 
         {/* ═══ SEARCH, FILTER & SORT BAR FOR POSTINGS ═══ */}
@@ -598,6 +614,18 @@ function EmployerDashboard() {
                 const jobMatches = getMatchesForJob(job.id);
                 const statusVariant = job.status === 'Open' ? 'success' : job.status === 'Pending' ? 'warning' : job.status === 'On Hold' ? 'warning' : 'danger';
 
+                // Filter applicants by selected stage
+                const filteredApplicants = applicants.filter((a: any) => {
+                  if (applicantStageFilter === 'all') return true;
+                  if (applicantStageFilter === 'applied') return !['shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'joined', 'rejected', 'withdrawn'].includes(a.applicationStatus);
+                  if (applicantStageFilter === 'reviewed') return a.applicationStatus !== 'applied';
+                  if (applicantStageFilter === 'shortlisted') return a.applicationStatus === 'shortlisted';
+                  if (applicantStageFilter === 'interview') return a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed';
+                  if (applicantStageFilter === 'selected') return a.applicationStatus === 'selected';
+                  if (applicantStageFilter === 'joined') return a.applicationStatus === 'joined';
+                  return true;
+                });
+
                 return (
                   <div key={job.id}>
 
@@ -663,6 +691,14 @@ function EmployerDashboard() {
                           >
                             <Share2 size={16} />
                           </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setJobToDelete(job); }}
+                            className="dash-btn-tertiary h-8 w-8 !p-0 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Delete Job"
+                          >
+                            <Trash2 size={16} />
+                          </button>
 
                           <div className="flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
                             <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
@@ -678,36 +714,83 @@ function EmployerDashboard() {
 
                           {/* HIRING PIPELINE TRACKER */}
                           <div className="dash-surface dash-surface--pad">
-                           <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] mb-3">
-                             Recruitment Pipeline Progress
+                           <div className="flex items-center justify-between mb-3">
+                             <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)]">
+                               Recruitment Pipeline Progress
+                             </div>
+                             {applicantStageFilter !== 'all' && (
+                               <button
+                                 onClick={() => setApplicantStageFilter('all')}
+                                 className="text-[10px] font-bold text-[var(--orange)] hover:underline"
+                               >
+                                 Clear Filter
+                               </button>
+                             )}
                            </div>
                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs font-bold">
-                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Applied ({applicants.length})</div>
-                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Reviewed ({applicants.length})</div>
-                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Shortlisted ({applicants.filter((a: any) => a.applicationStatus === 'shortlisted').length})</div>
-                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--navy)] border border-[#E7E2D9]">Interview ({applicants.filter((a: any) => a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed').length})</div>
-                             <div className="p-2 rounded-lg bg-[var(--green)] text-white">Selected ({applicants.filter((a: any) => a.applicationStatus === 'selected').length})</div>
-                             <div className="p-2 rounded-lg bg-[#FAF7F0] text-[var(--charcoal)] border border-[#E7E2D9]">Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})</div>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'applied' ? 'all' : 'applied')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'applied' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
+                             >
+                               Applied ({applicants.filter((a: any) => !['shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'joined', 'rejected', 'withdrawn'].includes(a.applicationStatus)).length})
+                             </button>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'reviewed' ? 'all' : 'reviewed')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'reviewed' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
+                             >
+                               Reviewed ({applicants.filter((a: any) => a.applicationStatus !== 'applied').length})
+                             </button>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'shortlisted' ? 'all' : 'shortlisted')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'shortlisted' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
+                             >
+                               Shortlisted ({applicants.filter((a: any) => a.applicationStatus === 'shortlisted').length})
+                             </button>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'interview' ? 'all' : 'interview')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'interview' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
+                             >
+                               Interview ({applicants.filter((a: any) => a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed').length})
+                             </button>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'selected' ? 'all' : 'selected')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'selected' ? 'bg-[var(--green)] text-white border-[var(--green)] shadow-md' : 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/30 hover:bg-[var(--green)]/20'}`}
+                             >
+                               Selected ({applicants.filter((a: any) => a.applicationStatus === 'selected').length})
+                             </button>
+                             <button
+                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'joined' ? 'all' : 'joined')}
+                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'joined' ? 'bg-[var(--navy)] text-white border-[var(--navy)] shadow-md' : 'bg-[#FAF7F0] text-[var(--charcoal)] border-[#E7E2D9] hover:border-[var(--navy)]'}`}
+                             >
+                               Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})
+                             </button>
                            </div>
                          </div>
 
-                        {/* APPLICANT CARDS */}
-                        <div>
-                          <h5 className="text-sm font-extrabold text-[var(--navy)] mb-4 flex items-center gap-2">
-                            <Users size={18} className="text-[var(--orange)]" />
-                            Candidate Applicants ({applicants.length})
-                          </h5>
+                         {/* APPLICANT CARDS */}
+                         <div>
+                           <h5 className="text-sm font-extrabold text-[var(--navy)] mb-4 flex items-center gap-2">
+                             <Users size={18} className="text-[var(--orange)]" />
+                             Candidate Applicants ({filteredApplicants.length})
+                             {applicantStageFilter !== 'all' && (
+                               <span className="text-xs font-normal text-[var(--orange)]">
+                                 (filtered by: {applicantStageFilter})
+                               </span>
+                             )}
+                           </h5>
 
-                          {applicants.length === 0 ? (
-                               <p className="text-sm text-[var(--charcoal)] py-6 text-center bg-[var(--white)] rounded-2xl border border-slate-200">
-                             No candidate has applied to this posting yet.
-                           </p>
-                          ) : (
-                            <div className="space-y-4">
-                              {applicants.map((applicant: any) => {
-                                const match = jobMatches.find((m: any) => m.candidate_id === applicant.id);
-                                const isShortlisted = applicant.applicationStatus === 'shortlisted';
-                                const isRejected = applicant.applicationStatus === 'rejected';
+                           {filteredApplicants.length === 0 ? (
+                                <p className="text-sm text-[var(--charcoal)] py-6 text-center bg-[var(--white)] rounded-2xl border border-slate-200">
+                                  {applicants.length === 0
+                                    ? 'No candidate has applied to this posting yet.'
+                                    : 'No applicants match the selected filter.'}
+                                </p>
+                           ) : (
+                             <div className="space-y-4">
+                               {filteredApplicants.map((applicant: any) => {
+                                 const match = jobMatches.find((m: any) => m.candidate_id === applicant.id);
+                                 const isShortlisted = applicant.applicationStatus === 'shortlisted';
+                                 const isRejected = applicant.applicationStatus === 'rejected';
 
                                 return (
                                   <div
@@ -989,6 +1072,23 @@ function EmployerDashboard() {
               ))}
               {activeJobs === 0 && <p className="text-sm text-[var(--charcoal)]">No open jobs right now.</p>}
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!jobToDelete} onClose={() => setJobToDelete(null)} title="Delete Job Posting">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--charcoal)]">
+            Are you sure you want to delete <strong className="text-[var(--navy)]">&quot;{jobToDelete?.jobTitle}&quot;</strong>? This action cannot be undone.
+          </p>
+          <div className="flex items-center justify-end gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setJobToDelete(null)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleDeleteJob} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
+              {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </Button>
           </div>
         </div>
       </Modal>
