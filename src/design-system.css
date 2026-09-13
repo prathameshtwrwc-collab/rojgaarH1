@@ -536,12 +536,18 @@ html.lenis, html.lenis body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 0;
+  padding-top: 14px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #EFEAE1;
+  transition: background-color 0.15s ease;
 }
 
 .dash-row:last-child {
   border-bottom: none;
+}
+
+.dash-row:hover {
+  background-color: var(--bg-warm);
 }
 
 /* Status badge — used ONLY for genuine states */
