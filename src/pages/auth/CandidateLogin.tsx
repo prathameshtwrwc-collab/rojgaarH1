@@ -1,33 +1,22 @@
 import { useState, useEffect } from 'react';
 import PageLoader from '../../components/PageLoader';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Phone, Mail, CheckCircle2 } from 'lucide-react';
-import { signIn, checkPhoneExists, sendOtp, verifyOtp, signInWithPhone } from '../../lib/supabase/auth';
+import { Eye, EyeOff, Phone, Mail } from 'lucide-react';
+import { signIn, signInWithPhone } from '../../lib/supabase/auth';
 import { useAuth } from '../../context/AuthContext';
 import AuthSwitcher from '../../components/AuthSwitcher';
 
 type LoginMethod = 'phone' | 'email';
-type PhoneStep = 'phone' | 'otp' | 'password';
 
 export default function CandidateLogin() {
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('phone');
-  const [phoneStep, setPhoneStep] = useState<PhoneStep>('phone');
 
-  // Phone state
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-
-  // Email state
   const [email, setEmail] = useState('');
-
-  // Common state
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [_otpSent, setOtpSent] = useState(false);
-  const [_otpVerified, setOtpVerified] = useState(false);
-  const [countdown, setCountdown] = useState(0);
 
   const { user, loading: authLoading, refresh } = useAuth();
   const navigate = useNavigate();
@@ -47,77 +36,12 @@ export default function CandidateLogin() {
     }
   }, [user, authLoading, navigate, from]);
 
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
-  const handleSendOtp = async () => {
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!phone || phone.length < 10) {
       setError('Please enter a valid phone number');
       return;
     }
-
-    setError('');
-    setLoading(true);
-
-    try {
-      // Check if phone exists
-      const { exists } = await checkPhoneExists(phone);
-      if (!exists) {
-        setError('No candidate account found with this phone number');
-        setLoading(false);
-        return;
-      }
-
-      // Send OTP
-      const result = await sendOtp(phone);
-      if (!result.success) {
-        setError(result.message);
-        setLoading(false);
-        return;
-      }
-
-      setOtpSent(true);
-      setPhoneStep('otp');
-      setCountdown(30); // 30 second cooldown before resend
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-
-    try {
-      const result = await verifyOtp(phone, otp);
-      if (!result.success) {
-        setError(result.message);
-        setLoading(false);
-        return;
-      }
-
-      setOtpVerified(true);
-      setPhoneStep('password');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
     if (!password) {
       setError('Please enter your password');
       return;
@@ -138,6 +62,15 @@ export default function CandidateLogin() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) {
+      setError('Please enter your email');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
@@ -149,16 +82,6 @@ export default function CandidateLogin() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetPhoneFlow = () => {
-    setPhoneStep('phone');
-    setPhone('');
-    setOtp('');
-    setPassword('');
-    setOtpSent(false);
-    setOtpVerified(false);
-    setError('');
   };
 
   if (authLoading) {
@@ -215,141 +138,55 @@ export default function CandidateLogin() {
 
           {/* Phone Login Flow */}
           {loginMethod === 'phone' && (
-            <>
-              {phoneStep === 'phone' && (
-                <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                        placeholder="9876543210"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1.5">
-                      We&apos;ll send you a verification code
-                    </p>
-                  </div>
+            <form onSubmit={handlePhoneLogin} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    placeholder="9876543210"
+                  />
+                </div>
+              </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Sending OTP...' : 'Send Verification Code'}
-                  </button>
-                </form>
-              )}
-
-              {phoneStep === 'otp' && (
-                <form onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                      Enter Verification Code
-                    </label>
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      required
-                      maxLength={6}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                      placeholder="••••••"
-                    />
-                    <p className="text-xs text-slate-500 mt-1.5 text-center">
-                      Enter the 6-digit code sent to {phone}
-                    </p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || otp.length !== 6}
-                    className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Verifying...' : 'Verify Code'}
-                  </button>
-
-                  <div className="text-center">
-                    {countdown > 0 ? (
-                      <span className="text-xs text-slate-500">
-                        Resend code in {countdown}s
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        className="text-xs text-[var(--orange)] font-semibold hover:underline"
-                      >
-                        Resend Code
-                      </button>
-                    )}
-                  </div>
-
+              <div>
+                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    placeholder="••••••••"
+                  />
                   <button
                     type="button"
-                    onClick={resetPhoneFlow}
-                    className="w-full text-xs text-slate-500 hover:text-[var(--navy)]"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)] hover:text-[var(--navy)]"
                   >
-                    ← Change phone number
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
-                </form>
-              )}
+                </div>
+              </div>
 
-              {phoneStep === 'password' && (
-                <form onSubmit={handlePhoneLogin} className="space-y-5">
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <CheckCircle2 size={20} className="text-green-600 flex-shrink-0" />
-                    <span className="text-sm text-green-700">Phone verified successfully</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                        placeholder="••••••••"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)] hover:text-[var(--navy)]"
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Signing in...' : 'Sign In'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={resetPhoneFlow}
-                    className="w-full text-xs text-slate-500 hover:text-[var(--navy)]"
-                  >
-                    ← Start over
-                  </button>
-                </form>
-              )}
-            </>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
           )}
 
           {/* Email Login Flow */}
