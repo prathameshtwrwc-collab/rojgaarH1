@@ -180,13 +180,13 @@ export default function EmployerSignup() {
             <h3 className="text-sm font-bold text-[var(--navy)] mb-3">Verify Phone Number</h3>
             {!otpVerified ? (
               <>
-                <div className="flex gap-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
                   <input
                     type="tel"
                     value={otpPhone}
                     onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     required
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
                     placeholder="9876543210"
                   />
                   {!otpSent ? (
@@ -194,32 +194,32 @@ export default function EmployerSignup() {
                       type="button"
                       onClick={handleSendOtp}
                       disabled={loading}
-                      className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
+                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
                       {loading ? 'Sending...' : 'Send OTP'}
                     </button>
                   ) : (
-                    <span className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full">
+                    <span className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full text-center">
                       Sent
                     </span>
                   )}
                 </div>
                 {otpSent && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       required
                       maxLength={6}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                      className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
                       placeholder="••••••"
                     />
                     <button
                       type="button"
                       onClick={handleVerifyOtp}
                       disabled={loading || otp.length !== 6}
-                      className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
+                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
                       {loading ? 'Verifying...' : 'Verify'}
                     </button>
