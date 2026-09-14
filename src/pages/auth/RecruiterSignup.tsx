@@ -161,12 +161,12 @@ export default function RecruiterSignup() {
                       type="button"
                       onClick={handleSendOtp}
                       disabled={loading}
-                      className="px-4 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
+                      className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
                       {loading ? 'Sending...' : 'Send OTP'}
                     </button>
                   ) : (
-                    <span className="px-4 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full">
+                    <span className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full">
                       Sent
                     </span>
                   )}
@@ -186,7 +186,7 @@ export default function RecruiterSignup() {
                       type="button"
                       onClick={handleVerifyOtp}
                       disabled={loading || otp.length !== 6}
-                      className="px-4 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
+                      className="flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
                       {loading ? 'Verifying...' : 'Verify'}
                     </button>
