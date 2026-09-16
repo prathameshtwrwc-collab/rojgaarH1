@@ -1,49 +1,51 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { DataProvider, useData } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DatabaseProvider } from './context/DatabaseContext';
-import Landing from './pages/Landing';
-import PublicLayout from './components/PublicLayout';
-import AdminLayout from './components/AdminLayout';
-import JobSeekerInfo from './pages/JobSeekerInfo';
-import EmployerInfo from './pages/EmployerInfo';
-import RecruiterInfo from './pages/RecruiterInfo';
-import Contact from './pages/Contact';
-import AboutUs from './pages/AboutUs';
-import Blog from './pages/Blog';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Terms from './pages/Terms';
-import Jobs from './pages/Jobs';
-import JobDetails from './pages/JobDetails';
-import Dashboard from './pages/admin/Dashboard';
-import Candidates from './pages/admin/Candidates';
-import Employers from './pages/admin/Employers';
-import Matching from './pages/admin/Matching';
-import Communications from './pages/admin/Communications';
-import Placements from './pages/admin/Placements';
-import EmployerDetail from './pages/admin/EmployerDetail';
-import JobApprovals from './pages/admin/JobApprovals';
-import JobPostDetail from './pages/admin/JobPostDetail';
-import Recruiters from './pages/admin/Recruiters';
-import RecruiterDetail from './pages/admin/RecruiterDetail';
-import CandidateLogin from './pages/auth/CandidateLogin';
-import EmployerLogin from './pages/auth/EmployerLogin';
-import RecruiterLogin from './pages/auth/RecruiterLogin';
-import AdminLoginPage from './pages/auth/AdminLogin';
-import CandidateSignup from './pages/auth/CandidateSignup';
-import EmployerSignup from './pages/auth/EmployerSignup';
-import RecruiterSignup from './pages/auth/RecruiterSignup';
-import { CandidateDashboard } from './pages/dashboards/CandidateDashboard';
-import { EmployerDashboard } from './pages/dashboards/EmployerDashboard';
-import { RecruiterDashboard } from './pages/dashboards/RecruiterDashboard';
-import PostJob from './pages/dashboards/PostJob';
-import { ReactNode } from 'react';
 import PageLoader from './components/PageLoader';
 import ScrollRestoration from './components/ScrollRestoration';
 import AppPreloader from './components/AppPreloader';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
+
+const Landing = lazy(() => import('./pages/Landing'));
+const PublicLayout = lazy(() => import('./components/PublicLayout'));
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
+const JobSeekerInfo = lazy(() => import('./pages/JobSeekerInfo'));
+const EmployerInfo = lazy(() => import('./pages/EmployerInfo'));
+const RecruiterInfo = lazy(() => import('./pages/RecruiterInfo'));
+const Contact = lazy(() => import('./pages/Contact'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const Blog = lazy(() => import('./pages/Blog'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Jobs = lazy(() => import('./pages/Jobs'));
+const JobDetails = lazy(() => import('./pages/JobDetails'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const Candidates = lazy(() => import('./pages/admin/Candidates'));
+const Employers = lazy(() => import('./pages/admin/Employers'));
+const Matching = lazy(() => import('./pages/admin/Matching'));
+const Communications = lazy(() => import('./pages/admin/Communications'));
+const Placements = lazy(() => import('./pages/admin/Placements'));
+const EmployerDetail = lazy(() => import('./pages/admin/EmployerDetail'));
+const JobApprovals = lazy(() => import('./pages/admin/JobApprovals'));
+const JobPostDetail = lazy(() => import('./pages/admin/JobPostDetail'));
+const Recruiters = lazy(() => import('./pages/admin/Recruiters'));
+const RecruiterDetail = lazy(() => import('./pages/admin/RecruiterDetail'));
+const CandidateLogin = lazy(() => import('./pages/auth/CandidateLogin'));
+const EmployerLogin = lazy(() => import('./pages/auth/EmployerLogin'));
+const RecruiterLogin = lazy(() => import('./pages/auth/RecruiterLogin'));
+const AdminLoginPage = lazy(() => import('./pages/auth/AdminLogin'));
+const CandidateSignup = lazy(() => import('./pages/auth/CandidateSignup'));
+const EmployerSignup = lazy(() => import('./pages/auth/EmployerSignup'));
+const RecruiterSignup = lazy(() => import('./pages/auth/RecruiterSignup'));
+
+const CandidateDashboard = lazy(() => import('./pages/dashboards/CandidateDashboard').then(m => ({ default: m.CandidateDashboard })));
+const EmployerDashboard = lazy(() => import('./pages/dashboards/EmployerDashboard').then(m => ({ default: m.EmployerDashboard })));
+const RecruiterDashboard = lazy(() => import('./pages/dashboards/RecruiterDashboard').then(m => ({ default: m.RecruiterDashboard })));
+const PostJob = lazy(() => import('./pages/dashboards/PostJob'));
 
 function AuthGate() {
   return <PageLoader />;
@@ -107,67 +109,69 @@ function AppRoutes() {
       key={location.pathname}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
-    <Routes>
-      {/* Landing page renders without layout wrapper */}
-      <Route element={<Landing />} path="/" />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Landing page renders without layout wrapper */}
+          <Route element={<Landing />} path="/" />
 
-      {/* Public pages with layout */}
-      <Route element={<PublicLayout><Jobs /></PublicLayout>} path="/jobs" />
-      <Route element={<PublicLayout><JobDetails /></PublicLayout>} path="/jobs/:id" />
-      <Route element={<PublicLayout><JobSeekerInfo /></PublicLayout>} path="/job-seeker-info" />
-      <Route element={<PublicLayout><EmployerInfo /></PublicLayout>} path="/employer-info" />
-      <Route element={<PublicLayout><RecruiterInfo /></PublicLayout>} path="/recruiter-info" />
-      <Route element={<PublicLayout><Contact /></PublicLayout>} path="/contact" />
-      <Route element={<PublicLayout><AboutUs /></PublicLayout>} path="/about" />
-      <Route element={<PublicLayout><Blog /></PublicLayout>} path="/blog" />
-      <Route element={<PublicLayout><PrivacyPolicy /></PublicLayout>} path="/privacy" />
-      <Route element={<PublicLayout><Terms /></PublicLayout>} path="/terms" />
+          {/* Public pages with layout */}
+          <Route element={<PublicLayout><Jobs /></PublicLayout>} path="/jobs" />
+          <Route element={<PublicLayout><JobDetails /></PublicLayout>} path="/jobs/:id" />
+          <Route element={<PublicLayout><JobSeekerInfo /></PublicLayout>} path="/job-seeker-info" />
+          <Route element={<PublicLayout><EmployerInfo /></PublicLayout>} path="/employer-info" />
+          <Route element={<PublicLayout><RecruiterInfo /></PublicLayout>} path="/recruiter-info" />
+          <Route element={<PublicLayout><Contact /></PublicLayout>} path="/contact" />
+          <Route element={<PublicLayout><AboutUs /></PublicLayout>} path="/about" />
+          <Route element={<PublicLayout><Blog /></PublicLayout>} path="/blog" />
+          <Route element={<PublicLayout><PrivacyPolicy /></PublicLayout>} path="/privacy" />
+          <Route element={<PublicLayout><Terms /></PublicLayout>} path="/terms" />
 
-      {/* Registration portals */}
-      <Route element={<PublicLayout><CandidateSignup /></PublicLayout>} path="/register/job-seeker" />
-      <Route element={<PublicLayout><EmployerSignup /></PublicLayout>} path="/register/employer" />
-      <Route element={<PublicLayout><RecruiterSignup /></PublicLayout>} path="/register/recruiter" />
+          {/* Registration portals */}
+          <Route element={<PublicLayout><CandidateSignup /></PublicLayout>} path="/register/job-seeker" />
+          <Route element={<PublicLayout><EmployerSignup /></PublicLayout>} path="/register/employer" />
+          <Route element={<PublicLayout><RecruiterSignup /></PublicLayout>} path="/register/recruiter" />
 
-      {/* Candidate Auth */}
-      <Route element={<PublicLayout><CandidateLogin /></PublicLayout>} path="/login/candidate" />
+          {/* Candidate Auth */}
+          <Route element={<PublicLayout><CandidateLogin /></PublicLayout>} path="/login/candidate" />
 
-      {/* Employer Auth */}
-      <Route element={<PublicLayout><EmployerLogin /></PublicLayout>} path="/login/employer" />
+          {/* Employer Auth */}
+          <Route element={<PublicLayout><EmployerLogin /></PublicLayout>} path="/login/employer" />
 
-      {/* Recruiter Auth */}
-      <Route element={<PublicLayout><RecruiterLogin /></PublicLayout>} path="/login/recruiter" />
+          {/* Recruiter Auth */}
+          <Route element={<PublicLayout><RecruiterLogin /></PublicLayout>} path="/login/recruiter" />
 
-      {/* Admin Auth */}
-      <Route element={<AdminLoginPage />} path="/admin/login" />
+          {/* Admin Auth */}
+          <Route element={<AdminLoginPage />} path="/admin/login" />
 
-      {/* Candidate Dashboard */}
-      <Route path="/dashboard/candidate" element={<ProtectedCandidateRoute><CandidateDashboard /></ProtectedCandidateRoute>} />
+          {/* Candidate Dashboard */}
+          <Route path="/dashboard/candidate" element={<ProtectedCandidateRoute><CandidateDashboard /></ProtectedCandidateRoute>} />
 
-      {/* Employer Dashboard */}
-      <Route path="/dashboard/employer" element={<ProtectedEmployerRoute><EmployerDashboard /></ProtectedEmployerRoute>} />
-      <Route path="/dashboard/employer/post-job" element={<ProtectedEmployerRoute><PostJob /></ProtectedEmployerRoute>} />
+          {/* Employer Dashboard */}
+          <Route path="/dashboard/employer" element={<ProtectedEmployerRoute><EmployerDashboard /></ProtectedEmployerRoute>} />
+          <Route path="/dashboard/employer/post-job" element={<ProtectedEmployerRoute><PostJob /></ProtectedEmployerRoute>} />
 
-      {/* Recruiter Dashboard */}
-      <Route path="/dashboard/recruiter" element={<ProtectedRecruiterRoute><RecruiterDashboard /></ProtectedRecruiterRoute>} />
+          {/* Recruiter Dashboard */}
+          <Route path="/dashboard/recruiter" element={<ProtectedRecruiterRoute><RecruiterDashboard /></ProtectedRecruiterRoute>} />
 
-      {/* Admin */}
-      <Route path="/admin" element={<ProtectedAdminRoute><Dashboard /></ProtectedAdminRoute>} />
-      <Route path="/admin/jobs" element={<ProtectedAdminRoute><JobApprovals /></ProtectedAdminRoute>} />
-      <Route path="/admin/jobs/:id" element={<ProtectedAdminRoute><JobPostDetail /></ProtectedAdminRoute>} />
-      <Route path="/admin/candidates" element={<ProtectedAdminRoute><Candidates /></ProtectedAdminRoute>} />
-      <Route path="/admin/employers" element={<ProtectedAdminRoute><Employers /></ProtectedAdminRoute>} />
-      <Route path="/employer/:id" element={<ProtectedAdminRoute><EmployerDetail /></ProtectedAdminRoute>} />
-      <Route path="/admin/recruiters" element={<ProtectedAdminRoute><Recruiters /></ProtectedAdminRoute>} />
-      <Route path="/recruiter/:id" element={<ProtectedAdminRoute><RecruiterDetail /></ProtectedAdminRoute>} />
-      <Route path="/admin/matching" element={<ProtectedAdminRoute><Matching /></ProtectedAdminRoute>} />
-      <Route path="/admin/communications" element={<ProtectedAdminRoute><Communications /></ProtectedAdminRoute>} />
-      <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />
+          {/* Admin */}
+          <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
+          <Route path="/admin/jobs" element={<ProtectedAdminRoute><JobApprovals /></ProtectedAdminRoute>} />
+          <Route path="/admin/jobs/:id" element={<ProtectedAdminRoute><JobPostDetail /></ProtectedAdminRoute>} />
+          <Route path="/admin/candidates" element={<ProtectedAdminRoute><Candidates /></ProtectedAdminRoute>} />
+          <Route path="/admin/employers" element={<ProtectedAdminRoute><Employers /></ProtectedAdminRoute>} />
+          <Route path="/employer/:id" element={<ProtectedAdminRoute><EmployerDetail /></ProtectedAdminRoute>} />
+          <Route path="/admin/recruiters" element={<ProtectedAdminRoute><Recruiters /></ProtectedAdminRoute>} />
+          <Route path="/recruiter/:id" element={<ProtectedAdminRoute><RecruiterDetail /></ProtectedAdminRoute>} />
+          <Route path="/admin/matching" element={<ProtectedAdminRoute><Matching /></ProtectedAdminRoute>} />
+          <Route path="/admin/communications" element={<ProtectedAdminRoute><Communications /></ProtectedAdminRoute>} />
+          <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </motion.div>
   );
 }
@@ -177,7 +181,7 @@ function App() {
   const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setBooting(false), 1000);
+    const timer = setTimeout(() => setBooting(false), 500);
     return () => clearTimeout(timer);
   }, []);
 

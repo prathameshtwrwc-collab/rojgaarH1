@@ -7,7 +7,6 @@ import { defineConfig } from "vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -23,5 +22,21 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/hanuotp/, "/sms-otp.php"),
       },
     },
+  },
+  build: {
+    cssMinify: "lightningcss",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["framer-motion", "lucide-react", "@hugeicons/react"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom"],
   },
 });

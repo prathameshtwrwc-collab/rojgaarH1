@@ -42,7 +42,7 @@ function Landing() {
       <header className={`header ${atTop ? "header--at-top" : ""}`}>
         <div className="header-inner">
           <Link to="/" className="brand">
-            <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="brand-icon h-[72px] w-auto object-contain" />
+            <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="brand-icon h-[72px] w-auto object-contain" loading="lazy" decoding="async" />
           </Link>
 
           <div className="header-right">
@@ -463,7 +463,7 @@ function Landing() {
         <footer className="site-footer">
           <div className="footer-inner">
             <Link to="/" className="footer-brand" aria-label="Rojgaar Hai home">
-              <img src="/assets/logo/forfooter_logo.png" alt="Rojgaar Hai" className="footer-brand-icon h-[52px] w-auto object-contain" />
+               <img src="/assets/logo/forfooter_logo.png" alt="Rojgaar Hai" className="footer-brand-icon h-[52px] w-auto object-contain" loading="lazy" decoding="async" />
             </Link>
 
             <nav className="footer-navigation" aria-label="Footer navigation">

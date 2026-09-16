@@ -1,10 +1,11 @@
 /* ============================================
    SECTION 04: HOW IT WORKS
    ============================================ */
-.how-it-works {
+.how-it-works  {
+  content-visibility: auto;
   background-color: #06182D;
   color: #FFFFFF;
-  background-image: url('/assets/section4/section4bg.png');
+  background-image: url('/assets/section4/section4bg.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -165,12 +166,13 @@
 }
 
 @media (max-width: 767px) {
-  .how-it-works {
+  .how-it-works  {
+  content-visibility: auto;
     position: relative;
     width: 100%;
     aspect-ratio: 941 / 1672;
     overflow: hidden;
-    background-image: url('/assets/section4/section4bgmobile.png');
+    background-image: url('/assets/section4/section4bgmobile.webp');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-position: center;

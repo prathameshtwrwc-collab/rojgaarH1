@@ -5,7 +5,7 @@
   background-color: #063D32;
   position: relative;
   overflow: hidden;
-  background-image: url('/assets/section7/section7bg.png');
+  background-image: url('/assets/section7/section7bg.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -340,7 +340,7 @@
     position: relative;
     width: 100%;
     aspect-ratio: 853 / 1844;
-    background-image: url('/assets/section7/section7bgmobile.png');
+    background-image: url('/assets/section7/section7bgmobile.webp');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-position: center;

@@ -64,7 +64,7 @@ function PublicLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center justify-between h-[76px]">
             {/* Logo */}
             <Link to="/" className="flex items-center no-underline">
-              <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="h-[72px] w-auto object-contain" />
+              <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="h-[72px] w-auto object-contain" loading="lazy" decoding="async" />
             </Link>
 
             {/* Right-grouped nav + actions (matches landing page .header-right) */}

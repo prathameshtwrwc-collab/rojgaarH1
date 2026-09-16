@@ -325,13 +325,15 @@ body {
 /* ============================================
    SECTION 01: HERO
    ============================================ */
-.hero {
+.hero  {
+  content-visibility: auto;
   background-color: var(--bg-warm);
-  background-image: url('/assets/hero/RH_Bg.png');
+  background-image: url('/assets/hero/RH_Bg.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
   padding-top: 76px;
+  content-visibility: auto;
 }
 .hero-inner {
   width: min(1280px, calc(100% - 48px));
@@ -436,7 +438,7 @@ body {
    ============================================ */
 .job-seeker-section {
   background-color: var(--bg-warm);
-  background-image: url('/assets/section2/section2bg.png');
+  background-image: url('/assets/section2/section2bg.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -487,7 +489,7 @@ body {
    ============================================ */
 .employer-section {
   background-color: var(--bg-cream);
-  background-image: url('/assets/section3/section3bg.png');
+  background-image: url('/assets/section3/section3bg.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -613,7 +615,8 @@ body {
 }
 @media (max-width: 767px) {
   /* ---- Hero: section is an aspect-ratio box matching hero_mobile.png (887x1774) exactly, no crop ---- */
-  .hero {
+  .hero  {
+  content-visibility: auto;
     background-image: none;
     padding-top: 64px;
   }
@@ -624,7 +627,7 @@ body {
     min-height: 0;
     max-height: none;
     overflow: hidden;
-    background-image: url('/assets/hero/hero_mobile.png');
+    background-image: url('/assets/hero/hero_mobile.webp');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-position: center;
@@ -693,7 +696,7 @@ body {
     position: relative;
     width: 100%;
     aspect-ratio: 941 / 1672;
-    background-image: url('/assets/section2/section2bgmobile.png');
+    background-image: url('/assets/section2/section2bgmobile.webp');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-position: center;
@@ -749,7 +752,7 @@ body {
     position: relative;
     width: 100%;
     aspect-ratio: 1024 / 1536;
-    background-image: url('/assets/section3/section3bgmobile.png');
+    background-image: url('/assets/section3/section3bgmobile.webp');
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-position: center;
@@ -804,7 +807,7 @@ body {
    ============================================ */
 @media (max-width: 767px) {
   .employer-info-hero {
-    background-image: url('/assets/foremployers/foremployersmobilebg.png') !important;
+    background-image: url('/assets/foremployers/foremployersmobilebg.webp') !important;
     background-size: 100% 100% !important;
     background-position: center !important;
     aspect-ratio: 887 / 1774 !important;
