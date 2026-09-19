@@ -6,8 +6,10 @@ import { signUp, sendOtp, verifyOtp } from '../../lib/supabase/auth';
 import { createRecruiter } from '../../lib/supabase/data';
 import { useAuth } from '../../context/AuthContext';
 import AuthSwitcher from '../../components/AuthSwitcher';
+import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 export default function RecruiterSignup() {
+  const { t } = useAppTranslation();
   const [formData, setFormData] = useState({ fullName: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ export default function RecruiterSignup() {
 
   const handleSendOtp = async () => {
     if (!otpPhone || otpPhone.length < 10) {
-      setError('Please enter a valid phone number');
+      setError(t('auth.enterValidPhone'));
       return;
     }
 
@@ -60,7 +62,7 @@ export default function RecruiterSignup() {
       setOtpSent(true);
       setCountdown(30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+      setError(err instanceof Error ? err.message : t('auth.sendOtpError'));
     } finally {
       setLoading(false);
     }
@@ -68,7 +70,7 @@ export default function RecruiterSignup() {
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+      setError(t('auth.enterValidOtp'));
       return;
     }
 
@@ -86,7 +88,7 @@ export default function RecruiterSignup() {
       setOtpVerified(true);
       setFormData({ ...formData, phone: otpPhone });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(err instanceof Error ? err.message : t('auth.verifyOtpError'));
     } finally {
       setLoading(false);
     }
@@ -97,12 +99,12 @@ export default function RecruiterSignup() {
     setError('');
 
     if (!otpVerified) {
-      setError('Please verify your phone number first');
+      setError(t('auth.verifyPhoneFirst'));
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return; }
-    if (formData.password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (formData.password !== formData.confirmPassword) { setError(t('auth.passwordsDoNotMatch')); return; }
+    if (formData.password.length < 6) { setError(t('auth.passwordMinLength')); return; }
 
     setLoading(true);
     try {
@@ -113,7 +115,7 @@ export default function RecruiterSignup() {
       await createRecruiter(authUser.id, { fullName: formData.fullName, phone: formData.phone });
       navigate('/dashboard/recruiter', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      setError(err instanceof Error ? err.message : t('auth.signupFailed'));
     } finally {
       setLoading(false);
     }
@@ -133,10 +135,10 @@ export default function RecruiterSignup() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-              Join as a Recruiter
+              {t('auth.joinAsRecruiter')}
             </h1>
             <p className="text-sm text-[var(--charcoal)]">
-              Refer candidates and earn — your account needs a quick approval from our team before it goes live.
+              {t('auth.recruiterSignupSubtitle')}
             </p>
           </div>
 
@@ -144,7 +146,7 @@ export default function RecruiterSignup() {
 
           {/* Phone Verification */}
           <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <h3 className="text-sm font-bold text-[var(--navy)] mb-3">Verify Phone Number</h3>
+            <h3 className="text-sm font-bold text-[var(--navy)] mb-3">{t('auth.verifyPhone')}</h3>
             {!otpVerified ? (
               <>
                 <div className="flex flex-col sm:flex-row gap-2 mb-3">
@@ -163,11 +165,11 @@ export default function RecruiterSignup() {
                       disabled={loading}
                       className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
-                      {loading ? 'Sending...' : 'Send OTP'}
+                      {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
                     </button>
                   ) : (
                     <span className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full text-center">
-                      Sent
+                      {t('auth.otpSent')}
                     </span>
                   )}
                 </div>
@@ -188,45 +190,50 @@ export default function RecruiterSignup() {
                       disabled={loading || otp.length !== 6}
                       className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
                     >
-                      {loading ? 'Verifying...' : 'Verify'}
+                      {loading ? t('auth.verifying') : t('auth.verifyOtp')}
                     </button>
                   </div>
                 )}
                 {countdown > 0 && (
-                  <p className="text-xs text-slate-500 mt-2">Resend code in {countdown}s</p>
+                  <p className="text-xs text-slate-500 mt-2">{t('auth.resendCode', { count: countdown })}</p>
                 )}
               </>
             ) : (
               <div className="flex items-center gap-2 text-green-700">
-                <span className="text-sm font-semibold">Phone verified successfully</span>
+                <span className="text-sm font-semibold">{t('auth.phoneVerified')}</span>
               </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Full Name</label>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">{t('auth.fullName')}</label>
               <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder="Your full name" />
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder={t('auth.fullName')} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Email Address</label>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">{t('auth.email')}</label>
               <input type="email" name="email" value={formData.email} onChange={handleChange} required
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder="you@example.com" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder="Min. 6 characters" />
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">{t('auth.phone')}</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder="+91 98765 43210" />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Confirm Password</label>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">{t('auth.password')}</label>
+              <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder={t('auth.password')} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">{t('auth.confirmPassword')}</label>
               <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder="Re-enter your password" />
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent" placeholder={t('auth.confirmPassword')} />
             </div>
             <button type="submit" disabled={loading || !otpVerified}
               className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Creating account...' : 'Create Recruiter Account'}
+              {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
             </button>
           </form>
 
