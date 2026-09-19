@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { GitMerge, Zap, CheckCircle, Trophy, Sparkles } from 'lucide-react';
+import { GitMerge, Zap, CheckCircle, Trophy, Sparkles, Download } from 'lucide-react';
 import { Card, Badge, Button, Select } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
-import { createMatch, updateMatchStatus as updateMatchStatusApi } from '../../lib/supabase/data';
+import { createMatch, updateMatchStatus as updateMatchStatusApi, getCandidateEducation, getCandidateExperience, getCandidateLanguages } from '../../lib/supabase/data';
 import { computeMatch, matchLabel } from '../../lib/matching';
 
 function getScoreColor(score: number) {
@@ -27,6 +27,7 @@ export default function Matching() {
   const [saving, setSaving] = useState(false);
   const [bestJobId, setBestJobId] = useState('');
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
 
   const employerName = (employerId: string) => employers.find((e: any) => e.id === employerId)?.company_name || 'Unknown';
 
@@ -73,6 +74,101 @@ export default function Matching() {
       await refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update match status');
+    }
+  };
+
+  const downloadBestCandidatesCsv = async () => {
+    if (!bestJobId) return;
+    setDownloadingCsv(true);
+    try {
+      const job = jobs.find((j: any) => j.id === bestJobId);
+      if (!job) return;
+
+      const ranked = candidates
+        .map((c: any) => ({ candidate: c, breakdown: computeMatch(c, job) }))
+        .sort((a, b) => b.breakdown.score - a.breakdown.score)
+        .slice(0, 8);
+
+      const enriched = await Promise.all(ranked.map(async ({ candidate }) => {
+        const [education, experience, languages] = await Promise.all([
+          getCandidateEducation(candidate.id),
+          getCandidateExperience(candidate.id),
+          getCandidateLanguages(candidate.id),
+        ]);
+
+        const educationText = (education || [])
+          .map((e: any) => [e.degree, e.field_of_study, e.institution_name].filter(Boolean).join(' - '))
+          .join('; ') || '';
+
+        const experienceText = (experience || [])
+          .map((e: any) => [e.job_title, e.company_name, e.employment_type].filter(Boolean).join(' at '))
+          .join('; ') || '';
+
+        const languageText = (languages || [])
+          .map((l: any) => l.language_name)
+          .filter(Boolean)
+          .join(', ') || '';
+
+        const location = [candidate.city, candidate.state, candidate.country].filter(Boolean).join(', ');
+
+        return {
+          name: candidate.profile_name || candidate.id,
+          number: candidate.profile_phone || '',
+          email: candidate.email || '',
+          skills: (candidate.skills || []).join(', '),
+          location,
+          willingToRelocate: candidate.willing_to_relocate ? 'Yes' : 'No',
+          workExperience: experienceText,
+          languages: languageText,
+          education: educationText,
+          matchedForPost: job.job_title,
+        };
+      }));
+
+      const headers = [
+        'Name', 'Number', 'Email', 'Skills', 'Location',
+        'Willing To Relocate', 'Work Experience', 'Languages', 'Education', 'Matched For Post',
+      ];
+
+      const escapeCsv = (value: string) => {
+        const text = String(value ?? '');
+        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+          return '"' + text.replace(/"/g, '""') + '"';
+        }
+        return text;
+      };
+
+      const csvRows = [
+        headers.join(','),
+        ...enriched.map((row) =>
+          [
+            row.name,
+            row.number,
+            row.email,
+            row.skills,
+            row.location,
+            row.willingToRelocate,
+            row.workExperience,
+            row.languages,
+            row.education,
+            row.matchedForPost,
+          ].map(escapeCsv).join(',')
+        ),
+      ];
+
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `best-candidates-${job.job_title.replace(/\s+/g, '-').toLowerCase()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to download CSV');
+    } finally {
+      setDownloadingCsv(false);
     }
   };
 
@@ -160,12 +256,23 @@ export default function Matching() {
             <div className="p-2 bg-[#101A36]/10 rounded-lg text-[var(--orange)]"><Trophy size={20} /></div>
             <h3 className="font-bold text-[var(--navy)]">Best Candidates for a Job</h3>
           </div>
-          <Select
-            label="Select Job Opening"
-            options={[{ value: '', label: 'Choose a job...' }, ...openJobs.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
-            value={bestJobId}
-            onChange={e => setBestJobId(e.target.value)}
-          />
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <Select
+              label="Select Job Opening"
+              options={[{ value: '', label: 'Choose a job...' }, ...openJobs.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
+              value={bestJobId}
+              onChange={e => setBestJobId(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              variant="secondary"
+              onClick={downloadBestCandidatesCsv}
+              disabled={!bestJobId || downloadingCsv}
+              className="gap-2 self-end"
+            >
+              <Download size={16} /> {downloadingCsv ? 'Downloading...' : 'Download CSV'}
+            </Button>
+          </div>
 
           {bestJobId && (
             <div className="mt-5 space-y-3">
