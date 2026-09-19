@@ -8,6 +8,7 @@ import { DatabaseProvider } from './context/DatabaseContext';
 import PageLoader from './components/PageLoader';
 import ScrollRestoration from './components/ScrollRestoration';
 import AppPreloader from './components/AppPreloader';
+import I18nProvider from './components/I18nProvider';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -187,15 +188,17 @@ function App() {
 
   return (
     <BrowserRouter>
-      <AppPreloader show={booting} />
-      <AuthProvider>
-        <DataProvider>
-          <DatabaseProvider>
-            <ScrollRestoration />
-            {!booting && <AppRoutes />}
-          </DatabaseProvider>
-        </DataProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AppPreloader show={booting} />
+        <AuthProvider>
+          <DataProvider>
+            <DatabaseProvider>
+              <ScrollRestoration />
+              {!booting && <AppRoutes />}
+            </DatabaseProvider>
+          </DataProvider>
+        </AuthProvider>
+      </I18nProvider>
     </BrowserRouter>
   );
 }

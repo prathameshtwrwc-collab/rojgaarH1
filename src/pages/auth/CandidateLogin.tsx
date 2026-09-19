@@ -5,10 +5,12 @@ import { Eye, EyeOff, Phone, Mail } from 'lucide-react';
 import { signIn, signInWithPhone } from '../../lib/supabase/auth';
 import { useAuth } from '../../context/AuthContext';
 import AuthSwitcher from '../../components/AuthSwitcher';
+import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 type LoginMethod = 'phone' | 'email';
 
 export default function CandidateLogin() {
+  const { t } = useAppTranslation();
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('phone');
 
   const [phone, setPhone] = useState('');
@@ -94,12 +96,12 @@ export default function CandidateLogin() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <AuthSwitcher active="login" role="candidate" />
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-              Candidate Login
-            </h1>
-            <p className="text-sm text-[var(--charcoal)]">
-              Welcome back! Please sign in to your account.
-            </p>
+              <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                {t('auth.candidateLogin')}
+              </h1>
+              <p className="text-sm text-[var(--charcoal)]">
+                {t('auth.welcomeBack')}
+              </p>
           </div>
 
           {/* Login Method Switcher */}
@@ -114,7 +116,7 @@ export default function CandidateLogin() {
               }`}
             >
               <Phone size={16} />
-              Phone
+              {t('auth.phoneLogin')}
             </button>
             <button
               type="button"
@@ -126,7 +128,7 @@ export default function CandidateLogin() {
               }`}
             >
               <Mail size={16} />
-              Email
+              {t('auth.email')}
             </button>
           </div>
 
@@ -184,7 +186,7 @@ export default function CandidateLogin() {
                 disabled={loading}
                 className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? t('auth.signingIn') : t('auth.signIn')}
               </button>
             </form>
           )}
@@ -244,9 +246,9 @@ export default function CandidateLogin() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-[var(--charcoal)]">
-              Don&apos;t have an account?{' '}
+              {t('auth.dontHaveAccount')}{' '}
               <Link to="/register/job-seeker" className="text-[var(--orange)] font-semibold hover:underline">
-                Sign up
+                {t('auth.signUp')}
               </Link>
             </p>
           </div>
