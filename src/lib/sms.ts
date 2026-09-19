@@ -1,6 +1,7 @@
 // SMS Service for HanuOTP
 // Endpoint: https://api.hanuotp.in/sms-otp.php?number=mobile_number&OTP=otp&apikey=apikey&templatesid=default
 
+const HANU_API_KEY = 'bc6aa8f3afb502ddfa3bdbcf4c6c357f';
 const HANU_TEMPLATE_ID = '46709819';
 const HANU_ENDPOINT = import.meta.env.DEV ? '/api/hanuotp' : 'https://api.hanuotp.in/sms-otp.php';
 
