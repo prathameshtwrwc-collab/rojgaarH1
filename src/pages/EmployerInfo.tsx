@@ -5,89 +5,43 @@ import {
   Truck, Stethoscope, Wheat, ShieldCheck, HeartHandshake, Rocket
 } from 'lucide-react';
 import { Button } from '../components/ui';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
 function EmployerInfo() {
+  const { t } = useAppTranslation();
   const whyChooseUs = [
-    {
-      title: 'Verified Candidates',
-      desc: 'Every candidate profile is Aadhaar & skill verified by our team. No fake resumes or invalid contacts.',
-      icon: <ShieldCheck size={28} className="text-orange-600" />,
-      bg: 'bg-orange-50 border-orange-100'
-    },
-    {
-      title: 'Faster Hiring',
-      desc: 'Reduce your time-to-hire from weeks to 3–5 days with automated matching & agent screening.',
-      icon: <Zap size={28} className="text-amber-600" />,
-      bg: 'bg-amber-50 border-amber-100'
-    },
-    {
-      title: 'Skilled Workforce',
-      desc: 'Access ITI, Diploma, and certified workforce across manufacturing, construction, nursing, and IT.',
-      icon: <Award size={28} className="text-slate-700" />,
-      bg: 'bg-slate-50 border-slate-100'
-    },
-    {
-      title: 'Easy Job Posting',
-      desc: 'Post your job opening in under 3 minutes with clear salary, skill, and location requirements.',
-      icon: <FileText size={28} className="text-green-600" />,
-      bg: 'bg-green-50 border-green-100'
-    },
-    {
-      title: 'Centralized Applicant Tracking',
-      desc: 'Review applicants, download resumes, shortlist, and schedule interviews from a built-in ATS dashboard.',
-      icon: <Users size={28} className="text-purple-600" />,
-      bg: 'bg-purple-50 border-purple-100'
-    },
-    {
-      title: 'Dedicated Support',
-      desc: 'Every job posting is assigned a dedicated recruitment agent to coordinate sourcing and logistics.',
-      icon: <HeartHandshake size={28} className="text-orange-600" />,
-      bg: 'bg-orange-50 border-orange-100'
-    },
+    { title: t('employerInfo.why1Title'), desc: t('employerInfo.why1Desc'), icon: <ShieldCheck size={28} className="text-orange-600" />, bg: 'bg-orange-50 border-orange-100' },
+    { title: t('employerInfo.why2Title'), desc: t('employerInfo.why2Desc'), icon: <Zap size={28} className="text-amber-600" />, bg: 'bg-amber-50 border-amber-100' },
+    { title: t('employerInfo.why3Title'), desc: t('employerInfo.why3Desc'), icon: <Award size={28} className="text-slate-700" />, bg: 'bg-slate-50 border-slate-100' },
+    { title: t('employerInfo.why4Title'), desc: t('employerInfo.why4Desc'), icon: <FileText size={28} className="text-green-600" />, bg: 'bg-green-50 border-green-100' },
+    { title: t('employerInfo.why5Title'), desc: t('employerInfo.why5Desc'), icon: <Users size={28} className="text-purple-600" />, bg: 'bg-purple-50 border-purple-100' },
+    { title: t('employerInfo.why6Title'), desc: t('employerInfo.why6Desc'), icon: <HeartHandshake size={28} className="text-orange-600" />, bg: 'bg-orange-50 border-orange-100' },
   ];
 
   const hiringSteps = [
-    {
-      step: '01',
-      title: 'Create Employer Account',
-      desc: 'Sign up with basic company details, contact person info, and location. Takes less than 2 minutes.',
-      icon: <Building2 size={30} className="text-orange-600" />,
-      iconBg: 'bg-orange-50 border-orange-200'
-    },
-    {
-      step: '02',
-      title: 'Post Your Job Requirement',
-      desc: 'Specify job title, open vacancies, required skills, salary range, shift timings, and perks.',
-      icon: <FileText size={30} className="text-slate-700" />,
-      iconBg: 'bg-slate-50 border-slate-100'
-    },
-    {
-      step: '03',
-      title: 'Receive Verified Candidates',
-      desc: 'Get pre-screened candidate matches, conduct interviews, and hire the best workers with full support.',
-      icon: <CheckCircle size={30} className="text-green-600" />,
-      iconBg: 'bg-green-50 border-green-100'
-    },
+    { step: '01', title: t('employerInfo.step1Title'), desc: t('employerInfo.step1Desc'), icon: <Building2 size={30} className="text-orange-600" />, iconBg: 'bg-orange-50 border-orange-200' },
+    { step: '02', title: t('employerInfo.step2Title'), desc: t('employerInfo.step2Desc'), icon: <FileText size={30} className="text-slate-700" />, iconBg: 'bg-slate-50 border-slate-100' },
+    { step: '03', title: t('employerInfo.step3Title'), desc: t('employerInfo.step3Desc'), icon: <CheckCircle size={30} className="text-green-600" />, iconBg: 'bg-green-50 border-green-100' },
   ];
 
   const employerBenefits = [
-    { title: 'Hire 3x Faster', desc: 'Pre-matched candidates delivered to your dashboard within 48 hours.', icon: <Zap size={22} className="text-teal-600" /> },
-    { title: 'Simple, Fair Pricing', desc: 'Straightforward pricing built for growing teams — no hidden costs, no surprises.', icon: <Award size={22} className="text-emerald-600" /> },
-    { title: 'Pre-Screened Workers', desc: 'Every profile is pre-verified for technical skills, experience, and ID.', icon: <ShieldCheck size={22} className="text-[var(--orange)]" /> },
-    { title: 'Bulk Hiring Capability', desc: 'Need 5 or 200 workers? Our nationwide talent pool handles bulk plant hiring.', icon: <Users size={22} className="text-purple-600" /> },
-    { title: 'Save Time & Recruitment Cost', desc: 'Eliminate middleman agency costs and reduce interviewing overheads.', icon: <TrendingUp size={22} className="text-amber-600" /> },
-    { title: '30-Day Guarantee', desc: 'Free candidate replacement guarantee if a placed worker leaves within 30 days.', icon: <CheckCircle size={22} className="text-rose-500" /> },
+    { title: t('employerInfo.adv1Title'), desc: t('employerInfo.adv1Desc'), icon: <Zap size={22} className="text-teal-600" /> },
+    { title: t('employerInfo.adv2Title'), desc: t('employerInfo.adv2Desc'), icon: <Award size={22} className="text-emerald-600" /> },
+    { title: t('employerInfo.adv3Title'), desc: t('employerInfo.adv3Desc'), icon: <ShieldCheck size={22} className="text-[var(--orange)]" /> },
+    { title: t('employerInfo.adv4Title'), desc: t('employerInfo.adv4Desc'), icon: <Users size={22} className="text-purple-600" /> },
+    { title: t('employerInfo.adv5Title'), desc: t('employerInfo.adv5Desc'), icon: <TrendingUp size={22} className="text-amber-600" /> },
+    { title: t('employerInfo.adv6Title'), desc: t('employerInfo.adv6Desc'), icon: <CheckCircle size={22} className="text-rose-500" /> },
   ];
 
   const industries = [
-    { title: 'Manufacturing & Plants', icon: <Factory size={24} className="text-teal-600" />, roles: 'CNC Operators, Machinists, Assembly Staff, Fitters' },
-    { title: 'Construction & Civil', icon: <HardHat size={24} className="text-amber-600" />, roles: 'Site Supervisors, Welders, Electricians, Surveyors' },
-    { title: 'Logistics & Warehousing', icon: <Truck size={24} className="text-[var(--orange)]" />, roles: 'Delivery Executives, Drivers, Loaders, Warehouse Leads' },
-    { title: 'Healthcare & Pharma', icon: <Stethoscope size={24} className="text-emerald-600" />, roles: 'Staff Nurses, ANM/GNM, Lab Techs, Pharma Technicians' },
-    { title: 'Agriculture & Agri-Tech', icon: <Wheat size={24} className="text-green-600" />, roles: 'Field Supervisors, Agri Officers, Estate Managers' },
-    { title: 'Facility Management', icon: <Building2 size={24} className="text-purple-600" />, roles: 'Maintenance Technicians, Security Guards, Housekeeping' },
-    { title: 'Retail & Commercial', icon: <Users size={24} className="text-orange-600" />, roles: 'Store Executives, Cashiers, Billing Staff, Promoters' },
-    { title: 'Office & Administration', icon: <FileText size={24} className="text-rose-500" />, roles: 'Data Entry Operators, Accountants, HR Executives, Assistants' },
+    { title: t('employerInfo.industry1'), icon: <Factory size={24} className="text-teal-600" />, roles: t('employerInfo.industry1Roles') },
+    { title: t('employerInfo.industry2'), icon: <HardHat size={24} className="text-amber-600" />, roles: t('employerInfo.industry2Roles') },
+    { title: t('employerInfo.industry3'), icon: <Truck size={24} className="text-[var(--orange)]" />, roles: t('employerInfo.industry3Roles') },
+    { title: t('employerInfo.industry4'), icon: <Stethoscope size={24} className="text-emerald-600" />, roles: t('employerInfo.industry4Roles') },
+    { title: t('employerInfo.industry5'), icon: <Wheat size={24} className="text-green-600" />, roles: t('employerInfo.industry5Roles') },
+    { title: t('employerInfo.industry6'), icon: <Building2 size={24} className="text-purple-600" />, roles: t('employerInfo.industry6Roles') },
+    { title: t('employerInfo.industry7'), icon: <Users size={24} className="text-orange-600" />, roles: t('employerInfo.industry7Roles') },
+    { title: t('employerInfo.industry8'), icon: <FileText size={24} className="text-rose-500" />, roles: t('employerInfo.industry8Roles') },
   ];
 
   const employerTestimonials = [
@@ -139,15 +93,15 @@ function EmployerInfo() {
           <div className="employer-info-hero-content w-[62%] sm:w-[54%] lg:w-[46%] py-16 sm:py-0">
 
             <p className="employer-info-hero-eyebrow text-[13px] sm:text-sm font-extrabold uppercase tracking-[0.08em] text-[var(--navy)]">
-              Better People. Better <span className="text-[var(--purple)]">Futures.</span>
+              {t('employerInfo.heroEyebrow').split(' ')[0]} <span className="text-[var(--purple)]">{t('employerInfo.heroEyebrow').split(' ').slice(1).join(' ')}</span>
             </p>
 
             <h1 className="employer-info-hero-heading mt-3">
               <span className="employer-info-hero-heading-1 block font-extrabold leading-[0.95] tracking-tight text-[var(--navy)] text-4xl sm:text-5xl lg:text-6xl" style={{ fontFamily: 'var(--font-display)' }}>
-                Great Teams
+                {t('employerInfo.heroTitle1')}
               </span>
               <span className="employer-info-hero-heading-2 relative inline-block mt-1 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
-                Start Here.
+                {t('employerInfo.heroTitle2')}
                 <svg className="absolute left-0 -bottom-3 w-[92%]" viewBox="0 0 200 14" fill="none" aria-hidden="true">
                   <path d="M3 7C40 2 90 1 140 5C160 6.5 180 9 197 6" stroke="var(--purple)" strokeWidth="3" strokeLinecap="round" />
                 </svg>
@@ -155,16 +109,16 @@ function EmployerInfo() {
             </h1>
 
             <p className="employer-info-hero-desc mt-6 text-base sm:text-lg text-[var(--charcoal)] leading-relaxed max-w-md">
-              Post jobs, connect with verified talent, and build the workforce of your dreams.
+              {t('employerInfo.heroDesc')}
             </p>
 
             {/* Feature icons row */}
             <div className="employer-info-hero-icons mt-8 grid grid-cols-4 gap-3 max-w-sm">
               {[
-                { label: 'Verified', sub: 'Talent', icon: <Users size={22} className="text-[var(--green)]" />, bg: 'rgba(13,96,74,0.1)' },
-                { label: 'Quality', sub: 'Checked', icon: <ShieldCheck size={22} className="text-[var(--purple)]" />, bg: 'rgba(118,85,217,0.1)' },
-                { label: 'Faster', sub: 'Results', icon: <Rocket size={22} className="text-[var(--orange)]" />, bg: 'rgba(241,90,36,0.1)' },
-                { label: 'Long-term', sub: 'Growth', icon: <TrendingUp size={22} className="text-[var(--green)]" />, bg: 'rgba(13,96,74,0.1)' },
+                { label: t('employerInfo.feature1'), sub: t('employerInfo.feature1Sub'), icon: <Users size={22} className="text-[var(--green)]" />, bg: 'rgba(13,96,74,0.1)' },
+                { label: t('employerInfo.feature2'), sub: t('employerInfo.feature2Sub'), icon: <ShieldCheck size={22} className="text-[var(--purple)]" />, bg: 'rgba(118,85,217,0.1)' },
+                { label: t('employerInfo.feature3'), sub: t('employerInfo.feature3Sub'), icon: <Rocket size={22} className="text-[var(--orange)]" />, bg: 'rgba(241,90,36,0.1)' },
+                { label: t('employerInfo.feature4'), sub: t('employerInfo.feature4Sub'), icon: <TrendingUp size={22} className="text-[var(--green)]" />, bg: 'rgba(13,96,74,0.1)' },
               ].map((f) => (
                 <div key={f.label} className="flex flex-col items-center text-center gap-1.5">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: f.bg }}>
@@ -181,12 +135,12 @@ function EmployerInfo() {
             <div className="employer-info-hero-actions mt-9 flex flex-wrap gap-3.5">
               <Link to="/register/employer">
                 <Button size="lg" className="bg-[var(--purple)] text-white hover:bg-[#6647c2] font-bold shadow-lg hover:-translate-y-0.5 transition-all">
-                  Post a Job <ArrowRight size={18} className="ml-1" />
+                  {t('employerInfo.cta1')} <ArrowRight size={18} className="ml-1" />
                 </Button>
               </Link>
               <Link to="/jobs">
                 <span className="inline-flex items-center justify-center gap-2 h-[50px] px-7 bg-transparent border-2 border-[var(--purple)] text-[var(--purple)] font-bold rounded-xl transition-all text-base cursor-pointer hover:bg-[var(--purple)]/5">
-                  Explore Candidates <ArrowRight size={18} />
+                  {t('employerInfo.cta2')} <ArrowRight size={18} />
                 </span>
               </Link>
             </div>
@@ -201,10 +155,10 @@ function EmployerInfo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight">
-              Why Choose RojgaarHai for Your Hiring Needs?
+              {t('employerInfo.whyChooseUsTitle')}
             </h2>
             <p className="mt-3 text-base text-[var(--charcoal)] leading-relaxed">
-              We streamline the entire recruitment lifecycle so you get pre-vetted candidates without agency markups.
+              {t('employerInfo.whyChooseUsSubtitle')}
             </p>
           </div>
 
@@ -232,10 +186,10 @@ function EmployerInfo() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight">
-              Simple 3-Step Hiring Process
+              {t('employerInfo.howItWorksTitle')}
             </h2>
             <p className="mt-3 text-base text-[var(--charcoal)]">
-              Start receiving matched candidate profiles in as little as 48 hours.
+              {t('employerInfo.howItWorksSubtitle')}
             </p>
           </div>
 
@@ -260,7 +214,7 @@ function EmployerInfo() {
           <div className="mt-12 text-center">
             <Link to="/register/employer">
               <Button size="lg" className="bg-[var(--orange)] text-white hover:bg-[#d94d1a] font-extrabold shadow-xl">
-                Get Started Now <ArrowRight size={18} className="ml-1" />
+                {t('employerInfo.getStartedNow')} <ArrowRight size={18} className="ml-1" />
               </Button>
             </Link>
           </div>
@@ -274,10 +228,10 @@ function EmployerInfo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight">
-              Key Advantages for Your Organization
+              {t('employerInfo.advantagesTitle')}
             </h2>
             <p className="mt-3 text-base text-[var(--charcoal)]">
-              Designed to optimize workforce planning for plants, sites, hospitals, and offices.
+              {t('employerInfo.advantagesSubtitle')}
             </p>
           </div>
 
@@ -302,10 +256,10 @@ function EmployerInfo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight">
-              Industries We Serve Across India
+              {t('employerInfo.industriesTitle')}
             </h2>
             <p className="mt-3 text-base text-[var(--charcoal)]">
-              We recruit verified workforce across major commercial and industrial sectors.
+              {t('employerInfo.industriesSubtitle')}
             </p>
           </div>
 
@@ -330,10 +284,10 @@ function EmployerInfo() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--navy)] tracking-tight">
-              Trusted by HR Directors & Business Leaders
+              {t('employerInfo.testimonialsTitle')}
             </h2>
             <p className="mt-3 text-base text-[var(--charcoal)]">
-              See how companies scale their workforce with RojgaarHai.
+              {t('employerInfo.testimonialsSubtitle')}
             </p>
           </div>
 
@@ -369,15 +323,15 @@ function EmployerInfo() {
       <section className="py-20 bg-gradient-to-r from-[#101A36] to-[#071A36] relative overflow-hidden text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Start Hiring Verified Talent Today
+            {t('employerInfo.finalCtaTitle')}
           </h2>
           <p className="mt-4 text-base sm:text-lg text-teal-100 max-w-xl mx-auto leading-relaxed">
-            Post your vacancy requirement in 3 minutes and access pre-screened candidate matches across India.
+            {t('employerInfo.finalCtaSubtitle')}
           </p>
           <div className="mt-8">
             <Link to="/register/employer">
               <Button size="lg" className="bg-[var(--orange)] text-white hover:bg-[#d94d1a] font-extrabold shadow-2xl hover:-translate-y-0.5 transition-all text-base px-8 py-4">
-                Post Your First Job <ArrowRight size={18} className="ml-1" />
+                {t('employerInfo.finalCtaButton')} <ArrowRight size={18} className="ml-1" />
               </Button>
             </Link>
           </div>
