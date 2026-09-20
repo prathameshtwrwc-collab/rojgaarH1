@@ -1158,7 +1158,7 @@ function EmployerDashboard() {
                 { title: 'Guaranteed Placement', desc: 'We ensure the candidate joins and stays for the agreed period.' },
                 { title: 'End-to-End Support', desc: 'From sourcing to onboarding — we manage the entire process.' },
                 { title: 'Dedicated Relationship Manager', desc: 'Single point of contact for all hiring needs.' },
-                { title: 'Replacement Guarantee', desc: 'If a candidate leaves early, we provide a replacement at no extra cost.' },
+                { title: 'Trusted, Placed Candidates', desc: 'Every placed candidate is tracked for trust and long-term fit.' },
               ].map((feature, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3.5 bg-[var(--bg-warm)] rounded-xl">
                   <div className="w-5 h-5 rounded-full bg-[var(--orange)] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
