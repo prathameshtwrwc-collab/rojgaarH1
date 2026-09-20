@@ -737,6 +737,9 @@ body {
   }
   .job-seeker-section .circle-cta-text {
     font-size: 13.5px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 3px 8px;
+    border-radius: 4px;
   }
   .job-seeker-section .circle-cta-icon {
     width: 42px;
@@ -788,6 +791,9 @@ body {
   }
   .employer-section .circle-cta-text {
     font-size: 12.5px;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 3px 8px;
+    border-radius: 4px;
   }
   .employer-section .circle-cta-icon {
     width: 32px;
