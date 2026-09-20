@@ -3,6 +3,14 @@
     "name": "Rojgaar Hai",
     "tagline": "Where Careers Are Built"
   },
+  "dashboard": {
+    "employerWorkspace": "Employer Workspace",
+    "recruiterWorkspace": "Recruiter Workspace",
+    "postNewJob": "Post New Job",
+    "searchByNameOrPhone": "Search by name or phone...",
+    "noRecruitersFound": "No recruiters found",
+    "downloadCsv": "Download CSV"
+  },
   "nav": {
     "home": "Home",
     "jobs": "Jobs",

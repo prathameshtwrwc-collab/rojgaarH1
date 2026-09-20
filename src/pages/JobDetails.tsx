@@ -15,6 +15,7 @@ import {
 } from '../lib/supabase/data';
 import { computeMatch } from '../lib/matching';
 import { JobCard, JobCardData, timeAgo } from '../components/JobCard';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
 function formatExperience(min: number | null, max: number | null): string {
   if (min != null && max != null) return `${min}-${max} years`;
@@ -73,6 +74,7 @@ function mapJob(job: any, skills: string[], requirements: string[], responsibili
 }
 
 export default function JobDetails() {
+  const { t } = useAppTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -177,7 +179,7 @@ export default function JobDetails() {
 
   const handleShare = async () => {
     const url = window.location.href;
-    const shareData = { title: `${job.jobTitle} at ${job.companyName}`, text: `Check out this job opening on Rojgaar Hai`, url };
+    const shareData = { title: `${job.jobTitle} at ${job.companyName}`, text: `Check out this job opening on ${t('app.name')}`, url };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch { /* user cancelled */ }
       return;

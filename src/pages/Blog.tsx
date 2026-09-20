@@ -1,13 +1,15 @@
 import { Newspaper } from 'lucide-react';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
 export default function Blog() {
+  const { t } = useAppTranslation();
   return (
     <div>
       <section className="page-header-landing">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="page-header-landing__title">Blog</h1>
           <p className="page-header-landing__subtitle mx-auto mt-4">
-            Career tips, hiring advice, and updates from the Rojgaar Hai team.
+            Career tips, hiring advice, and updates from the {t('app.name')} team.
           </p>
         </div>
       </section>

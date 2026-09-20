@@ -6,8 +6,10 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { createCandidateAccountByRecruiter } from '../../lib/supabase/data';
 import { DashboardSkeleton } from '../../components/Skeleton';
+import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 export function RecruiterDashboard() {
+  const { t } = useAppTranslation();
   const { recruiter, candidates, loading, refresh, profile } = useDatabase();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -75,8 +77,8 @@ export function RecruiterDashboard() {
             <div className="w-8 h-8 bg-[#7655D9] rounded-lg flex items-center justify-center text-white">
               <UserSearch size={16} />
             </div>
-            <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">Rojgaar Hai</span>
-            <span className="dash-status dash-status--neutral ml-1">Recruiter Workspace</span>
+            <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">{t('app.name')}</span>
+            <span className="dash-status dash-status--neutral ml-1">{t('dashboard.recruiterWorkspace')}</span>
           </Link>
           <div className="flex items-center gap-3">
             <div className="dash-avatar" style={{ background: '#7655D9' }}>{fullName.charAt(0)}</div>
@@ -160,7 +162,7 @@ export function RecruiterDashboard() {
                       variant="outline" size="sm"
                       onClick={async () => {
                         if (navigator.share) {
-                          try { await navigator.share({ title: 'Join Rojgaar Hai', text: 'Register as a candidate using my referral link:', url: referralLink }); } catch { /* cancelled */ }
+                           try { await navigator.share({ title: t('app.name'), text: 'Register as a candidate using my referral link:', url: referralLink }); } catch { /* cancelled */ }
                         } else {
                           navigator.clipboard.writeText(referralLink);
                           setToastMessage('Sharing not supported — link copied instead!');

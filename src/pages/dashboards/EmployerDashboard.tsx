@@ -15,6 +15,7 @@ import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createC
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
+import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 function formatExperience(min: number | null, max: number | null): string {
   if (min != null && max != null) return `${min}-${max} years`;
@@ -104,6 +105,7 @@ function mapCandidateToApplicant(candidate: any): any {
 }
 
 function EmployerDashboard() {
+  const { t } = useAppTranslation();
   const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, loading, refresh } = useDatabase();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -455,8 +457,8 @@ function EmployerDashboard() {
             <div className="w-8 h-8 bg-[var(--navy)] rounded-lg flex items-center justify-center text-white">
               <Building2 size={16} />
             </div>
-            <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">Rojgaar Hai</span>
-            <span className="dash-status dash-status--neutral ml-1">Employer Workspace</span>
+            <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">{t('app.name')}</span>
+            <span className="dash-status dash-status--neutral ml-1">{t('dashboard.employerWorkspace')}</span>
           </Link>
 
           <div className="flex items-center gap-3">
