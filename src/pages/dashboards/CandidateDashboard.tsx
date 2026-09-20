@@ -228,7 +228,15 @@ function CandidateDashboard() {
     });
   }, [applications, jobs]);
 
-  const courses: any[] = [];
+  const jobMatchScores = useMemo(() => {
+    const map: Record<string, number> = {};
+    matches.forEach(m => {
+      if (m.job_id && m.match_score != null) {
+        map[m.job_id] = m.match_score;
+      }
+    });
+    return map;
+  }, [matches]);
 
   const handleApplyConfirm = async () => {
     if (showApplyModal && candidate) {
@@ -428,12 +436,39 @@ function CandidateDashboard() {
             { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => setToastMessage(`You have ${savedJobs.length} saved jobs.`) },
             { label: 'My Applications', icon: <FileText size={15} />, action: () => setToastMessage(`You applied to ${appliedJobs.length} jobs.`) },
             { label: 'Edit Profile', icon: <UserCheck size={15} />, action: () => setShowEditProfileModal(true) },
-            { label: 'Get Premium', icon: <Sparkles size={15} />, action: () => setShowPremiumModal(true) },
           ].map((item, idx) => (
             <button key={idx} onClick={item.action} className="dash-btn dash-btn-secondary dash-btn--compact">
               {item.icon} {item.label}
             </button>
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="lg:col-span-3 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--orange)]/20 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 right-10 w-20 h-20 bg-[var(--orange)]/10 rounded-full translate-y-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--orange)] bg-[var(--orange)]/20 px-2 py-0.5 rounded-full">Premium</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-400/10 px-2 py-0.5 rounded-full">Guaranteed Placement</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-extrabold mb-1 leading-tight">Get Placed Faster with Premium</h3>
+              <p className="text-sm text-slate-300 mb-4 max-w-xl">Everything taken care of — dedicated call support, resume boost, priority matching, and end-to-end placement assistance.</p>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowPremiumModal(true)} className="inline-flex items-center gap-2 bg-[var(--orange)] hover:bg-[#d94d1f] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-900/30">
+                  <Sparkles size={16} /> Get Premium — ₹1,000
+                </button>
+                <span className="text-[11px] text-slate-400">One-time payment · No hidden charges</span>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 rounded-full bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center mb-2">
+              <ShieldCheck size={24} />
+            </div>
+            <p className="text-sm font-bold text-[var(--navy)]">100% Satisfaction</p>
+            <p className="text-xs text-[var(--charcoal)] mt-1">If we don't deliver, we refund. No questions asked.</p>
+          </div>
         </div>
 
         <div className="dash-surface dash-surface--pad">
@@ -500,10 +535,12 @@ function CandidateDashboard() {
                             <Link to={`/jobs/${job.id}`} className="font-bold text-[15px] text-[var(--navy)] hover:text-[var(--orange)] transition-colors">
                               {job.jobTitle}
                             </Link>
-                            {job.isVerified !== false && (
-                              <ShieldCheck size={13} className="text-[var(--green)]" />
-                            )}
-                            <span className="text-[12px] font-bold text-[var(--orange)]">92% Match</span>
+                             {job.isVerified !== false && (
+                               <ShieldCheck size={13} className="text-[var(--green)]" />
+                             )}
+                             <span className="text-[12px] font-bold text-[var(--orange)]">
+                               {jobMatchScores[job.id] != null ? `${jobMatchScores[job.id]}% Match` : 'New'}
+                             </span>
                           </div>
                           <p className="text-[13px] text-[var(--charcoal)] font-medium mt-0.5">
                             {job.companyName} · {job.city}, {job.state}
@@ -647,24 +684,6 @@ function CandidateDashboard() {
                 </div>
               </Card>
             )}
-
-            <Card>
-              <h3 className="text-base font-bold text-[var(--navy)] mb-3 flex items-center gap-2">
-                <Calendar size={18} className="text-purple-500" /> Monthly Activity Heatmap
-              </h3>
-              <p className="text-xs text-[var(--charcoal)] mb-4">Daily engagement intensity across job applications, views, and updates</p>
-              <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5 text-center">
-                {Array.from({ length: 28 }, (_, i) => {
-                  const intensity = (i * 7) % 4;
-                  const bg = intensity === 3 ? 'bg-[var(--orange)] text-white' : intensity === 2 ? 'bg-[var(--orange)]/70 text-white' : intensity === 1 ? 'bg-[var(--orange)]/20 text-[var(--orange)]' : 'bg-slate-100 text-[var(--charcoal)]';
-                  return (
-                    <div key={i} className={`p-2 rounded-lg text-[10px] font-bold ${bg}`} title={`Day ${i + 1}: ${intensity * 2} activities`}>
-                      {i + 1}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
           </div>
 
           <div className="space-y-8">
@@ -732,23 +751,14 @@ function CandidateDashboard() {
             </div>
 
             <div className="dash-surface dash-surface--pad">
-              <div className="dash-section-title mb-4">Skills & Proficiency</div>
-              <div className="space-y-3.5">
+              <div className="dash-section-title mb-3">Your Skills</div>
+              <div className="flex flex-wrap gap-2">
                 {candidate.skills && candidate.skills.length > 0 ? (
-                  candidate.skills.map((skill: string, idx: number) => {
-                    const score = 80 + (idx * 5) % 18;
-                    return (
-                      <div key={skill}>
-                        <div className="flex justify-between text-[13px] font-semibold mb-1.5">
-                          <span className="text-[var(--navy)]">{skill}</span>
-                          <span className="text-[var(--charcoal)]">{score}%</span>
-                        </div>
-                        <div className="dash-progress">
-                          <div className="dash-progress__fill" style={{ width: `${score}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })
+                  candidate.skills.map((skill: string) => (
+                    <span key={skill} className="inline-flex items-center px-3 py-1.5 rounded-full bg-[var(--orange)]/10 text-[var(--orange)] text-xs font-bold border border-[var(--orange)]/20">
+                      {skill}
+                    </span>
+                  ))
                 ) : (
                   <p className="text-sm text-[var(--charcoal)]">No skills added yet. Complete your profile to add skills.</p>
                 )}
@@ -756,7 +766,9 @@ function CandidateDashboard() {
             </div>
 
             <div className="dash-surface dash-surface--pad">
-              <div className="dash-section-title mb-1">Recent Activity</div>
+              <div className="dash-section-title mb-3 flex items-center gap-2">
+                <HugeiconsIcon icon={Activity03Icon} size={18} /> Recent Activity
+              </div>
               <div className="divide-y divide-[#EFEAE1]">
                 {activityLog.map(act => (
                   <div key={act.id} className="flex items-start gap-2.5 py-2.5">
@@ -769,39 +781,6 @@ function CandidateDashboard() {
                 ))}
               </div>
             </div>
-
-            <div className="dash-surface dash-surface--pad">
-              <div className="dash-section-title mb-4">Market Career Insights</div>
-              <div>
-                <p className="text-[13px] text-[var(--charcoal)] font-medium">Average Market Salary</p>
-                <p className="text-xl font-extrabold text-[var(--green)] mt-0.5">₹22,000/mo</p>
-                <p className="text-[12px] text-[var(--charcoal)] mt-0.5">Higher than your expected ₹{(candidate.expected_salary_min ?? 0).toLocaleString()}</p>
-              </div>
-              <div className="mt-4 pt-4 border-t border-[#EFEAE1]">
-                <p className="text-[13px] text-[var(--charcoal)] font-medium">Profile Ranking</p>
-                <p className="text-xl font-extrabold text-[var(--orange)] mt-0.5">Top 5% in {candidate.state || 'your region'}</p>
-              </div>
-            </div>
-
-            {courses.length > 0 && (
-              <div className="dash-surface">
-                <div className="dash-section-title p-5 pb-0">Free Skill Certification Courses</div>
-                <div className="divide-y divide-[#EFEAE1] px-5">
-                  {courses.map((crs: any) => (
-                    <div key={crs.id} className="flex items-center justify-between gap-3 py-3">
-                      <div className="min-w-0">
-                        <p className="font-bold text-[13px] text-[var(--navy)] truncate">{crs.title}</p>
-                        <p className="text-[11px] text-[var(--charcoal)] mt-0.5">{crs.duration} · {crs.badge}</p>
-                      </div>
-                      <button className="dash-btn dash-btn-tertiary dash-btn--compact flex-shrink-0" onClick={() => setToastMessage(`Enrolled in ${crs.title}!`)}>
-                        Enroll
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="h-1" />
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -885,51 +864,62 @@ function CandidateDashboard() {
         }}
       />
 
-      <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Get Premium — Guaranteed Placement" size="lg">
-        <div className="space-y-5">
-          <div className="p-4 bg-gradient-to-br from-[var(--orange)]/10 to-[var(--orange)]/5 rounded-xl border border-[var(--orange)]/20">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-full bg-[var(--orange)] text-white flex items-center justify-center">
-                <Sparkles size={24} />
+      <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Premium Placement Plan" size="lg">
+        <div className="space-y-0">
+          <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-[var(--orange)]/20 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 right-10 w-24 h-24 bg-[var(--orange)]/10 rounded-full translate-y-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--orange)] bg-[var(--orange)]/20 px-2.5 py-1 rounded-full">Premium</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">Guaranteed Placement</span>
               </div>
-              <div>
-                <h3 className="text-xl font-extrabold text-[var(--navy)]">Premium Placement Plan</h3>
-                <p className="text-sm text-[var(--charcoal)]">Everything taken care of. Guaranteed placement.</p>
+              <h3 className="text-2xl sm:text-3xl font-extrabold mb-2 leading-tight">Everything taken care of.</h3>
+              <p className="text-sm text-slate-300 mb-5 max-w-lg">We personally ensure you get placed in a verified company. From resume to offer letter — we handle the entire process for you.</p>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-extrabold text-white">₹1,000</span>
+                <span className="text-sm text-slate-400">one-time payment</span>
               </div>
-            </div>
-            <div className="text-center py-3">
-              <span className="text-4xl font-extrabold text-[var(--orange)]">₹1,000</span>
-              <span className="text-sm text-[var(--charcoal)] block mt-1">One-time payment</span>
+              <p className="text-xs text-slate-400">No hidden charges · 100% refund if not placed</p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-sm font-bold text-[var(--navy)] uppercase tracking-wider">What's Included</h4>
-            {[
-              { icon: '✅', title: 'Guaranteed Placement', desc: 'We personally ensure you get placed in a verified company.' },
-              { icon: '📞', title: 'Dedicated Call Support', desc: 'Direct access to our placement team for queries and updates.' },
-              { icon: '📄', title: 'Resume & Profile Boost', desc: 'Our team will optimize your resume and profile for top employers.' },
-              { icon: '🎯', title: 'Priority Matching', desc: 'Get matched with the best-fit roles before other candidates.' },
-              { icon: '🤝', title: 'End-to-End Assistance', desc: 'From application to offer letter — we handle the process for you.' },
-            ].map((feature, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100">
-                <span className="text-xl">{feature.icon}</span>
-                <div>
-                  <p className="text-sm font-bold text-[var(--navy)]">{feature.title}</p>
-                  <p className="text-xs text-[var(--charcoal)] mt-0.5">{feature.desc}</p>
+          <div className="py-5 space-y-3">
+            <h4 className="text-xs font-bold text-[var(--charcoal)] uppercase tracking-widest">What's Included</h4>
+            <div className="grid gap-2.5">
+              {[
+                { title: 'Guaranteed Placement', desc: 'Personal placement guarantee in a verified company.' },
+                { title: 'Dedicated Call Support', desc: 'Direct access to our placement team whenever you need.' },
+                { title: 'Resume & Profile Boost', desc: 'Expert optimization for top employers.' },
+                { title: 'Priority Matching', desc: 'Get matched with best-fit roles before others.' },
+                { title: 'End-to-End Assistance', desc: 'Application to offer letter — we manage it all.' },
+              ].map((feature, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3.5 bg-[var(--bg-warm)] rounded-xl">
+                  <div className="w-5 h-5 rounded-full bg-[var(--orange)] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--navy)]">{feature.title}</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-0.5">{feature.desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="bg-[var(--green)]/10 border border-[var(--green)]/20 rounded-xl p-4 text-center">
-            <p className="text-sm font-bold text-[var(--green)]">100% Satisfaction Guarantee</p>
-            <p className="text-xs text-[var(--charcoal)] mt-1">If we don't deliver, we refund. No questions asked.</p>
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-900">100% Satisfaction Guarantee</p>
+              <p className="text-xs text-emerald-700 mt-0.5">If we don't deliver placement within the agreed timeline, we refund. No questions asked.</p>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
             <Button variant="ghost" onClick={() => setShowPremiumModal(false)} className="flex-1">Cancel</Button>
-            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)]" onClick={() => {
+            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={() => {
               setShowPremiumModal(false);
               setToastMessage('Payment integration coming soon! Please contact support@rojgaarhai.com to proceed.');
             }}>
