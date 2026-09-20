@@ -120,6 +120,7 @@ function EmployerDashboard() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
+  const [showPermanentRecruitmentModal, setShowPermanentRecruitmentModal] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [applicantStageFilter, setApplicantStageFilter] = useState<string>('all');
@@ -532,6 +533,39 @@ function EmployerDashboard() {
           <div className="dash-metric">
             <div className="dash-metric__value">{myPlacements.length}</div>
             <div className="dash-metric__label">Placements Joined</div>
+          </div>
+        </div>
+
+        {/* ═══ PERMANENT RECRUITMENT PREMIUM CTA ═══ */}
+        <div className="bg-gradient-to-r from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[var(--orange)]/20 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 right-10 w-24 h-24 bg-[var(--orange)]/10 rounded-full translate-y-1/2" />
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[var(--orange)] text-white flex items-center justify-center flex-shrink-0">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--orange)] bg-[var(--orange)]/20 px-2.5 py-1 rounded-full">Premium Service</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">Guaranteed Profiles</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-extrabold mb-1 leading-tight">Get Permanent Recruitment</h3>
+                <p className="text-sm text-slate-300 max-w-xl">Verified individuals, guaranteed profiles, and end-to-end hiring support. We handle sourcing, verification, and onboarding — you get ready-to-join candidates.</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-start md:items-end gap-2 flex-shrink-0">
+              <div className="text-right">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-white">₹4,000</span>
+                  <span className="text-xs text-slate-400">per candidate</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">One-time fee · No hidden charges</p>
+              </div>
+              <button onClick={() => setShowPermanentRecruitmentModal(true)} className="inline-flex items-center gap-2 bg-[var(--orange)] hover:bg-[#d94d1f] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-900/30">
+                <ShieldCheck size={16} /> Get Permanent Recruitment
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1090,6 +1124,72 @@ function EmployerDashboard() {
             </Button>
             <Button variant="primary" size="sm" onClick={handleDeleteJob} disabled={isDeleting} className="bg-red-600 hover:bg-red-700">
               {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ═══ PERMANENT RECRUITMENT MODAL ═══ */}
+      <Modal isOpen={showPermanentRecruitmentModal} onClose={() => setShowPermanentRecruitmentModal(false)} title="Permanent Recruitment Plan" size="lg">
+        <div className="space-y-0">
+          <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-[var(--orange)]/20 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 right-10 w-24 h-24 bg-[var(--orange)]/10 rounded-full translate-y-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--orange)] bg-[var(--orange)]/20 px-2.5 py-1 rounded-full">Premium</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">Guaranteed Profiles</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-extrabold mb-2 leading-tight">Verified individuals. Guaranteed placement.</h3>
+              <p className="text-sm text-slate-300 mb-5 max-w-lg">We personally handle sourcing, verification, and onboarding. You get ready-to-join, verified candidates — no screening hassle.</p>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-extrabold text-white">₹4,000</span>
+                <span className="text-sm text-slate-400">per candidate</span>
+              </div>
+              <p className="text-xs text-slate-400">One-time fee · 100% refund if profile doesn't match</p>
+            </div>
+          </div>
+
+          <div className="py-5 space-y-3">
+            <h4 className="text-xs font-bold text-[var(--charcoal)] uppercase tracking-widest">What's Included</h4>
+            <div className="grid gap-2.5">
+              {[
+                { title: 'Verified Candidates', desc: 'Every profile is Aadhaar, experience, and skill verified.' },
+                { title: 'Guaranteed Placement', desc: 'We ensure the candidate joins and stays for the agreed period.' },
+                { title: 'End-to-End Support', desc: 'From sourcing to onboarding — we manage the entire process.' },
+                { title: 'Dedicated Relationship Manager', desc: 'Single point of contact for all hiring needs.' },
+                { title: 'Replacement Guarantee', desc: 'If a candidate leaves early, we provide a replacement at no extra cost.' },
+              ].map((feature, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3.5 bg-[var(--bg-warm)] rounded-xl">
+                  <div className="w-5 h-5 rounded-full bg-[var(--orange)] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--navy)]">{feature.title}</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-0.5">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-900">100% Satisfaction Guarantee</p>
+              <p className="text-xs text-emerald-700 mt-0.5">If the candidate doesn't meet the agreed criteria, we refund. No questions asked.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <Button variant="ghost" onClick={() => setShowPermanentRecruitmentModal(false)} className="flex-1">Cancel</Button>
+            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={() => {
+              setShowPermanentRecruitmentModal(false);
+              setToastMessage('Payment integration coming soon! Please contact support@rojgaarhai.com to proceed.');
+            }}>
+              Proceed to Payment — ₹4,000/candidate
             </Button>
           </div>
         </div>
