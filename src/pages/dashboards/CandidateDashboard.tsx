@@ -113,6 +113,7 @@ function CandidateDashboard() {
       return [];
     }
   });
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const toggleSaveJob = (jobId: string) => {
     let updated: string[];
@@ -427,6 +428,7 @@ function CandidateDashboard() {
             { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => setToastMessage(`You have ${savedJobs.length} saved jobs.`) },
             { label: 'My Applications', icon: <FileText size={15} />, action: () => setToastMessage(`You applied to ${appliedJobs.length} jobs.`) },
             { label: 'Edit Profile', icon: <UserCheck size={15} />, action: () => setShowEditProfileModal(true) },
+            { label: 'Get Premium', icon: <Sparkles size={15} />, action: () => setShowPremiumModal(true) },
           ].map((item, idx) => (
             <button key={idx} onClick={item.action} className="dash-btn dash-btn-secondary dash-btn--compact">
               {item.icon} {item.label}
@@ -882,6 +884,60 @@ function CandidateDashboard() {
           }
         }}
       />
+
+      <Modal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} title="Get Premium — Guaranteed Placement" size="lg">
+        <div className="space-y-5">
+          <div className="p-4 bg-gradient-to-br from-[var(--orange)]/10 to-[var(--orange)]/5 rounded-xl border border-[var(--orange)]/20">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-full bg-[var(--orange)] text-white flex items-center justify-center">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-[var(--navy)]">Premium Placement Plan</h3>
+                <p className="text-sm text-[var(--charcoal)]">Everything taken care of. Guaranteed placement.</p>
+              </div>
+            </div>
+            <div className="text-center py-3">
+              <span className="text-4xl font-extrabold text-[var(--orange)]">₹1,000</span>
+              <span className="text-sm text-[var(--charcoal)] block mt-1">One-time payment</span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-[var(--navy)] uppercase tracking-wider">What's Included</h4>
+            {[
+              { icon: '✅', title: 'Guaranteed Placement', desc: 'We personally ensure you get placed in a verified company.' },
+              { icon: '📞', title: 'Dedicated Call Support', desc: 'Direct access to our placement team for queries and updates.' },
+              { icon: '📄', title: 'Resume & Profile Boost', desc: 'Our team will optimize your resume and profile for top employers.' },
+              { icon: '🎯', title: 'Priority Matching', desc: 'Get matched with the best-fit roles before other candidates.' },
+              { icon: '🤝', title: 'End-to-End Assistance', desc: 'From application to offer letter — we handle the process for you.' },
+            ].map((feature, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100">
+                <span className="text-xl">{feature.icon}</span>
+                <div>
+                  <p className="text-sm font-bold text-[var(--navy)]">{feature.title}</p>
+                  <p className="text-xs text-[var(--charcoal)] mt-0.5">{feature.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-[var(--green)]/10 border border-[var(--green)]/20 rounded-xl p-4 text-center">
+            <p className="text-sm font-bold text-[var(--green)]">100% Satisfaction Guarantee</p>
+            <p className="text-xs text-[var(--charcoal)] mt-1">If we don't deliver, we refund. No questions asked.</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setShowPremiumModal(false)} className="flex-1">Cancel</Button>
+            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)]" onClick={() => {
+              setShowPremiumModal(false);
+              setToastMessage('Payment integration coming soon! Please contact support@rojgaarhai.com to proceed.');
+            }}>
+              Proceed to Payment — ₹1,000
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {toastMessage && (
         <Toast message={toastMessage} type="success" onClose={() => setToastMessage(null)} />

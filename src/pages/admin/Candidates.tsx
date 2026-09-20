@@ -121,6 +121,7 @@ export default function Candidates() {
   const [hireJobId, setHireJobId] = useState('');
   const [hiring, setHiring] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'premium'>('all');
 
   const resetFilters = () => {
     setSearch('');
@@ -143,8 +144,9 @@ export default function Candidates() {
 
     const matchStatus = !statusFilter || c.status === statusFilter;
     const matchDate = checkDateMatch(c.createdAt, dateFilter, startDate, endDate);
+    const matchPremium = activeTab === 'all' || c.is_premium === true;
 
-    return matchSearch && matchStatus && matchDate;
+    return matchSearch && matchStatus && matchDate && matchPremium;
   });
 
   const openDetail = (candidate: any) => {
@@ -223,6 +225,14 @@ export default function Candidates() {
           <p className="text-sm text-[var(--charcoal)] mt-1">
             Showing {filtered.length} of {jobSeekers.length} candidates • Search by name & filter by date joined
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant={activeTab === 'all' ? 'primary' : 'outline'} size="sm" onClick={() => setActiveTab('all')}>
+            All Candidates
+          </Button>
+          <Button variant={activeTab === 'premium' ? 'primary' : 'outline'} size="sm" onClick={() => setActiveTab('premium')} className="gap-1.5">
+            <Award size={14} /> Premium
+          </Button>
         </div>
         <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 flex-shrink-0">
           <Download size={15} /> Download CSV
