@@ -100,7 +100,7 @@ function EmployerInfo() {
               <span className="employer-info-hero-heading-1 block font-extrabold leading-[0.95] tracking-tight text-[var(--navy)] text-4xl sm:text-5xl lg:text-6xl" style={{ fontFamily: 'var(--font-display)' }}>
                 {t('employerInfo.heroTitle1')}
               </span>
-              <span className="employer-info-hero-heading-2 relative inline-block mt-1 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
+              <span className="employer-info-hero-heading-2 relative inline-block mt-3 sm:mt-4 leading-none text-[var(--purple)] text-5xl sm:text-6xl lg:text-7xl" style={{ fontFamily: 'var(--font-hand)' }}>
                 {t('employerInfo.heroTitle2')}
                 <svg className="absolute left-0 -bottom-3 w-[92%]" viewBox="0 0 200 14" fill="none" aria-hidden="true">
                   <path d="M3 7C40 2 90 1 140 5C160 6.5 180 9 197 6" stroke="var(--purple)" strokeWidth="3" strokeLinecap="round" />

@@ -416,7 +416,7 @@ body {
   color: var(--orange);
   letter-spacing: 0.01em;
   padding-left: 16px;
-  margin-top: -16px;
+  margin-top: 22px;
   transform: rotate(-2deg);
 }
 .hero-description {
@@ -427,6 +427,10 @@ body {
   margin-top: 30px;
   margin-bottom: 24px;
   max-width: 420px;
+}
+[data-lang="hi"] .title-hai,
+[data-lang="mr"] .title-hai {
+  margin-top: 70px;
 }
 .hero-actions {
   display: flex;
@@ -570,10 +574,14 @@ body {
   }
   .title-hai {
     font-size: clamp(72px, 17.5vw, 94px);
-    margin-top: -10px;
+    margin-top: 24px;
   }
   .hero-description {
-    margin-top: 22px;
+  margin-top: 28px;
+  }
+  [data-lang="hi"] .title-hai,
+  [data-lang="mr"] .title-hai {
+    margin-top: 66px;
   }
   .hero-actions {
     flex-wrap: wrap;
@@ -655,8 +663,12 @@ body {
   .title-hai {
     font-size: 62px;
     line-height: 0.9;
-    margin-top: -4px;
+    margin-top: 8px;
     padding-left: 14px;
+  }
+  [data-lang="hi"] .title-hai,
+  [data-lang="mr"] .title-hai {
+    margin-top: 8px;
   }
   .hero-description {
     font-size: 15px;
