@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { Home } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
 const sectionsKeys = [
@@ -16,6 +18,11 @@ export default function PrivacyPolicy() {
     <div>
       <section className="page-header-landing">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="mb-4">
+            <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white text-[var(--navy)] shadow-sm transition-colors">
+              <Home size={20} />
+            </Link>
+          </div>
           <h1 className="page-header-landing__title">{t('privacyPolicy.title')}</h1>
           <p className="page-header-landing__subtitle mx-auto mt-4">{t('privacyPolicy.lastUpdated')}</p>
         </div>

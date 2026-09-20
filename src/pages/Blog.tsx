@@ -1,4 +1,5 @@
-import { Newspaper } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Newspaper, Home } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
 export default function Blog() {
@@ -7,6 +8,11 @@ export default function Blog() {
     <div>
       <section className="page-header-landing">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="mb-4">
+            <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white text-[var(--navy)] shadow-sm transition-colors">
+              <Home size={20} />
+            </Link>
+          </div>
           <h1 className="page-header-landing__title">Blog</h1>
           <p className="page-header-landing__subtitle mx-auto mt-4">
             Career tips, hiring advice, and updates from the {t('app.name')} team.

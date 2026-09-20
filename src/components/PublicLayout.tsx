@@ -177,6 +177,9 @@ function PublicLayout({ children }: { children: ReactNode }) {
                 </Link>
               ))}
               <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                <div className="py-1">
+                  <LanguageSwitcher />
+                </div>
                 {!displayUser && (
                   <button
                     onClick={() => { setMobileOpen(false); setShowRoleChooser(true); }}
