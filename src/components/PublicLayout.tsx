@@ -153,6 +153,11 @@ function PublicLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
+            {/* Mobile-only language switcher */}
+            <div className="md:hidden">
+              <LanguageSwitcher />
+            </div>
+
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
