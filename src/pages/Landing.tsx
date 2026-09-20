@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import Reveal from '../components/Reveal';
 import AnimatedCounter from '../components/AnimatedCounter';
 import RoleChooserModal from '../components/RoleChooserModal';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
 const testimonialCards = [
   {
@@ -24,20 +26,34 @@ const testimonialCards = [
 ];
 
 function Landing() {
+  const { t, i18n } = useAppTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [activeCard, setActiveCard] = useState(1);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
+  const [lang, setLang] = useState(i18n.language);
 
   useEffect(() => {
     const onScroll = () => setAtTop(window.scrollY === 0);
-    window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    const handleLanguageChanged = (lng: string) => {
+      setLang(lng);
+      setAtTop(window.scrollY === 0);
+    };
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, [i18n]);
+
   return (
-    <>
+    <div data-lang={lang}>
+      <>
       {/* Header */}
       <header className={`header ${atTop ? "header--at-top" : ""}`}>
         <div className="header-inner">
@@ -45,39 +61,41 @@ function Landing() {
             <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="brand-icon h-[72px] w-auto object-contain" loading="lazy" decoding="async" />
           </Link>
 
-          <div className="header-right">
-            <nav className="nav" aria-label="Primary">
-              <Link to="/job-seeker-info" className="nav-link">For Job Seekers</Link>
-              <Link to="/employer-info" className="nav-link">For Employers</Link>
-              <Link to="/recruiter-info" className="nav-link">Recruiters</Link>
-              <Link to="/contact" className="nav-link">Contact</Link>
-              <Link to="/jobs" className="nav-link">Apply for Jobs</Link>
-            </nav>
+           <div className="header-right">
+             <nav className="nav" aria-label="Primary">
+               <Link to="/job-seeker-info" className="nav-link">{t('landing.nav.forJobSeekers')}</Link>
+               <Link to="/employer-info" className="nav-link">{t('landing.nav.forEmployers')}</Link>
+               <Link to="/recruiter-info" className="nav-link">{t('landing.nav.recruiters')}</Link>
+               <Link to="/contact" className="nav-link">{t('landing.nav.contact')}</Link>
+               <Link to="/jobs" className="nav-link">{t('landing.nav.applyForJobs')}</Link>
+             </nav>
 
-            <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
-              <span>Get Started</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
+             <LanguageSwitcher />
 
-            <button
-              className="menu-toggle"
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <span className={`menu-icon ${menuOpen ? 'is-open' : ''}`} />
-            </button>
-          </div>
+             <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
+               <span>{t('landing.getStarted')}</span>
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+             </button>
+
+             <button
+               className="menu-toggle"
+               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+               aria-expanded={menuOpen}
+               onClick={() => setMenuOpen((v) => !v)}
+             >
+               <span className={`menu-icon ${menuOpen ? 'is-open' : ''}`} />
+             </button>
+           </div>
         </div>
 
         {menuOpen && (
           <nav className="mobile-nav" aria-label="Mobile">
-            <Link to="/job-seeker-info" onClick={() => setMenuOpen(false)}>For Job Seekers</Link>
-            <Link to="/employer-info" onClick={() => setMenuOpen(false)}>For Employers</Link>
-            <Link to="/recruiter-info" onClick={() => setMenuOpen(false)}>Recruiters</Link>
-            <Link to="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
-            <Link to="/jobs" onClick={() => setMenuOpen(false)}>Apply for Jobs</Link>
-              <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">Get Started</button>
+            <Link to="/job-seeker-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.forJobSeekers')}</Link>
+            <Link to="/employer-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.forEmployers')}</Link>
+            <Link to="/recruiter-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.recruiters')}</Link>
+            <Link to="/contact" onClick={() => setMenuOpen(false)}>{t('landing.nav.contact')}</Link>
+            <Link to="/jobs" onClick={() => setMenuOpen(false)}>{t('landing.nav.applyForJobs')}</Link>
+              <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">{t('landing.getStarted')}</button>
           </nav>
         )}
       </header>
@@ -90,8 +108,8 @@ function Landing() {
               <svg className="eyebrow-spark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 3C11.2 8.1 8.1 11.2 3 12C8.1 12.8 11.2 15.9 12 21C12.8 15.9 15.9 12.8 21 12C15.9 11.2 12.8 8.1 12 3Z" stroke="#F15A24" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span className="eyebrow-line1">Opportunities don't happen.</span>
-              <span className="eyebrow-line2">We make them happen.</span>
+              <span className="eyebrow-line1">{t('landing.heroEyebrow1')}</span>
+              <span className="eyebrow-line2">{t('landing.heroEyebrow2')}</span>
               <svg className="eyebrow-underline" viewBox="0 0 60 16" fill="none" aria-hidden="true">
                 <path className="sketch-line-ghost" d="M4 10.4C10 6.8 18 4.7 26 6.1C32 7.3 36 9.6 44 8.9C50 7.5 55 5 60 6.3" stroke="#F15A24" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                 <path className="sketch-line-main" d="M4 9.6C10 5.9 18 4 26 5.4C32 6.7 36 9 44 8.2C50 6.8 55 4.4 60 5.7" stroke="#F15A24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -105,7 +123,7 @@ function Landing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               >
-                Rojgaar
+                {t('landing.heroTitleRojgaar')}
               </motion.span>
               <motion.span
                 className="title-hai"
@@ -113,7 +131,7 @@ function Landing() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               >
-                Hai!
+                {t('landing.heroTitleHai')}
               </motion.span>
             </h1>
 
@@ -123,8 +141,7 @@ function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
-              A better career. The right talent.<br />
-              Real connections that build the future.
+              {t('landing.heroDescription')}
             </motion.p>
 
             <motion.div
@@ -135,12 +152,12 @@ function Landing() {
             >
               <Link to="/register/job-seeker" className="btn btn-hero btn-primary">
                 <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>I am a Job Seeker</span>
+                <span>{t('landing.iAmAJobSeeker')}</span>
                 <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
               <Link to="/register/employer" className="btn btn-hero btn-secondary">
                 <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                <span>I am an Employer</span>
+                <span>{t('landing.iAmAnEmployer')}</span>
                 <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </Link>
             </motion.div>
@@ -154,8 +171,8 @@ function Landing() {
         <Reveal className="job-seeker-inner">
           <div className="job-seeker-content">
             <h2 className="job-seeker-heading">
-              <span>For</span>
-              <span>Job Seekers</span>
+              <span>{t('landing.forJobSeekersHeading').split(' ')[0]}</span>
+              <span>{t('landing.forJobSeekersHeading').split(' ').slice(1).join(' ')}</span>
             </h2>
 
             <svg className="js-swoosh" viewBox="0 0 300 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -178,8 +195,7 @@ function Landing() {
             </svg>
 
             <p className="job-seeker-description">
-              Discover opportunities that<br />
-              match your skills and ambition.
+              {t('landing.step1Desc')}
             </p>
 
             <Link to="/jobs" className="circle-cta circle-cta-purple">
@@ -188,7 +204,7 @@ function Landing() {
                   <path d="M7 17L17 7M17 7H7M17 7V17" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
-              <span className="circle-cta-text">Explore Jobs</span>
+              <span className="circle-cta-text">{t('jobs.allJobs')}</span>
             </Link>
           </div>
 
@@ -200,13 +216,12 @@ function Landing() {
         <Reveal className="employer-inner">
           <div className="employer-content">
             <h2 className="employer-heading">
-              <span>For</span>
-              <span>Employers</span>
+              <span>{t('landing.forEmployersHeading').split(' ')[0]}</span>
+              <span>{t('landing.forEmployersHeading').split(' ').slice(1).join(' ')}</span>
             </h2>
 
             <p className="employer-description">
-              Find the right talent. Faster.<br />
-              Smarter. Better.
+              {t('landing.step2Desc')}
             </p>
 
             <Link to="/register/employer" className="circle-cta circle-cta-green">
@@ -215,7 +230,7 @@ function Landing() {
                   <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
-              <span className="circle-cta-text">Post a Job</span>
+              <span className="circle-cta-text">{t('auth.registerEmployer')}</span>
             </Link>
           </div>
 
@@ -228,8 +243,8 @@ function Landing() {
         <Reveal className="how-inner">
           <div className="how-heading">
             <h2>
-              <span className="line-white">Simple Steps.</span>
-              <span className="line-orange">Powerful Outcomes.</span>
+              <span className="line-white">{t('landing.howItWorks')}</span>
+              <span className="line-orange">{t('landing.getHired')}</span>
             </h2>
           </div>
 
@@ -238,24 +253,24 @@ function Landing() {
               <div className="step-icon-wrap icon-discover">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
               </div>
-              <h3 className="step-title">Discover</h3>
-              <p className="step-desc">Find the right match<br />for your career.</p>
+              <h3 className="step-title">{t('landing.createProfile')}</h3>
+              <p className="step-desc">{t('landing.step1Desc')}</p>
             </div>
 
             <div className="process-step" role="listitem">
               <div className="step-icon-wrap icon-apply">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h10M7 13h7" /></svg>
               </div>
-              <h3 className="step-title">Apply</h3>
-              <p className="step-desc">Apply to jobs that<br />fit you best.</p>
+              <h3 className="step-title">{t('landing.getMatched')}</h3>
+              <p className="step-desc">{t('landing.step2Desc')}</p>
             </div>
 
             <div className="process-step" role="listitem">
               <div className="step-icon-wrap icon-connect">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="10" r="3" /><circle cx="15" cy="10" r="3" /><path d="M12 6v3m0 2v3" /></svg>
               </div>
-              <h3 className="step-title">Connect</h3>
-              <p className="step-desc">Employers connect<br />with top talent.</p>
+              <h3 className="step-title">{t('landing.getHired')}</h3>
+              <p className="step-desc">{t('landing.step3Desc')}</p>
             </div>
 
             <div className="process-step" role="listitem">
@@ -267,8 +282,8 @@ function Landing() {
                   <path d="M10.5 19.5c0 1 .6 2 1.5 2.5.9-.5 1.5-1.5 1.5-2.5" />
                 </svg>
               </div>
-              <h3 className="step-title">Grow</h3>
-              <p className="step-desc">Build your future.<br />Together.</p>
+              <h3 className="step-title">{t('landing.careerSupport')}</h3>
+              <p className="step-desc">{t('landing.step3Desc')}</p>
             </div>
           </div>
         </Reveal>
@@ -280,9 +295,8 @@ function Landing() {
         <Reveal className="features-inner">
           <div className="features-heading">
             <h2>
-              <span>All the right</span>
-              <span>features. In all</span>
-              <span>the <em className="accent-purple">right</em> ways.</span>
+              <span>{t('landing.featuresHeading').split(' ').slice(0, 3).join(' ')}</span>
+              <span>{t('landing.featuresHeading').split(' ').slice(3).join(' ')}</span>
             </h2>
           </div>
 
@@ -291,32 +305,32 @@ function Landing() {
               <div className="feature-tile tile-lavender">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
               </div>
-              <h3 className="feature-title">Smart Matching</h3>
-              <p className="feature-desc">AI-powered matching for better connections.</p>
+              <h3 className="feature-title">{t('landing.featureSmartMatchingTitle')}</h3>
+              <p className="feature-desc">{t('landing.featureSmartMatchingDesc')}</p>
             </article>
 
             <article className="feature-item">
               <div className="feature-tile tile-mint">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
               </div>
-              <h3 className="feature-title">Verified Employers</h3>
-              <p className="feature-desc">Trusted companies. Genuine opportunities.</p>
+              <h3 className="feature-title">{t('landing.featureVerifiedEmployersTitle')}</h3>
+              <p className="feature-desc">{t('landing.featureVerifiedEmployersDesc')}</p>
             </article>
 
             <article className="feature-item">
               <div className="feature-tile tile-peach">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
               </div>
-              <h3 className="feature-title">Career Insights</h3>
-              <p className="feature-desc">Insights to help you grow and decide.</p>
+              <h3 className="feature-title">{t('landing.featureCareerInsightsTitle')}</h3>
+              <p className="feature-desc">{t('landing.featureCareerInsightsDesc')}</p>
             </article>
 
             <article className="feature-item">
               <div className="feature-tile tile-bluegrey">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
               </div>
-              <h3 className="feature-title">Real-time Alerts</h3>
-              <p className="feature-desc">Never miss an opportunity.</p>
+              <h3 className="feature-title">{t('landing.featureRealTimeAlertsTitle')}</h3>
+              <p className="feature-desc">{t('landing.featureRealTimeAlertsDesc')}</p>
             </article>
           </div>
         </Reveal>
@@ -327,26 +341,26 @@ function Landing() {
         <Reveal className="stats-inner">
           <div className="stats-content">
             <h2 className="stats-heading">
-              <span>Trusted by thousands.</span>
-              <span>Growing every day.</span>
+              <span>{t('landing.statsTrustedByThousands')}</span>
+              <span>{t('landing.statsGrowingEveryDay')}</span>
             </h2>
 
             <div className="stats-grid">
               <div className="stat-item">
                 <strong className="stat-number"><AnimatedCounter value={50} suffix="K+" /></strong>
-                <span className="stat-label-text">Job Seekers</span>
+                <span className="stat-label-text">{t('landing.statJobSeekers')}</span>
               </div>
               <div className="stat-item">
                 <strong className="stat-number"><AnimatedCounter value={5} suffix="K+" /></strong>
-                <span className="stat-label-text">Employers</span>
+                <span className="stat-label-text">{t('landing.statEmployers')}</span>
               </div>
               <div className="stat-item">
                 <strong className="stat-number"><AnimatedCounter value={20} suffix="K+" /></strong>
-                <span className="stat-label-text">Jobs Posted</span>
+                <span className="stat-label-text">{t('landing.statJobsPosted')}</span>
               </div>
               <div className="stat-item">
                 <strong className="stat-number"><AnimatedCounter value={95} suffix="%" /></strong>
-                <span className="stat-label-text">Satisfaction Rate</span>
+                <span className="stat-label-text">{t('landing.statSatisfactionRate')}</span>
               </div>
             </div>
           </div>
@@ -363,21 +377,21 @@ function Landing() {
           <div className="featured-testimonial">
             <span className="quote-mark" aria-hidden="true">“</span>
             <p className="featured-quote">
-              <span>Rojgaar Hai made</span>
+              <span>{t('landing.testimonialQuote').split(' ').slice(0, 3).join(' ')}</span>
               <span>
-                my job search{' '}
+                {t('landing.testimonialQuote').split(' ').slice(3, 6).join(' ')}{' '}
                 <em className="easier-highlight">
-                  easier
+                  {t('landing.testimonialQuote').split(' ')[6]}
                   <svg viewBox="0 0 108 30" fill="none" aria-hidden="true" preserveAspectRatio="none">
                     <path d="M7 18C9 8 29 5 55 6C84 7 101 12 99 19C97 27 67 30 38 28C16 27 5 24 7 16" stroke="#C8D94A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </em>
               </span>
-              <span>and my career better.</span>
+              <span>{t('landing.testimonialQuote').split(' ').slice(7).join(' ')}</span>
             </p>
             <div className="featured-author">
-              <span className="author-name">— Neha Sharma</span>
-              <span className="author-role">Product Designer</span>
+              <span className="author-name">— {t('landing.testimonialAuthor')}</span>
+              <span className="author-role">{t('landing.testimonialRole')}</span>
             </div>
           </div>
 
@@ -441,18 +455,17 @@ function Landing() {
           <Reveal className="final-cta-inner">
             <div className="final-cta-content">
               <h2 className="final-cta-heading">
-                <span>Your next opportunity</span>
-                <span>is just a <em>click</em> away.</span>
+                <span>{t('landing.finalCtaHeading').split(' ').slice(0, 3).join(' ')}</span>
+                <span>{t('landing.finalCtaHeading').split(' ').slice(3).join(' ')}</span>
               </h2>
 
               <p className="final-cta-description">
-                Whether you're hiring or job hunting,<br />
-                Rojgaar Hai is here to help you win.
+                {t('landing.finalCtaDescription')}
               </p>
 
               <div className="final-cta-actions">
-                <Link to="/register/job-seeker" className="btn btn-primary">I am a Job Seeker</Link>
-                <Link to="/register/employer" className="btn btn-secondary">I am an Employer</Link>
+                <Link to="/register/job-seeker" className="btn btn-primary">{t('landing.finalCtaJobSeeker')}</Link>
+                <Link to="/register/employer" className="btn btn-secondary">{t('landing.finalCtaEmployer')}</Link>
               </div>
             </div>
 
@@ -467,11 +480,11 @@ function Landing() {
             </Link>
 
             <nav className="footer-navigation" aria-label="Footer navigation">
-              <Link to="/about">About Us</Link>
-              <Link to="/contact">Contact</Link>
-              <Link to="/blog">Blog</Link>
-              <Link to="/privacy">Privacy Policy</Link>
-              <Link to="/terms">Terms</Link>
+              <Link to="/about">{t('landing.footerAboutUs')}</Link>
+              <Link to="/contact">{t('landing.footerContact')}</Link>
+              <Link to="/blog">{t('landing.footerBlog')}</Link>
+              <Link to="/privacy">{t('landing.footerPrivacy')}</Link>
+              <Link to="/terms">{t('landing.footerTerms')}</Link>
             </nav>
 
             <div className="footer-socials" aria-label="Social media">
@@ -490,7 +503,8 @@ function Landing() {
       </section>
 
       <RoleChooserModal isOpen={showRoleChooser} onClose={() => setShowRoleChooser(false)} mode="signup" />
-    </>
+      </>
+    </div>
   );
 }
 

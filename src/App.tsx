@@ -10,6 +10,8 @@ import ScrollRestoration from './components/ScrollRestoration';
 import AppPreloader from './components/AppPreloader';
 import I18nProvider from './components/I18nProvider';
 import { useSmoothScroll } from './hooks/useSmoothScroll';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const PublicLayout = lazy(() => import('./components/PublicLayout'));
@@ -188,17 +190,19 @@ function App() {
 
   return (
     <BrowserRouter>
-      <I18nProvider>
-        <AppPreloader show={booting} />
-        <AuthProvider>
-          <DataProvider>
-            <DatabaseProvider>
-              <ScrollRestoration />
-              {!booting && <AppRoutes />}
-            </DatabaseProvider>
-          </DataProvider>
-        </AuthProvider>
-      </I18nProvider>
+      <I18nextProvider i18n={i18n}>
+        <I18nProvider>
+          <AppPreloader show={booting} />
+          <AuthProvider>
+            <DataProvider>
+              <DatabaseProvider>
+                <ScrollRestoration />
+                {!booting && <AppRoutes />}
+              </DatabaseProvider>
+            </DataProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </I18nextProvider>
     </BrowserRouter>
   );
 }
