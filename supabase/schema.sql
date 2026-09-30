@@ -99,6 +99,7 @@ CREATE TABLE public.employers (
     id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     company_name TEXT NOT NULL,
     industry TEXT,
+    department TEXT,
     company_size TEXT,
     year_established INTEGER,
     website TEXT,

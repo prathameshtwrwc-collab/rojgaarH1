@@ -9,3 +9,6 @@ ALTER TABLE public.employers ALTER COLUMN company_name DROP NOT NULL;
 -- Candidate profile: add industry and department columns for sector/sub-sector
 ALTER TABLE public.candidates ADD COLUMN IF NOT EXISTS industry TEXT;
 ALTER TABLE public.candidates ADD COLUMN IF NOT EXISTS department TEXT;
+
+-- Employer profile: add department column for sub-sector
+ALTER TABLE public.employers ADD COLUMN IF NOT EXISTS department TEXT;

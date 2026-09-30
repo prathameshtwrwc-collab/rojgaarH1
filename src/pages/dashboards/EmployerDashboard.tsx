@@ -134,6 +134,7 @@ function EmployerDashboard() {
       companyName: employerData.company_name || '',
       companyNameSet: Boolean(employerData.company_name),
       industry: employerData.industry || '',
+      department: (employerData as any).department || '',
       companySize: employerData.company_size || '',
       yearEstablished: employerData.year_established?.toString() || '',
       website: employerData.website || '',
@@ -403,6 +404,7 @@ function EmployerDashboard() {
     setCompanyForm({
       companyName: employer.companyName,
       industry: employer.industry,
+      department: employer.department,
       companySize: employer.companySize,
       yearEstablished: employer.yearEstablished,
       website: employer.website,
@@ -424,6 +426,7 @@ function EmployerDashboard() {
       await updateEmployerProfile(employer.id, {
         company_name: submittedForm.companyName,
         industry: submittedForm.industry,
+        department: submittedForm.department,
         company_size: submittedForm.companySize,
         year_established: submittedForm.yearEstablished ? Number(submittedForm.yearEstablished) : null,
         website: submittedForm.website,

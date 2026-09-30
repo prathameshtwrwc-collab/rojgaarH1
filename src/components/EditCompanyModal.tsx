@@ -3,11 +3,12 @@ import { Building2, MapPin, User, CheckCircle } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from './ui';
-import { getSectorsList } from '../constants/sectors';
+import { getSectorsList, getSubsectorsForSector } from '../constants/sectors';
 
 export interface CompanyForm {
   companyName: string;
   industry: string;
+  department: string;
   companySize: string;
   yearEstablished: string;
   website: string;
@@ -47,6 +48,9 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   const [sectorInput, setSectorInput] = useState(initial.industry || '');
   const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false);
   const [filteredSectors, setFilteredSectors] = useState<string[]>(getSectorsList());
+  const [deptInput, setDeptInput] = useState(initial.department || '');
+  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+  const [filteredDepts, setFilteredDepts] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -111,6 +115,38 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
       update({ industry: sector });
     }
     setSectorDropdownOpen(false);
+  };
+
+  const handleDeptInputChange = (value: string) => {
+    setDeptInput(value);
+    update({ department: value });
+    const subsectors = getSubsectorsForSector(form.industry || sectorInput);
+    const filtered = subsectors.filter(d => d.toLowerCase().includes(value.toLowerCase()));
+    const hasExactMatch = subsectors.some(d => d.toLowerCase() === value.toLowerCase());
+    if (value && !hasExactMatch) {
+      filtered.unshift(`✏️ Custom: ${value}`);
+    }
+    setFilteredDepts(filtered);
+    setDeptDropdownOpen(true);
+  };
+
+  const handleDeptSelect = (dept: string) => {
+    if (dept === 'Manual') {
+      setDeptInput('Manual');
+      update({ department: '' });
+      setDeptDropdownOpen(false);
+      setTimeout(() => document.getElementById('company-dept-input')?.focus(), 50);
+      return;
+    }
+    if (dept.startsWith('✏️ Custom: ')) {
+      const customValue = dept.replace('✏️ Custom: ', '');
+      setDeptInput(customValue);
+      update({ department: customValue });
+    } else {
+      setDeptInput(dept);
+      update({ department: dept });
+    }
+    setDeptDropdownOpen(false);
   };
 
   return (
@@ -250,6 +286,52 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                             className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}
                           >
                             {sector}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <label className={labelClass}>Department / Sub-Sector</label>
+                    <div className="relative">
+                      <input
+                        id="company-dept-input"
+                        value={deptInput}
+                        onChange={(e) => handleDeptInputChange(e.target.value)}
+                        onFocus={() => {
+                          const subsectors = getSubsectorsForSector(form.industry || sectorInput);
+                          setFilteredDepts(subsectors);
+                          setDeptDropdownOpen(true);
+                        }}
+                        onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)}
+                        className={inputClass}
+                        placeholder={form.industry || sectorInput ? 'Type or select department...' : 'Select sector first'}
+                        disabled={!form.industry && !sectorInput}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (form.industry || sectorInput) {
+                            const subsectors = getSubsectorsForSector(form.industry || sectorInput);
+                            setFilteredDepts(subsectors);
+                            setDeptDropdownOpen(!deptDropdownOpen);
+                          }
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <svg className={`w-4 h-4 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                    </div>
+                    {deptDropdownOpen && filteredDepts.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {filteredDepts.map((dept) => (
+                          <button
+                            key={dept}
+                            type="button"
+                            onMouseDown={() => handleDeptSelect(dept)}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${dept === deptInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}
+                          >
+                            {dept}
                           </button>
                         ))}
                       </div>
