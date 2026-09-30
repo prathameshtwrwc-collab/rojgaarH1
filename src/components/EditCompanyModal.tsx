@@ -95,6 +95,13 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   };
 
   const handleSectorSelect = (sector: string) => {
+    if (sector === 'Manual') {
+      setSectorInput('Manual');
+      update({ industry: '' });
+      setSectorDropdownOpen(false);
+      setTimeout(() => document.getElementById('company-sector-input')?.focus(), 50);
+      return;
+    }
     if (sector.startsWith('✏️ Custom: ')) {
       const customValue = sector.replace('✏️ Custom: ', '');
       setSectorInput(customValue);
@@ -217,6 +224,7 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                     <label className={labelClass}>Industry</label>
                     <div className="relative">
                       <input
+                        id="company-sector-input"
                         value={sectorInput}
                         onChange={(e) => handleSectorInputChange(e.target.value)}
                         onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }}

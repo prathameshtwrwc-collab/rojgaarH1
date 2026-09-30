@@ -335,6 +335,8 @@ export async function updateCandidateProfile(userId: string, updates: Record<str
     pan_url: updates.panUrl || null,
     certificate_url: updates.certificateUrl || null,
     experience_letter_url: updates.experienceLetterUrl || null,
+    industry: updates.industry || null,
+    department: updates.department || null,
   };
   const { error: candErr } = await supabase.from('candidates').update(candidatePatch as never).eq('id', userId);
   if (candErr) throw candErr;

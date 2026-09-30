@@ -1,6 +1,7 @@
 // Sector and Subsector options for Professional Info
 
 export const SECTORS = [
+  'Manual',
   'RMC Plant',
   'Manufacturing',
   'Service',
@@ -46,23 +47,34 @@ export type Sector = (typeof SECTORS)[number];
 
 export const SUBSECTORS: Record<Sector, string[]> = {
   'RMC Plant': [
-    'RMC Plant Operator',
-    'Batching Plant Operator',
+    'Manual',
+    'Plant Operator',
     'Production Supervisor',
     'Production In-Charge',
-    'Quality Control Engineer',
-    'Concrete Lab Technician',
-    'Mechanical Maintenance Technician',
-    'Electrical Technician',
-    'Transit Mixer Driver',
-    'Concrete Pump Operator',
+    'Quality Engineer',
+    'Lab Technician',
+    'Batcher',
+    'Field Technician',
+    'Plant Technician',
+    'Transit Mixer Drive',
+    'TM Helper',
+    'Pump Operator',
     'Dispatch Coordinator',
-    'Weighbridge Operator',
+    'Weight bridge Operator',
     'Storekeeper',
     'Safety Officer',
     'Plant Helper / General Assistant',
+    'Mechanic TM',
+    'Elecrician TM',
+    'Plant Helper',
+    'Lab Helper',
+    'Plant In charge',
+    'TM Supervisor',
+    'Housekeeping',
+    'Sales BDM',
   ],
   Manufacturing: [
+    'Manual',
     'Production Operator',
     'Production Supervisor',
     'Machine Operator',
@@ -72,9 +84,11 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Electrical Technician',
     'Assembly Technician',
     'Store & Inventory Executive',
-    'Production Helper / General Worker',
+    'Production Helper',
+    'General Worker',
   ],
   Service: [
+    'Manual',
     'Service Executive',
     'Customer Service Executive',
     'Field Service Technician',
@@ -87,6 +101,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Security Guard',
   ],
   FMCG: [
+    'Manual',
     'Sales Executive',
     'Territory Sales Executive',
     'Distributor Sales Representative',
@@ -99,6 +114,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Production Operator',
   ],
   Construction: [
+    'Manual',
     'Site Engineer',
     'Site Supervisor',
     'Civil Engineer',
@@ -108,9 +124,17 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Carpenter',
     'Shuttering Carpenter',
     'Electrician',
-    'Construction Helper / General Worker',
+    'Construction Helper',
+    'General Worker',
+    'Fitter',
+    'Rigger',
+    'Project Manager',
+    'Unskilled helper',
+    'Skilled helper',
+    'Painter',
   ],
   'Real Estate': [
+    'Manual',
     'Real Estate Sales Executive',
     'Property Consultant',
     'Real Estate Agent',
@@ -123,6 +147,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Real Estate Sales Manager',
   ],
   Pharma: [
+    'Manual',
     'Medical Representative',
     'Pharmaceutical Sales Executive',
     'Production Operator',
@@ -135,6 +160,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Pharmacy Assistant',
   ],
   'Digital Marketing': [
+    'Manual',
     'Digital Marketing Executive',
     'SEO Executive',
     'Social Media Executive',
@@ -147,6 +173,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Digital Marketing Manager',
   ],
   'Private Banking': [
+    'Manual',
     'Relationship Manager',
     'Branch Sales Executive',
     'Customer Service Executive',
@@ -159,6 +186,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Business Development Executive',
   ],
   Hotels: [
+    'Manual',
     'Front Office Executive',
     'Receptionist',
     'Guest Relations Executive',
@@ -169,8 +197,10 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Kitchen Helper',
     'Hotel Sales Executive',
     'Hotel Operations Manager',
+    'Master chef',
   ],
   Hospitality: [
+    'Manual',
     'Front Office Executive',
     'Guest Relations Executive',
     'Reservation Executive',
@@ -183,6 +213,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Hospitality Operations Manager',
   ],
   'E-Commerce': [
+    'Manual',
     'E-Commerce Executive',
     'E-Commerce Operations Executive',
     'Order Processing Executive',
@@ -195,6 +226,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'E-Commerce Operations Manager',
   ],
   Education: [
+    'Manual',
     'Teacher',
     'Subject Matter Expert',
     'Academic Coordinator',
@@ -207,6 +239,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Academic Operations Manager',
   ],
   Healthcare: [
+    'Manual',
     'Staff Nurse',
     'Medical Assistant',
     'Hospital Receptionist',
@@ -219,6 +252,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Healthcare Operations Manager',
   ],
   'Beauty & Wellness': [
+    'Manual',
     'Beautician',
     'Hair Stylist',
     'Makeup Artist',
@@ -231,6 +265,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Salon / Spa Manager',
   ],
   'Automotive Industry': [
+    'Manual',
     'Automotive Technician',
     'Automobile Mechanic',
     'Service Advisor',
@@ -243,6 +278,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Service Center Manager',
   ],
   'Transport & Fleet Services': [
+    'Manual',
     'Fleet Manager',
     'Fleet Supervisor',
     'Transport Coordinator',
@@ -255,6 +291,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Transport Operations Manager',
   ],
   'Textile Machinery': [
+    'Manual',
     'Textile Machine Operator',
     'Machine Maintenance Technician',
     'Textile Machinery Technician',
@@ -267,6 +304,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Textile Machinery Production Supervisor',
   ],
   'Electrical Equipment': [
+    'Manual',
     'Electrical Technician',
     'Electrical Machine Operator',
     'Electrical Assembly Technician',
@@ -279,6 +317,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Electrical Equipment Service Engineer',
   ],
   'Machine Tools': [
+    'Manual',
     'CNC Machine Operator',
     'VMC Machine Operator',
     'CNC Programmer',
@@ -291,6 +330,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Machine Tools Service Engineer',
   ],
   Fertilizers: [
+    'Manual',
     'Production Operator',
     'Chemical Plant Operator',
     'Production Supervisor',
@@ -303,6 +343,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Plant Operations Manager',
   ],
   'Plastic & Polymers': [
+    'Manual',
     'Plastic Machine Operator',
     'Injection Molding Operator',
     'Extrusion Machine Operator',
@@ -315,6 +356,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Plastic Manufacturing Manager',
   ],
   'Road & Highway': [
+    'Manual',
     'Site Engineer',
     'Civil Engineer',
     'Site Supervisor',
@@ -327,6 +369,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Construction Helper',
   ],
   'Cement Industry': [
+    'Manual',
     'Production Operator',
     'Kiln Operator',
     'Cement Mill Operator',
@@ -339,6 +382,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Plant Operations Manager',
   ],
   'Media & Entertainment': [
+    'Manual',
     'Content Creator',
     'Video Editor',
     'Graphic Designer',
@@ -351,6 +395,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Media & Entertainment Manager',
   ],
   Tourism: [
+    'Manual',
     'Travel Consultant',
     'Travel Agent',
     'Tour Coordinator',
@@ -363,6 +408,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Travel Operations Manager',
   ],
   'Electric Vehicle & Battery': [
+    'Manual',
     'EV Technician',
     'EV Service Technician',
     'Battery Technician',
@@ -375,6 +421,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'EV Service & Operations Manager',
   ],
   'Electronics Manufacturing': [
+    'Manual',
     'Electronics Production Operator',
     'PCB Assembly Technician',
     'SMT Machine Operator',
@@ -387,6 +434,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Electronics Manufacturing Engineer',
   ],
   'Logistics & Warehousing': [
+    'Manual',
     'Warehouse Associate',
     'Warehouse Supervisor',
     'Logistics Executive',
@@ -399,6 +447,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Logistics Operations Manager',
   ],
   'Oil & Gas Refinery': [
+    'Manual',
     'Refinery Plant Operator',
     'Process Operator',
     'Production Supervisor',
@@ -411,6 +460,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Refinery Operations Manager',
   ],
   'Chemicals & Petrochemicals': [
+    'Manual',
     'Chemical Plant Operator',
     'Process Operator',
     'Production Supervisor',
@@ -423,6 +473,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Plant Operations Manager',
   ],
   'Steel & Metals': [
+    'Manual',
     'Steel Plant Operator',
     'Furnace Operator',
     'Rolling Mill Operator',
@@ -435,6 +486,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Plant Operations Manager',
   ],
   Telecommunication: [
+    'Manual',
     'Telecom Technician',
     'Network Technician',
     'Fiber Optic Technician',
@@ -447,6 +499,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Telecom Operations Manager',
   ],
   Agriculture: [
+    'Manual',
     'Farm Supervisor',
     'Agriculture Field Officer',
     'Farm Worker',
@@ -459,6 +512,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Agriculture Operations Manager',
   ],
   Insurance: [
+    'Manual',
     'Insurance Advisor',
     'Insurance Sales Executive',
     'Relationship Manager',
@@ -471,6 +525,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Insurance Branch Manager',
   ],
   'Textiles & Apparel': [
+    'Manual',
     'Textile Machine Operator',
     'Garment Production Operator',
     'Sewing Machine Operator',
@@ -483,6 +538,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Textile & Garment Production Manager',
   ],
   Automobile: [
+    'Manual',
     'Automobile Technician',
     'Automobile Mechanic',
     'Service Advisor',
@@ -495,6 +551,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Automobile Service Manager',
   ],
   'Construction Equipment': [
+    'Manual',
     'Heavy Equipment Operator',
     'Excavator Operator',
     'JCB Operator',
@@ -507,6 +564,7 @@ export const SUBSECTORS: Record<Sector, string[]> = {
     'Construction Equipment Operations Manager',
   ],
   Tailoring: [
+    'Manual',
     'Tailor',
     'Master Tailor',
     'Sewing Machine Operator',
@@ -525,5 +583,5 @@ export function getSectorsList(): string[] {
 }
 
 export function getSubsectorsForSector(sector: string): string[] {
-  return SUBSECTORS[sector as Sector] || [];
+  return SUBSECTORS[sector as Sector] || ['Manual'];
 }

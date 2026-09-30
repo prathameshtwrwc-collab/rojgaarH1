@@ -163,6 +163,8 @@ CREATE TABLE public.candidates (
     portfolio_url TEXT,
     website_url TEXT,
     bio TEXT,
+    industry TEXT,
+    department TEXT,
     referred_by UUID REFERENCES public.employers(id) ON DELETE SET NULL,
     referral_code_used TEXT,
     status public.candidate_status NOT NULL DEFAULT 'New',

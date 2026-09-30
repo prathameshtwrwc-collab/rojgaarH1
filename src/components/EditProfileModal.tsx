@@ -98,7 +98,16 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   };
 
   const handleSectorSelect = (sector: string) => {
-    // Check if custom option selected
+    if (sector === 'Manual') {
+      setSectorInput('Manual');
+      setIndustry('');
+      setSectorDropdownOpen(false);
+      setDeptInput('');
+      setDepartment('');
+      setFilteredDepts(['Manual']);
+      setTimeout(() => document.getElementById('dept-input')?.focus(), 50);
+      return;
+    }
     if (sector.startsWith('✏️ Custom: ')) {
       const customValue = sector.replace('✏️ Custom: ', '');
       setSectorInput(customValue);
@@ -108,12 +117,9 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       setIndustry(sector);
     }
     setSectorDropdownOpen(false);
-    // Reset department when sector changes
     setDeptInput('');
     setDepartment('');
-    // Load subsectors for selected sector (use actual sector, not custom)
-    const actualSector = sector.startsWith('✏️ Custom: ') ? '' : sector;
-    const subsectors = getSubsectorsForSector(actualSector);
+    const subsectors = getSubsectorsForSector(sector);
     setFilteredDepts(subsectors);
   };
 
@@ -134,7 +140,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   };
 
   const handleDeptSelect = (dept: string) => {
-    // Check if custom option selected
+    if (dept === 'Manual') {
+      setDeptInput('');
+      setDepartment('');
+      setDeptDropdownOpen(false);
+      setTimeout(() => document.getElementById('dept-input')?.focus(), 50);
+      return;
+    }
     if (dept.startsWith('✏️ Custom: ')) {
       const customValue = dept.replace('✏️ Custom: ', '');
       setDeptInput(customValue);
@@ -797,7 +809,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="relative">
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Industry / Sector</label>
                     <div className="relative">
-                      <input value={sectorInput} onChange={(e) => handleSectorInputChange(e.target.value)} onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }} onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)} placeholder="Type or select sector..." className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8" />
+                      <input id="sector-input" value={sectorInput} onChange={(e) => handleSectorInputChange(e.target.value)} onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }} onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)} placeholder="Type or select sector..." className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8" />
                       <button type="button" onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <svg className={`w-4 h-4 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>
@@ -813,7 +825,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="relative">
                     <label className="block text-xs font-semibold text-slate-700 mb-1">Department / Sub-Sector</label>
                     <div className="relative">
-                      <input value={deptInput} onChange={(e) => handleDeptInputChange(e.target.value)} onFocus={() => { setDeptDropdownOpen(true); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); }} onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)} placeholder={industry || sectorInput ? "Type or select department..." : "Select sector first"} disabled={!industry && !sectorInput} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8 disabled:bg-slate-50 disabled:text-slate-400" />
+                      <input id="dept-input" value={deptInput} onChange={(e) => handleDeptInputChange(e.target.value)} onFocus={() => { setDeptDropdownOpen(true); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); }} onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)} placeholder={industry || sectorInput ? "Type or select department..." : "Select sector first"} disabled={!industry && !sectorInput} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8 disabled:bg-slate-50 disabled:text-slate-400" />
                       <button type="button" onClick={() => { if (industry || sectorInput) { setDeptDropdownOpen(!deptDropdownOpen); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); } }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                         <svg className={`w-4 h-4 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>

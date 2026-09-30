@@ -5,3 +5,7 @@
 -- filled in later from the employer dashboard (with a Skip option), so
 -- company_name must be allowed to start out empty.
 ALTER TABLE public.employers ALTER COLUMN company_name DROP NOT NULL;
+
+-- Candidate profile: add industry and department columns for sector/sub-sector
+ALTER TABLE public.candidates ADD COLUMN IF NOT EXISTS industry TEXT;
+ALTER TABLE public.candidates ADD COLUMN IF NOT EXISTS department TEXT;
