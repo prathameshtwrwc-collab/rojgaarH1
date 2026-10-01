@@ -42,8 +42,8 @@ function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-[var(--navy)]">{t('contact.phone')}</h3>
-                  <p className="text-sm font-semibold text-[var(--charcoal)] mt-1">+91-1800-123-4567</p>
-                  <p className="text-xs text-[var(--charcoal)] mt-1">Toll-free, Mon–Sat 9am–6pm</p>
+                   <p className="text-sm font-semibold text-[var(--charcoal)] mt-1">+91-8693802432</p>
+                   <p className="text-xs text-[var(--charcoal)] mt-1">Toll-free, Mon–Sat 9am–6pm</p>
                 </div>
               </div>
 
@@ -66,7 +66,7 @@ function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-[var(--navy)]">{t('contact.address')}</h3>
-                  <p className="text-sm font-semibold text-[var(--charcoal)] mt-1 leading-relaxed">42, Rajiv Gandhi Nagar<br />Jaipur, Rajasthan 302015</p>
+                   <p className="text-sm font-semibold text-[var(--charcoal)] mt-1 leading-relaxed">58, Safed Pool, Andheri - Kurla Road, Sakinaka, Mumbai - 400072</p>
                 </div>
               </div>
 
