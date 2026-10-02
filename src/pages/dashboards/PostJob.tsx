@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, QrCode } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createJobPosting, setJobSkills } from '../../lib/supabase/data';
+import { Button } from '../../components/ui';
 
 export default function PostJob() {
   const { employer, refresh } = useDatabase();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingJobData, setPendingJobData] = useState<any>(null);
+  const [upiTransactionId, setUpiTransactionId] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const [form, setForm] = useState({
     jobTitle: '',
@@ -53,43 +59,69 @@ export default function PostJob() {
       return;
     }
 
-    setLoading(true);
+    const jobData = {
+      employer_id: employer.id,
+      job_title: form.jobTitle,
+      number_of_openings: parseInt(form.numberOfOpenings) || 1,
+      city: form.city,
+      state: form.state,
+      salary_min: form.salaryMin ? Number(form.salaryMin) : null,
+      salary_max: form.salaryMax ? Number(form.salaryMax) : null,
+      employment_type: form.employmentType as any,
+      qualification_required: form.qualificationRequired,
+      experience_min_years: form.experienceMinYears ? Number(form.experienceMinYears) : null,
+      experience_max_years: form.experienceMaxYears ? Number(form.experienceMaxYears) : null,
+      job_description: form.jobDescription,
+      benefits: form.benefits || null,
+      joining_timeline: form.joiningTimeline || null,
+      working_hours: form.workingHours || null,
+      accommodation_provided: form.accommodationProvided,
+      transportation_provided: form.transportationProvided,
+      deadline: form.deadline || null,
+      recruiter_name: form.recruiterName || null,
+      recruiter_email: form.recruiterEmail || null,
+      recruiter_phone: form.recruiterPhone || null,
+      status: 'Pending',
+      is_verified: false,
+      payment_status: 'pending',
+      amount_paid: 500,
+      upi_id: '8422976666-2@ybl',
+    };
+
+    setPendingJobData(jobData);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentConfirm = async () => {
+    if (!upiTransactionId.trim()) {
+      setError('Please enter your UPI transaction ID.');
+      return;
+    }
+
+    setProcessingPayment(true);
+    setError('');
+
     try {
+      const jobData = pendingJobData as any;
       const job = await createJobPosting({
-        employer_id: employer.id,
-        job_title: form.jobTitle,
-        number_of_openings: parseInt(form.numberOfOpenings) || 1,
-        city: form.city,
-        state: form.state,
-        salary_min: form.salaryMin ? Number(form.salaryMin) : null,
-        salary_max: form.salaryMax ? Number(form.salaryMax) : null,
-        employment_type: form.employmentType as any,
-        qualification_required: form.qualificationRequired,
-        experience_min_years: form.experienceMinYears ? Number(form.experienceMinYears) : null,
-        experience_max_years: form.experienceMaxYears ? Number(form.experienceMaxYears) : null,
-        job_description: form.jobDescription,
-        benefits: form.benefits || null,
-        joining_timeline: form.joiningTimeline || null,
-        working_hours: form.workingHours || null,
-        accommodation_provided: form.accommodationProvided,
-        transportation_provided: form.transportationProvided,
-        deadline: form.deadline || null,
-        recruiter_name: form.recruiterName || null,
-        recruiter_email: form.recruiterEmail || null,
-        recruiter_phone: form.recruiterPhone || null,
-        status: 'Pending',
-        is_verified: false,
+        ...jobData,
+        upi_transaction_id: upiTransactionId.trim(),
+        payment_status: 'paid',
+        paid_at: new Date().toISOString(),
       } as any);
 
       const skills = form.skills.split(',').map(s => s.trim()).filter(Boolean);
       if (skills.length > 0) await setJobSkills((job as any).id, skills);
 
       await refresh();
-      navigate('/dashboard/employer', { replace: true });
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard/employer', { replace: true });
+      }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create job posting');
+      setError(err instanceof Error ? err.message : 'Failed to process payment');
     } finally {
-      setLoading(false);
+      setProcessingPayment(false);
     }
   };
 
@@ -110,7 +142,7 @@ export default function PostJob() {
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-[var(--navy)]">Post a New Job</h1>
-              <p className="text-xs text-[var(--charcoal)]">Submitted jobs go live after admin approval.</p>
+              <p className="text-xs text-[var(--charcoal)]">A ₹500 job posting fee applies. Your job will be live after payment verification.</p>
             </div>
           </div>
 
@@ -236,11 +268,85 @@ export default function PostJob() {
               disabled={loading}
               className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Posting Job...' : 'Submit Job for Approval'}
+              {loading ? 'Processing...' : 'Proceed to Payment — ₹500'}
             </button>
           </form>
         </div>
       </div>
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => !processingPayment && !paymentSuccess && setShowPaymentModal(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md overflow-hidden z-10 animate-fade-in">
+            {paymentSuccess ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <CheckCircle size={32} />
+                </div>
+                <h3 className="text-xl font-extrabold text-[var(--navy)] mb-2">Payment Successful!</h3>
+                <p className="text-sm text-[var(--charcoal)] mb-4">Your job posting has been submitted and is now pending admin approval. We'll notify you once it's live.</p>
+                <div className="flex items-center justify-center gap-2 text-sm text-[var(--orange)] font-semibold">
+                  <Clock size={16} /> Redirecting to dashboard...
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="relative text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[var(--orange)] rounded-xl flex items-center justify-center">
+                      <QrCode size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-extrabold">Complete Payment</h3>
+                      <p className="text-xs text-white/70">Scan QR or use UPI ID to pay</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 space-y-5">
+                  <div className="flex flex-col items-center">
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=8422976666-2@ybl&pn=RojgaarHai&am=500&cu=INR`)}`}
+                        alt="UPI QR Code"
+                        width={180}
+                        height={180}
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">UPI ID</p>
+                      <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
+                    </div>
+                    <div className="mt-3 text-center">
+                      <p className="text-2xl font-extrabold text-[var(--navy)]">₹500</p>
+                      <p className="text-xs text-[var(--charcoal)]">Job posting fee (one-time)</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelClass}>Enter UPI Transaction ID *</label>
+                    <input
+                      value={upiTransactionId}
+                      onChange={e => setUpiTransactionId(e.target.value)}
+                      placeholder="e.g. TXN123456789"
+                      className={inputClass}
+                      disabled={processingPayment}
+                    />
+                    <p className="text-[11px] text-[var(--charcoal)]">Find this in your UPI app after completing the payment.</p>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="ghost" onClick={() => setShowPaymentModal(false)} disabled={processingPayment} className="flex-1">Cancel</Button>
+                    <Button variant="primary" onClick={handlePaymentConfirm} disabled={processingPayment} className="flex-1 bg-[var(--orange)]">
+                      {processingPayment ? 'Verifying...' : 'Proceed'}
+                    </Button>
+                  </div>
+                </div>
+              </>
+              )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

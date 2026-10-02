@@ -104,6 +104,23 @@ export default function JobApprovals() {
     }
   };
 
+  const handleVerifyPayment = async (job: any) => {
+    setBusyJobId(job.id);
+    try {
+      await updateJobPosting(job.id, {
+        payment_status: 'verified',
+        payment_verified: true,
+        payment_verified_at: new Date().toISOString(),
+        payment_verified_by: user?.id || null,
+      } as any);
+      await refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to verify payment.');
+    } finally {
+      setBusyJobId(null);
+    }
+  };
+
   const handlePostJob = async () => {
     if (!form.employerId || !form.jobTitle || !form.jobDescription || !form.city || !form.state || !user) return;
     setSaving(true);
@@ -178,6 +195,7 @@ export default function JobApprovals() {
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Location</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden md:table-cell">Salary</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3">Status</th>
+                <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Payment</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -198,6 +216,24 @@ export default function JobApprovals() {
                     <span className="flex items-center gap-1"><IndianRupee size={12} /> {Number(job.salary_min || 0).toLocaleString()}-{Number(job.salary_max || 0).toLocaleString()}</span>
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[job.status]}>{job.status}</Badge></td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={job.payment_status === 'verified' ? 'success' : job.payment_status === 'paid' ? 'warning' : 'default'} className="text-[10px] w-fit">
+                        {job.payment_status === 'verified' ? 'Payment Verified' : job.payment_status === 'paid' ? 'Payment Pending' : 'No Payment'}
+                      </Badge>
+                      {job.payment_status === 'paid' && (
+                        <button
+                          size="sm"
+                          variant="success"
+                          disabled={busyJobId === job.id}
+                          onClick={() => handleVerifyPayment(job)}
+                          className="text-[10px] w-fit"
+                        >
+                          Verify Payment
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <Link to={`/admin/jobs/${job.id}`}>
