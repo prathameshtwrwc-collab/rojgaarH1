@@ -5,6 +5,7 @@ import Reveal from '../components/Reveal';
 import AnimatedCounter from '../components/AnimatedCounter';
 import RoleChooserModal from '../components/RoleChooserModal';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import { Download } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
 const testimonialCards = [
@@ -32,6 +33,7 @@ function Landing() {
   const [activeCard, setActiveCard] = useState(1);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
   const [lang, setLang] = useState(i18n.language);
+  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<Event | null>(null);
 
   useEffect(() => {
     const onScroll = () => setAtTop(window.scrollY === 0);
@@ -50,6 +52,37 @@ function Landing() {
       i18n.off('languageChanged', handleLanguageChanged);
     };
   }, [i18n]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setPwaInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handlePwaInstall = async () => {
+    if (!pwaInstallPrompt) return;
+    const promptEvent = pwaInstallPrompt as any;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'accepted') {
+      setPwaInstallPrompt(null);
+    }
+  };
+
+  const handleGetAppClick = async () => {
+    if (pwaInstallPrompt) {
+      await handlePwaInstall();
+    } else {
+      window.open(window.location.href, '_blank');
+    }
+  };
 
   return (
     <div data-lang={lang}>
@@ -70,12 +103,17 @@ function Landing() {
                <Link to="/jobs" className="nav-link">{t('landing.nav.applyForJobs')}</Link>
              </nav>
 
-             <LanguageSwitcher />
+              <LanguageSwitcher />
 
-             <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
-               <span>{t('landing.getStarted')}</span>
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-             </button>
+              <button onClick={handleGetAppClick} className="btn-header-cta">
+                <span>Get App</span>
+                <Download size={16} />
+              </button>
+
+              <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
+                <span>{t('landing.getStarted')}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
 
              <button
                className="menu-toggle"
@@ -96,6 +134,9 @@ function Landing() {
             <Link to="/contact" onClick={() => setMenuOpen(false)}>{t('landing.nav.contact')}</Link>
             <Link to="/jobs" onClick={() => setMenuOpen(false)}>{t('landing.nav.applyForJobs')}</Link>
               <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">{t('landing.getStarted')}</button>
+              <button onClick={() => { setMenuOpen(false); handleGetAppClick(); }} className="mobile-nav-cta" style={{ background: '#101A36' }}>
+                Get App
+              </button>
           </nav>
         )}
       </header>
