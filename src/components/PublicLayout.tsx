@@ -103,9 +103,9 @@ function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
 
             {/* Right-grouped nav + actions (matches landing page .header-right) */}
-            <div className="hidden md:flex items-center gap-[30px]">
+            <div className="hidden md:flex items-center gap-4">
             {/* Desktop Nav Links */}
-            <nav className="flex items-center gap-[30px]" aria-label="Primary">
+            <nav className="flex items-center gap-4" aria-label="Primary">
               {navLinks.map(link => (
                 <Link
                   key={link.to}
@@ -118,11 +118,11 @@ function PublicLayout({ children }: { children: ReactNode }) {
             </nav>
 
               {/* Desktop Actions */}
-              <div className="flex items-center gap-[10px]">
+              <div className="flex items-center gap-2">
                 <LanguageSwitcher />
                 <button
                   onClick={handleGetAppClick}
-                  className="inline-flex items-center justify-center h-[40px] px-[18px] bg-[var(--navy)] text-white text-[13px] font-bold rounded-[999px] border-0 cursor-pointer transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_6px_16px_rgba(16,26,54,0.18)] gap-2"
+                  className="inline-flex items-center justify-center h-[40px] px-[18px] bg-[var(--navy)] text-white text-[13px] font-bold rounded-[999px] border-0 cursor-pointer transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_6px_16px_rgba(16,26,54,0.18)] gap-2 flex-shrink-0"
                 >
                   <Download size={16} /> Get App
                 </button>
@@ -191,9 +191,15 @@ function PublicLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-            {/* Mobile-only language switcher */}
-            <div className="md:hidden">
+            {/* Mobile-only language switcher + get app */}
+            <div className="md:hidden flex items-center gap-2">
               <LanguageSwitcher />
+              <button
+                onClick={handleGetAppClick}
+                className="inline-flex items-center justify-center h-[36px] px-3 bg-[var(--navy)] text-white text-[11px] font-bold rounded-full border-0 cursor-pointer"
+              >
+                <Download size={14} /> Get App
+              </button>
             </div>
 
             {/* Mobile menu toggle */}
