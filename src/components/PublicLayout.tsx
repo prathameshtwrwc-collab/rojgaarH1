@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Users, Building2, ChevronDown, UserSearch } from 'lucide-react';
+import { Menu, X, Users, Building2, ChevronDown, UserSearch, Download } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import RoleChooserModal from './RoleChooserModal';
@@ -12,6 +12,7 @@ function PublicLayout({ children }: { children: ReactNode }) {
   const [adminDropdown, setAdminDropdown] = useState(false);
   const [isHeaderTransparent, setIsHeaderTransparent] = useState(false);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
+  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<Event | null>(null);
   const { t } = useAppTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +45,29 @@ function PublicLayout({ children }: { children: ReactNode }) {
     window.addEventListener('scroll', updateHeader, { passive: true });
     return () => window.removeEventListener('scroll', updateHeader);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setPwaInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handlePwaInstall = async () => {
+    if (!pwaInstallPrompt) return;
+    const promptEvent = pwaInstallPrompt as any;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'accepted') {
+      setPwaInstallPrompt(null);
+    }
+  };
 
   const navLinks = [
     { to: '/', label: t('nav.home') },
@@ -88,6 +112,14 @@ function PublicLayout({ children }: { children: ReactNode }) {
              {/* Desktop Actions */}
              <div className="flex items-center gap-[10px]">
                <LanguageSwitcher />
+               {pwaInstallPrompt && (
+                 <button
+                   onClick={handlePwaInstall}
+                   className="inline-flex items-center justify-center h-[40px] px-[18px] bg-[var(--navy)] text-white text-[13px] font-bold rounded-[999px] border-0 cursor-pointer transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_6px_16px_rgba(16,26,54,0.18)] gap-2"
+                 >
+                   <Download size={16} /> Get App
+                 </button>
+               )}
                {displayUser && userRole ? (
                 <div className="flex items-center gap-[10px]">
                   {userRole === 'candidate' && (
@@ -185,6 +217,14 @@ function PublicLayout({ children }: { children: ReactNode }) {
                 <div className="py-1">
                   <LanguageSwitcher />
                 </div>
+                {pwaInstallPrompt && (
+                  <button
+                    onClick={handlePwaInstall}
+                    className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full border-0 cursor-pointer"
+                  >
+                    <Download size={16} /> Get App
+                  </button>
+                )}
                 {!displayUser && (
                   <button
                     onClick={() => { setMobileOpen(false); setShowRoleChooser(true); }}
