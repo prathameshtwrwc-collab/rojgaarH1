@@ -741,9 +741,11 @@ html.lenis, html.lenis body {
     padding: 0 14px;
   }
 
-  /* Avoid horizontal viewport overflow from any wide inline layout */
+  /* Avoid horizontal viewport overflow without creating a scroll container
+     (overflow-x:hidden would trap page scrolling and break the sticky header) */
   .dash-shell {
     overflow-x: hidden;
+    overflow-x: clip;
   }
 }
 
@@ -755,7 +757,12 @@ html.lenis, html.lenis body {
   .dash-shell,
   .dash-container {
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: contain;
+  }
+
+  .dash-shell {
+    overflow-x: hidden;
+    overflow-x: clip;
+    min-height: 100%;
   }
 
   .dash-container {
