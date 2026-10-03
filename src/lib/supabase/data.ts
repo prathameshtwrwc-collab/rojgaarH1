@@ -1101,7 +1101,11 @@ export async function getCvRequestsByEmployer(employerId: string): Promise<any[]
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
-  } catch (err) {
+  } catch (err: any) {
+    const status = err?.status || err?.code;
+    if (status === '404' || status === 'PGRST204' || status === '42P01') {
+      return [];
+    }
     console.error('Error fetching cv requests:', err);
     return [];
   }

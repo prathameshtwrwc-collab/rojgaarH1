@@ -292,10 +292,6 @@ function EmployerDashboard() {
 
   const employer = mappedEmployer;
 
-  const hasRequestedCv = useMemo(() => {
-    return cvRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
-  }, [cvRequests, employer]);
-
   const toggleExpandJob = (jobId: string) => {
     if (expandedJobIds.includes(jobId)) {
       setExpandedJobIds(expandedJobIds.filter(id => id !== jobId));
@@ -1033,11 +1029,11 @@ function EmployerDashboard() {
                                            >
                                              <Star size={12} className="mr-1" /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
                                            </Button>
-                                           {!hasRequestedCv && (
-                                             <Button size="sm" variant="primary" onClick={() => handleOpenCvRequestModal(cvPlans[0])} className="text-xs">
-                                               <FileText size={12} className="mr-1" /> Request CV
-                                             </Button>
-                                           )}
+                                            {!cvRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled') && (
+                                              <Button size="sm" variant="primary" onClick={() => handleOpenCvRequestModal(cvPlans[0])} className="text-xs">
+                                                <FileText size={12} className="mr-1" /> Request CV
+                                              </Button>
+                                            )}
                                            <button onClick={(e) => handleCandidateAction('Reject', applicant, e)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg" title="Reject">
                                              <XCircle size={16} />
                                            </button>
@@ -1402,7 +1398,7 @@ function EmployerDashboard() {
       </Modal>
 
       {/* ═══ REQUESTED CVs SECTION ═══ */}
-      {hasRequestedCv && (
+      {cvRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled') && (
         <div className="dash-surface dash-surface--pad">
           <div className="dash-section-title mb-4">Your Resume Requests</div>
           <div className="space-y-3">
