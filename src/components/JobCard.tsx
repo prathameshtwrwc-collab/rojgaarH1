@@ -92,7 +92,7 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
   ) : (
     <button
       onClick={e => onApply(job, e)}
-      className="dash-btn dash-btn-primary dash-btn--compact flex-shrink-0 whitespace-nowrap"
+      className="dash-btn dash-btn-primary dash-btn--compact w-full sm:w-auto flex-shrink-0 whitespace-nowrap"
     >
       Apply Now <ArrowRight size={13} />
     </button>
@@ -101,11 +101,11 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
   const metaLine = (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-[var(--charcoal)] font-medium">
       <span className="inline-flex items-center gap-1"><MapPin size={12} className="text-slate-400" />{job.city}{job.state ? `, ${job.state}` : ''}</span>
-      <span className="text-[#D8D2C6]">·</span>
+      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
       <span className="font-bold text-[var(--green)] inline-flex items-center gap-0.5"><IndianRupee size={11} />{money(job.salaryMin)}–{money(job.salaryMax)}/mo</span>
-      <span className="text-[#D8D2C6]">·</span>
+      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
       <span>{job.employmentType}</span>
-      <span className="text-[#D8D2C6]">·</span>
+      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
       <span>{job.experienceRequired}</span>
     </div>
   );
@@ -166,19 +166,21 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
           )}
         </div>
 
-        <div className="px-5 py-3.5 border-t border-[#EFEAE1] flex items-center justify-between gap-2">
-          <span className="text-[11px] text-slate-400 inline-flex items-center gap-1">
-            <Users size={12} /> {job.numberOfOpenings} openings · {timeAgo(job.createdAt)}
+        <div className="px-5 py-3.5 border-t border-[#EFEAE1] flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 min-w-0">
+            <Users size={12} className="flex-shrink-0" /> {job.numberOfOpenings} openings · {timeAgo(job.createdAt)}
           </span>
-          {ApplyButton}
+          <div className="w-full sm:w-auto">{ApplyButton}</div>
         </div>
       </div>
     );
   }
 
+  // Phone: logo + details on top, a full-width footer with Save and Apply below.
+  // Desktop (sm+): one row, Save and Apply on the right.
   return (
-    <div className="dash-row px-4 sm:px-5 py-4 items-start sm:items-center flex-col sm:flex-row gap-3">
-      <div className="flex items-start gap-3.5 min-w-0 w-full sm:w-auto sm:flex-1">
+    <div className="px-4 py-4 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 hover:bg-[var(--bg-warm)] transition-colors">
+      <div className="flex items-start gap-3 min-w-0 sm:flex-1">
         <div className="dash-avatar flex-shrink-0">{job.companyName.charAt(0)}</div>
         <div className="min-w-0 flex-1">
           {titleRow}
@@ -186,6 +188,11 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
             {job.companyName}
           </p>
           <div className="mt-1.5">{metaLine}</div>
+          {matchScore != null && (
+            <p className={`sm:hidden inline-flex items-center mt-2 px-2 py-0.5 rounded-md border text-[11px] font-extrabold ${matchColor}`}>
+              {matchScore}% match for you
+            </p>
+          )}
           {skillsRow}
         </div>
 
@@ -197,13 +204,13 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
         )}
       </div>
 
-      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0 justify-between sm:justify-end pl-[52px] sm:pl-0 min-w-0">
+      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0 min-w-0">
         <span className="text-[11px] text-slate-400 hidden md:inline-flex items-center gap-1 mr-1 min-w-0 max-w-[150px] truncate">
           <GraduationCap size={12} className="flex-shrink-0" />
           <span className="truncate">{job.qualificationRequired || 'Any'} · {timeAgo(job.createdAt)}</span>
         </span>
         {SaveButton}
-        {ApplyButton}
+        <div className="flex-1 sm:flex-none min-w-0 flex justify-end">{ApplyButton}</div>
       </div>
     </div>
   );

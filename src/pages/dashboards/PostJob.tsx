@@ -4,9 +4,14 @@ import { ArrowLeft, Briefcase, CheckCircle, Clock, QrCode, Info } from 'lucide-r
 import { useDatabase } from '../../context/DatabaseContext';
 import { createJobPosting, setJobSkills } from '../../lib/supabase/data';
 import { Button } from '../../components/ui';
+import { SkillTagInput } from '../../components/SkillTagInput';
+import { SECTORS, getSubsectorsForSector } from '../../constants/sectors';
+import { skillsForSubsector, allTaxonomySkills } from '../../constants/skills';
 import { PayFromUpiButton, PaymentBreakdown, TransactionIdGuide, CopyUpiId, isValidTxnId, PaymentSteps, SecureNote, UPI_VPA, gstFor } from '../../components/UpiPaymentPanel';
 
 const JOB_FEE = gstFor(500);
+
+const ALL_ROLES = Array.from(new Set(SECTORS.flatMap(s => getSubsectorsForSector(s)))).sort((a, b) => a.localeCompare(b));
 
 export default function PostJob() {
   const { employer, refresh } = useDatabase();
@@ -36,12 +41,17 @@ export default function PostJob() {
     workingHours: '',
     accommodationProvided: false,
     transportationProvided: false,
-    skills: '',
+    sector: '',
+    subsector: '',
+    skills: [] as string[],
     deadline: '',
     recruiterName: employer?.contact_name || '',
     recruiterEmail: employer?.contact_email || '',
     recruiterPhone: employer?.contact_phone || '',
   });
+
+  // Role suggestions follow the typed sector when it is a known one; otherwise every role is offered.
+  const roleOptions = SECTORS.includes(form.sector as (typeof SECTORS)[number]) ? getSubsectorsForSector(form.sector) : ALL_ROLES;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -57,7 +67,7 @@ export default function PostJob() {
       setError('Employer profile not loaded yet. Please try again in a moment.');
       return;
     }
-    if (!form.jobTitle || !form.jobDescription || !form.city || !form.state || !form.qualificationRequired) {
+    if (!form.jobTitle || !form.jobDescription || !form.city || !form.state || !form.qualificationRequired || !form.sector.trim() || !form.subsector.trim()) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -65,6 +75,8 @@ export default function PostJob() {
     const jobData = {
       employer_id: employer.id,
       job_title: form.jobTitle,
+      sector: form.sector.trim(),
+      subsector: form.subsector.trim(),
       number_of_openings: parseInt(form.numberOfOpenings) || 1,
       city: form.city,
       state: form.state,
@@ -117,8 +129,7 @@ export default function PostJob() {
         paid_at: new Date().toISOString(),
       } as any);
 
-      const skills = form.skills.split(',').map(s => s.trim()).filter(Boolean);
-      if (skills.length > 0) await setJobSkills((job as any).id, skills);
+      if (form.skills.length > 0) await setJobSkills((job as any).id, form.skills);
 
       await refresh();
       setPaymentSuccess(true);
@@ -132,17 +143,17 @@ export default function PostJob() {
     }
   };
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent";
+  const inputClass = "w-full px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 text-sm min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent";
   const labelClass = "block text-sm font-semibold text-[var(--navy)] mb-1.5";
 
   return (
-    <div className="min-h-screen bg-[var(--bg-warm)] px-4 py-10" style={{ fontFamily: 'var(--font)' }}>
+    <div className="post-job-page min-h-screen bg-[var(--bg-warm)] px-3 py-5 sm:px-4 sm:py-10" style={{ fontFamily: 'var(--font)' }}>
       <div className="max-w-2xl mx-auto">
         <Link to="/dashboard/employer" className="inline-flex items-center gap-2 text-sm text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
           <ArrowLeft size={16} /> Back to Dashboard
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-[var(--orange)]/10 text-[var(--orange)] rounded-xl flex items-center justify-center">
               <Briefcase size={20} />
@@ -163,7 +174,7 @@ export default function PostJob() {
               <input name="jobTitle" value={form.jobTitle} onChange={handleChange} required className={inputClass} placeholder="e.g. CNC Machine Operator" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Number of Openings</label>
                 <input name="numberOfOpenings" type="number" min={1} value={form.numberOfOpenings} onChange={handleChange} className={inputClass} />
@@ -181,7 +192,7 @@ export default function PostJob() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>City *</label>
                 <input name="city" value={form.city} onChange={handleChange} required className={inputClass} placeholder="e.g. Pune" />
@@ -192,7 +203,7 @@ export default function PostJob() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Salary Min (₹/month)</label>
                 <input name="salaryMin" type="number" value={form.salaryMin} onChange={handleChange} className={inputClass} placeholder="15000" />
@@ -208,7 +219,7 @@ export default function PostJob() {
               <input name="qualificationRequired" value={form.qualificationRequired} onChange={handleChange} required className={inputClass} placeholder="e.g. ITI, 12th Pass, B.Tech" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Min Experience (years)</label>
                 <input name="experienceMinYears" type="number" min={0} value={form.experienceMinYears} onChange={handleChange} className={inputClass} />
@@ -224,17 +235,38 @@ export default function PostJob() {
               <textarea name="jobDescription" value={form.jobDescription} onChange={handleChange} required rows={4} className={inputClass} placeholder="Describe the role, duties, and expectations..." />
             </div>
 
-            <div>
-              <label className={labelClass}>Required Skills (comma-separated)</label>
-              <input name="skills" value={form.skills} onChange={handleChange} className={inputClass} placeholder="e.g. Welding, Tally, MS Excel" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Industry / Sector *</label>
+                <input name="sector" value={form.sector} onChange={handleChange} required list="sector-options" autoComplete="off" className={inputClass} placeholder="Type or pick a sector" />
+                <datalist id="sector-options">
+                  {SECTORS.map(s => <option key={s} value={s} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className={labelClass}>Role / Subsector *</label>
+                <input name="subsector" value={form.subsector} onChange={handleChange} required list="subsector-options" autoComplete="off" className={inputClass} placeholder="Type or pick a role" />
+                <datalist id="subsector-options">
+                  {roleOptions.map(s => <option key={s} value={s} />)}
+                </datalist>
+              </div>
             </div>
+
+            <SkillTagInput
+              label="Required Skills"
+              value={form.skills}
+              onChange={skills => setForm(prev => ({ ...prev, skills }))}
+              suggestions={form.sector && form.subsector ? skillsForSubsector(form.sector, form.subsector) : allTaxonomySkills()}
+              placeholder="Type a skill, then comma or Enter"
+              hint="Separate skills with a comma or press Enter. Tap a suggestion to add it."
+            />
 
             <div>
               <label className={labelClass}>Benefits</label>
               <input name="benefits" value={form.benefits} onChange={handleChange} className={inputClass} placeholder="e.g. PF, ESI, annual bonus" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Joining Timeline</label>
                 <input name="joiningTimeline" value={form.joiningTimeline} onChange={handleChange} className={inputClass} placeholder="e.g. Immediate" />
@@ -273,7 +305,7 @@ export default function PostJob() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full min-h-[50px] sm:h-[50px] px-4 py-3 leading-tight text-[15px] sm:text-base bg-[var(--orange)] text-white font-bold rounded-2xl sm:rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Proceed to Payment — ₹590 (incl. GST)'}
             </button>
@@ -298,7 +330,7 @@ export default function PostJob() {
               </div>
             ) : (
               <>
-                <div className="relative flex-shrink-0 text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
+                <div className="ui-modal-header relative flex-shrink-0 text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[var(--orange)] rounded-xl flex items-center justify-center">
                       <QrCode size={20} />
@@ -310,7 +342,7 @@ export default function PostJob() {
                   </div>
                   <div className="mt-4"><PaymentSteps step={upiTransactionId.trim() ? 2 : 1} /></div>
                 </div>
-                <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-5">
+                <div data-lenis-prevent className="ui-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-5">
                   <PaymentBreakdown base={JOB_FEE.base} gst={JOB_FEE.gst} total={JOB_FEE.total} label="Job posting fee (one-time)" />
 
                   <div className="flex flex-col items-center gap-2">

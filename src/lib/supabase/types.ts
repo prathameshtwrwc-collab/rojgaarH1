@@ -256,6 +256,8 @@ export interface Database {
           approved_by: string | null;
           approved_at: string | null;
           deadline: string | null;
+          sector: string | null;
+          subsector: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -289,6 +291,8 @@ export interface Database {
           approved_by?: string | null;
           approved_at?: string | null;
           deadline?: string | null;
+          sector?: string | null;
+          subsector?: string | null;
           created_at?: string;
           updated_at?: string;
         };

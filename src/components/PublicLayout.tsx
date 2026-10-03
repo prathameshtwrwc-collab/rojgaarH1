@@ -93,6 +93,8 @@ function PublicLayout({ children }: { children: ReactNode }) {
 
   const displayUser = user || (isCandidateLoggedIn ? { role: 'candidate', fullName: loggedCandidate?.firstName } : null) || (isEmployerLoggedIn ? { role: 'employer', fullName: loggedEmployer?.companyName } : null);
   const userRole = user?.role || (isCandidateLoggedIn ? 'candidate' : isEmployerLoggedIn ? 'employer' : null);
+  const dashboardPath = userRole === 'employer' ? '/dashboard/employer' : userRole === 'recruiter' ? '/dashboard/recruiter' : userRole === 'superadmin' ? '/admin' : '/dashboard/candidate';
+  const isSignedIn = Boolean(displayUser && userRole);
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-warm)]" style={{ fontFamily: "var(--font)" }}>
@@ -196,15 +198,24 @@ function PublicLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-            {/* Mobile-only language switcher + get app */}
+            {/* Mobile-only: language, then My Dashboard when signed in (otherwise Get App) */}
             <div className="md:hidden flex items-center gap-2">
               <LanguageSwitcher />
-              <button
-                onClick={handleGetAppClick}
-                className="inline-flex items-center justify-center h-[36px] px-3 bg-[var(--navy)] text-white text-[11px] font-bold rounded-full border-0 cursor-pointer"
-              >
-                <Download size={14} /> Get App
-              </button>
+              {isSignedIn ? (
+                <Link
+                  to={dashboardPath}
+                  className="inline-flex items-center justify-center h-[36px] px-3 bg-[var(--orange)] text-white text-[11px] font-bold rounded-full no-underline whitespace-nowrap"
+                >
+                  My Dashboard
+                </Link>
+              ) : (
+                <button
+                  onClick={handleGetAppClick}
+                  className="inline-flex items-center justify-center h-[36px] px-3 bg-[var(--navy)] text-white text-[11px] font-bold rounded-full border-0 cursor-pointer"
+                >
+                  <Download size={14} /> Get App
+                </button>
+              )}
             </div>
 
             {/* Mobile menu toggle */}

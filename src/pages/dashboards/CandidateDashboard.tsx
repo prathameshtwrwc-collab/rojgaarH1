@@ -47,6 +47,23 @@ function downloadInterviewIcs(interview: { role: string; company: string; date: 
   URL.revokeObjectURL(url);
 }
 
+const APPLICATION_STAGES = ['Applied', 'Viewed', 'Shortlisted', 'Interview', 'Offer'];
+
+/** Maps a database application status to a progress step (1-5) and whether the application is closed. */
+function applicationStep(status: string): { step: number; label: string; closed: boolean } {
+  switch (status) {
+    case 'screening': return { step: 2, label: 'Under Review', closed: false };
+    case 'shortlisted': return { step: 3, label: 'Shortlisted', closed: false };
+    case 'interview_scheduled': return { step: 4, label: 'Interview Scheduled', closed: false };
+    case 'interviewed': return { step: 4, label: 'Interviewed', closed: false };
+    case 'selected': return { step: 5, label: 'Offer Received', closed: false };
+    case 'joined': return { step: 5, label: 'Joined', closed: false };
+    case 'rejected': return { step: 0, label: 'Not Selected', closed: true };
+    case 'withdrawn': return { step: 0, label: 'Withdrawn', closed: true };
+    default: return { step: 1, label: 'Applied', closed: false };
+  }
+}
+
 function CandidateDashboard() {
   const { candidate, profile, jobs, matches, applications, employers, jobSkills, loading, refresh } = useDatabase();
   const { user, logout } = useAuth();
@@ -97,6 +114,18 @@ function CandidateDashboard() {
   const appliedJobs = useMemo(() => {
     return displayJobs.filter(j => appliedJobIds.has(j.id));
   }, [displayJobs, appliedJobIds]);
+
+  const applicationRows = useMemo(() => {
+    const byId = new Map(displayJobs.map(j => [j.id, j]));
+    return applications
+      .map(app => ({ app, job: byId.get(app.job_id) }))
+      .filter((r): r is { app: (typeof applications)[number]; job: (typeof displayJobs)[number] } => Boolean(r.job));
+  }, [applications, displayJobs]);
+
+  const scrollToSection = (id: string, emptyMessage: string | null) => {
+    if (emptyMessage) setToastMessage(emptyMessage);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const [candidateStatus, setCandidateStatus] = useState<'Open to Work' | 'Interviewing' | 'Placed' | 'Actively Looking'>('Open to Work');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -318,7 +347,7 @@ function CandidateDashboard() {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 animate-fade-in">
+              <div className="dash-notif-panel absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] sm:w-96 bg-[var(--white)] rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 animate-fade-in">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h4 className="font-bold text-[var(--navy)] text-sm flex items-center gap-2">
                     <Bell size={16} className="text-[var(--orange)]" /> Notifications
@@ -374,25 +403,33 @@ function CandidateDashboard() {
           </div>
           <div className="self-start">
             <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--charcoal)] block mb-1.5">Availability</label>
-            <select
-              value={candidateStatus}
-              onChange={async e => {
-                const value = e.target.value;
-                setCandidateStatus(value as any);
-                try {
-                  await updateCandidateStatus(candidate.id, value);
-                  setToastMessage(`Status updated to "${value}"`);
-                } catch (err) {
-                  setToastMessage('Failed to update status.');
-                }
-              }}
-              className="h-10 px-3 rounded-[10px] border border-[#D8D2C6] bg-white text-[var(--navy)] font-bold text-[13px] cursor-pointer"
-            >
-              <option value="Open to Work">Open to Work</option>
-              <option value="Interviewing">Interviewing</option>
-              <option value="Actively Looking">Actively Looking</option>
-              <option value="Placed">Placed</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={candidateStatus}
+                onChange={async e => {
+                  const value = e.target.value;
+                  setCandidateStatus(value as any);
+                  try {
+                    await updateCandidateStatus(candidate.id, value);
+                    setToastMessage(`Status updated to "${value}"`);
+                  } catch (err) {
+                    setToastMessage('Failed to update status.');
+                  }
+                }}
+                className="h-10 px-3 rounded-[10px] border border-[#D8D2C6] bg-white text-[var(--navy)] font-bold text-[13px] cursor-pointer"
+              >
+                <option value="Open to Work">Open to Work</option>
+                <option value="Interviewing">Interviewing</option>
+                <option value="Actively Looking">Actively Looking</option>
+                <option value="Placed">Placed</option>
+              </select>
+              <Link
+                to="/jobs"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[var(--orange)] hover:bg-[#d94d1a] text-white font-bold text-[13px] whitespace-nowrap no-underline shadow-md shadow-orange-600/25 transition-colors"
+              >
+                <Search size={15} /> Search Jobs
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -428,16 +465,16 @@ function CandidateDashboard() {
           <span>{Math.round(myMatches.reduce((acc, m) => acc + m.matchScore, 0) / (myMatches.length || 1))}% Avg Match Score</span>
         </div>
 
-        <div className="flex flex-wrap gap-2 dash-chip-row">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           {[
             { label: 'Complete Profile', icon: <CheckSquare size={15} />, action: () => setShowEditProfileModal(true) },
             { label: 'Upload Resume', icon: <Upload size={15} />, action: () => setShowResumeModal(true) },
             { label: 'Browse Jobs', icon: <Search size={15} />, action: () => navigate('/jobs') },
-            { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => setToastMessage(`You have ${savedJobs.length} saved jobs.`) },
-            { label: 'My Applications', icon: <FileText size={15} />, action: () => setToastMessage(`You applied to ${appliedJobs.length} jobs.`) },
+            { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => scrollToSection('saved-jobs', savedJobs.length === 0 ? 'No saved jobs yet. Tap the bookmark on any job to save it.' : null) },
+            { label: 'My Applications', icon: <FileText size={15} />, action: () => scrollToSection('my-applications', applicationRows.length === 0 ? 'You have not applied to any jobs yet.' : null) },
             { label: 'Edit Profile', icon: <UserCheck size={15} />, action: () => setShowEditProfileModal(true) },
           ].map((item, idx) => (
-            <button key={idx} onClick={item.action} className="dash-btn dash-btn-secondary dash-btn--compact">
+            <button key={idx} onClick={item.action} className="dash-btn dash-btn-secondary dash-btn--compact w-full sm:w-auto min-w-0 whitespace-normal text-center">
               {item.icon} {item.label}
             </button>
           ))}
@@ -506,8 +543,8 @@ function CandidateDashboard() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid lg:grid-cols-3 gap-8 min-w-0">
+          <div className="lg:col-span-2 space-y-8 min-w-0">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -516,7 +553,7 @@ function CandidateDashboard() {
                   </h3>
                   <p className="text-xs text-[var(--charcoal)]">Handpicked roles based on your skills and location preferences</p>
                 </div>
-                <Link to="/jobs" className="text-xs font-bold text-[var(--orange)] hover:underline flex items-center gap-1">
+                <Link to="/jobs" className="text-xs font-bold text-[var(--orange)] hover:underline flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                   View All <ChevronRight size={14} />
                 </Link>
               </div>
@@ -527,7 +564,7 @@ function CandidateDashboard() {
                   const isApplied = appliedJobIds.has(job.id);
 
                   return (
-                    <div key={job.id} className="dash-row px-5 first:pt-4 last:pb-4">
+                    <div key={job.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0 px-4 sm:px-5 pt-4 pb-4 sm:pt-3.5 sm:pb-3.5 border-b border-[#EFEAE1] last:border-b-0 hover:bg-[var(--bg-warm)] transition-colors">
                       <div className="flex items-start gap-3.5 min-w-0">
                         <div className="dash-avatar">{job.companyName?.charAt(0) || '?'}</div>
                         <div className="min-w-0">
@@ -557,7 +594,7 @@ function CandidateDashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         <button
                           onClick={() => toggleSaveJob(job.id)}
                           className="dash-btn-tertiary h-9 w-9 !p-0 rounded-lg"
@@ -568,7 +605,7 @@ function CandidateDashboard() {
                         {isApplied ? (
                           <span className="dash-status dash-status--success">Applied</span>
                         ) : (
-                          <button onClick={() => setShowApplyModal(job)} className="dash-btn dash-btn-primary dash-btn--compact">
+                          <button onClick={() => setShowApplyModal(job)} className="dash-btn dash-btn-primary dash-btn--compact flex-1 sm:flex-none">
                             Apply Now
                           </button>
                         )}
@@ -579,39 +616,47 @@ function CandidateDashboard() {
               </div>
             </div>
 
+            <div id="my-applications" className="scroll-mt-20">
             <Card>
               <h3 className="text-lg font-bold text-[var(--navy)] mb-4 flex items-center gap-2">
-                <FileText size={20} className="text-[var(--orange)]" /> Active Application Progress
+                <FileText size={20} className="text-[var(--orange)]" /> My Applications ({applicationRows.length})
               </h3>
 
-              {appliedJobs.length === 0 ? (
-                <p className="text-sm text-[var(--charcoal)] text-center py-6">
-                  You haven't applied to any jobs yet. Browse recommended jobs above to apply!
-                </p>
+              {applicationRows.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-[var(--charcoal)]">You haven't applied to any jobs yet.</p>
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate('/jobs')}>Browse Jobs</Button>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {appliedJobs.map(job => (
-                    <div key={job.id} className="p-4 rounded-2xl bg-[var(--white)] border border-slate-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="font-bold text-[var(--navy)] text-base">{job.jobTitle}</p>
-                          <p className="text-xs text-[var(--charcoal)]">{job.companyName} • {job.city}</p>
+                  {applicationRows.map(({ app, job }) => {
+                    const stage = applicationStep(app.status);
+                    return (
+                      <div key={app.id} className="p-4 rounded-2xl bg-[var(--white)] border border-slate-200 min-w-0">
+                        <div className="flex items-start justify-between gap-3 mb-3 min-w-0">
+                          <div className="min-w-0">
+                            <p className="font-bold text-[var(--navy)] text-[15px] break-words">{job.jobTitle}</p>
+                            <p className="text-xs text-[var(--charcoal)] truncate">{job.companyName} • {job.city}</p>
+                          </div>
+                          <Badge variant={stage.closed ? 'danger' : 'success'} className="text-xs flex-shrink-0">{stage.label}</Badge>
                         </div>
-                        <Badge variant="success" className="text-xs">Under Review</Badge>
-                      </div>
 
-                      <div className="grid grid-cols-5 gap-1 text-center text-[10px] font-bold text-[var(--charcoal)] mt-2">
-                        <div className="py-1 bg-emerald-600 text-white rounded-l-lg">Applied ✓</div>
-                        <div className="py-1 bg-[var(--orange)] text-white">Viewed ✓</div>
-                        <div className="py-1 bg-amber-500 text-white">Shortlisted</div>
-                        <div className="py-1 bg-slate-200 text-[var(--charcoal)]">Interview</div>
-                        <div className="py-1 bg-slate-200 text-[var(--charcoal)] rounded-r-lg">Offer</div>
+                        {stage.closed ? (
+                          <p className="text-xs text-[var(--charcoal)]">This application is closed. Browse other jobs to apply again.</p>
+                        ) : (
+                          <ol className="grid grid-cols-5 gap-1 text-center text-[9px] sm:text-[10px] font-bold" aria-label="Application progress">
+                            {APPLICATION_STAGES.map((name, i) => (
+                              <li key={name} className={`py-1 rounded truncate ${i + 1 <= stage.step ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-[var(--charcoal)]'}`}>{name}</li>
+                            ))}
+                          </ol>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
+            </div>
 
             <Card>
               <div className="flex items-center justify-between mb-4">
@@ -662,31 +707,46 @@ function CandidateDashboard() {
               )}
             </Card>
 
-            {savedJobs.length > 0 && (
-              <Card>
-                <h3 className="text-lg font-bold text-[var(--navy)] mb-4 flex items-center gap-2">
-                  <Bookmark size={20} className="text-amber-500" /> Bookmarked Jobs ({savedJobs.length})
-                </h3>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {savedJobs.map(job => (
-                    <div key={job.id} className="p-4 rounded-2xl border border-slate-200 bg-[var(--white)] flex flex-col justify-between">
-                      <div>
-                        <h4 className="font-bold text-[var(--navy)] text-sm">{job.jobTitle}</h4>
-                        <p className="text-xs text-[var(--charcoal)]">{job.companyName} • {job.city}</p>
-                        <p className="text-xs font-bold text-emerald-600 mt-2">₹{parseInt(job.salaryMin).toLocaleString()} - ₹{parseInt(job.salaryMax).toLocaleString()}/mo</p>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100">
-                        <button onClick={() => toggleSaveJob(job.id)} className="text-xs text-slate-400 hover:text-red-500">Remove</button>
-                        <Button size="sm" onClick={() => setShowApplyModal(job)} className="text-xs">Apply Now</Button>
-                      </div>
-                    </div>
-                  ))}
+            <div id="saved-jobs" className="scroll-mt-20">
+            <Card>
+              <h3 className="text-lg font-bold text-[var(--navy)] mb-4 flex items-center gap-2">
+                <Bookmark size={20} className="text-amber-500" /> Bookmarked Jobs ({savedJobs.length})
+              </h3>
+
+              {savedJobs.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-[var(--charcoal)]">No saved jobs yet. Tap the bookmark icon on any job to keep it here.</p>
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate('/jobs')}>Browse Jobs</Button>
                 </div>
-              </Card>
-            )}
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {savedJobs.map(job => {
+                    const alreadyApplied = appliedJobIds.has(job.id);
+                    return (
+                      <div key={job.id} className="p-4 rounded-2xl border border-slate-200 bg-[var(--white)] flex flex-col justify-between min-w-0">
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-[var(--navy)] text-sm break-words">{job.jobTitle}</h4>
+                          <p className="text-xs text-[var(--charcoal)] truncate">{job.companyName} • {job.city}</p>
+                          <p className="text-xs font-bold text-emerald-600 mt-2">₹{parseInt(job.salaryMin || '0').toLocaleString()} - ₹{parseInt(job.salaryMax || '0').toLocaleString()}/mo</p>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                          <button onClick={() => toggleSaveJob(job.id)} className="text-xs font-semibold text-slate-500 hover:text-red-500 py-2">Remove</button>
+                          {alreadyApplied ? (
+                            <Badge variant="success" className="text-xs">Applied</Badge>
+                          ) : (
+                            <Button size="sm" onClick={() => setShowApplyModal(job)} className="text-xs">Apply Now</Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+            </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-8 min-w-0">
             <div className="dash-surface dash-surface--pad">
               <div className="flex items-baseline justify-between mb-1.5">
                 <div className="dash-section-title">Profile</div>
@@ -731,9 +791,9 @@ function CandidateDashboard() {
                 {candidate.resume_url ? `Uploaded ${new Date(candidate.updated_at || candidate.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Upload a resume to let employers view it'}
               </p>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
-                  className="dash-btn dash-btn-secondary dash-btn--compact flex-1"
+                  className="dash-btn dash-btn-secondary dash-btn--compact min-w-0 px-2"
                   onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet. Use Replace to upload one.')}
                 >
                   <HugeiconsIcon icon={ViewIcon} size={15} /> Preview
@@ -853,14 +913,10 @@ function CandidateDashboard() {
         isOpen={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
         candidate={mappedCandidate}
-        onSave={async (updates) => {
-          try {
-            await updateCandidateProfile(user.id, updates);
-            await refresh();
-            setToastMessage('Profile updated successfully.');
-          } catch (err) {
-            setToastMessage(err instanceof Error ? err.message : 'Failed to save profile.');
-          }
+        onSave={async (updates, opts) => {
+          // Errors go back to the editor, which shows them. A silent refresh keeps the dashboard mounted.
+          await updateCandidateProfile(user.id, updates);
+          if (!opts?.silent) await refresh({ silent: true });
         }}
       />
 

@@ -26,7 +26,7 @@ export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserM
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          className="ui-modal-overlay fixed inset-0 z-[100] flex items-center justify-center px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -35,7 +35,7 @@ export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserM
           <div className="absolute inset-0 bg-[var(--navy)]/60 backdrop-blur-sm" onClick={onClose} />
 
           <motion.div
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8"
+            className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}

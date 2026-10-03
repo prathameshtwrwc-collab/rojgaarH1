@@ -58,7 +58,7 @@ interface DatabaseContextValue {
   placements: any[];
   jobSkills: Record<string, string[]>;
   cvRequests: any[];
-  refresh: () => Promise<void>;
+  refresh: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
 const DatabaseContext = createContext<DatabaseContextValue | null>(null);

@@ -1025,10 +1025,13 @@ html.lenis, html.lenis body {
   }
 
   /* Modals: full screen on phones, scrollable body, comfortable padding */
+  /* ---- Modals: full screen on phones (class contract, see ui.tsx Modal) ----
+     ui-modal-overlay / ui-modal-panel / ui-modal-header / ui-modal-body / ui-modal-split / ui-modal-footer */
   .ui-modal-overlay {
     padding: 0 !important;
     align-items: stretch !important;
     justify-content: stretch !important;
+    inset: 0 !important;
   }
   .ui-modal-panel {
     width: 100vw !important;
@@ -1037,20 +1040,50 @@ html.lenis, html.lenis body {
     max-height: 100dvh !important;
     border-radius: 0 !important;
     border: 0 !important;
+    box-shadow: none !important;
   }
-  .ui-modal-panel > div:first-child {
-    padding: 14px 16px !important;
-    padding-top: max(env(safe-area-inset-top, 0px), 14px) !important;
+  .ui-modal-header {
+    flex-shrink: 0;
+    padding: max(env(safe-area-inset-top, 0px), 12px) 16px 12px !important;
+    border-radius: 0 !important;
+    gap: 10px !important;
   }
-  .ui-modal-panel > div:first-child h3 {
-    font-size: 17px;
-    line-height: 1.3;
+  .ui-modal-header h1,
+  .ui-modal-header h2,
+  .ui-modal-header h3 {
+    font-size: clamp(16px, 4.8vw, 19px) !important;
+    line-height: 1.25 !important;
   }
-  .ui-modal-panel > div:last-child {
+  .ui-modal-header p {
+    font-size: 12px;
+  }
+  .ui-modal-body {
     padding: 16px !important;
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px) !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  }
+  .ui-modal-body h3,
+  .ui-modal-body h4 {
+    font-size: clamp(15px, 4.4vw, 17px);
+    line-height: 1.3;
+  }
+  .ui-modal-split {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .ui-modal-split > div:last-child {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ui-modal-footer {
+    flex-shrink: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .ui-modal-footer > * {
+    width: 100%;
+    justify-content: center;
   }
   .ui-modal-panel input,
   .ui-modal-panel select,
@@ -1058,14 +1091,9 @@ html.lenis, html.lenis body {
     font-size: 16px; /* stops iOS zooming on focus */
   }
   .ui-modal-panel .grid.grid-cols-2,
-  .ui-modal-panel .grid.sm\:grid-cols-2 {
+  .ui-modal-panel .grid.sm\:grid-cols-2,
+  .ui-modal-panel .grid.md\:grid-cols-2 {
     grid-template-columns: 1fr !important;
-  }
-
-  /* Custom payment modal (job post) — full screen */
-  .ui-modal-panel.rounded-3xl {
-    border-radius: 0 !important;
-    max-height: 100dvh !important;
   }
 
   /* Premium recruitment card: text scales with the screen */
@@ -1109,7 +1137,6 @@ html.lenis, html.lenis body {
     padding-top: env(safe-area-inset-top, 0px);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    transform: translateZ(0);
   }
   .dash-topbar__row {
     box-sizing: border-box;
@@ -1119,5 +1146,116 @@ html.lenis, html.lenis body {
     padding-left: 12px;
     padding-right: 12px;
     gap: 8px;
+  }
+}
+
+/* ============================================
+   FORMS, BUTTONS & MODALS — dashboards (<=767px only)
+   Applies to .dash-shell pages, the Post Job page and .ui-modal-panel.
+   Desktop rules are untouched.
+   ============================================ */
+@media (max-width: 767px) {
+  .dash-shell input:not([type="checkbox"]):not([type="radio"]),
+  .dash-shell select,
+  .dash-shell textarea,
+  .post-job-page input:not([type="checkbox"]):not([type="radio"]),
+  .post-job-page select,
+  .post-job-page textarea,
+  .ui-modal-panel input:not([type="checkbox"]):not([type="radio"]),
+  .ui-modal-panel select,
+  .ui-modal-panel textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px; /* stops iOS zooming into fields */
+  }
+
+  /* Date and select fields: keep the native control inside its box */
+  .dash-shell input[type="date"],
+  .post-job-page input[type="date"],
+  .ui-modal-panel input[type="date"] {
+    width: 100%;
+    display: block;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Buttons: wrap long labels inside the button instead of spilling out */
+  .dash-shell button,
+  .post-job-page button,
+  .ui-modal-panel button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+  .dash-shell button[type="submit"],
+  .post-job-page button[type="submit"],
+  .ui-modal-panel button[type="submit"] {
+    min-height: 48px;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+    text-wrap: balance;
+  }
+}
+
+/* ============================================
+   NOTIFICATION PANEL on phones (<=767px only)
+   Full width under the top bar, always on screen. Desktop keeps the dropdown under the bell.
+   ============================================ */
+@media (max-width: 767px) {
+  .dash-notif-panel {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-top: 0 !important;
+    max-height: calc(100dvh - 84px - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ============================================
+   MOBILE GUARDS (<=767px, whole site)
+   - No sideways scrolling: content is clipped at the root (iOS ignores overflow-x:hidden on body alone)
+   - No zoom on focus: form fields are 16px or larger
+   - No double-tap zoom on controls
+   Desktop rules are untouched.
+   ============================================ */
+@media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  img,
+  video,
+  iframe,
+  table {
+    max-width: 100%;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role="button"] {
+    touch-action: manipulation;
   }
 }

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X, User, MapPin, Briefcase, GraduationCap, Sparkles, FileText,
   Upload, Shield, Globe, BookOpen, Award, CheckCircle,
-  Plus, Trash2, Save, RefreshCw, Download, Eye
+  Plus, Trash2, Save, RefreshCw, Download, Eye, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -17,7 +17,7 @@ interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   candidate: JobSeeker;
-  onSave: (updatedData: Partial<JobSeeker>) => void;
+  onSave: (updatedData: Partial<JobSeeker>, opts?: { silent?: boolean }) => void | Promise<void>;
 }
 
 const indianStates = [
@@ -365,14 +365,8 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     return Object.keys(errs).length === 0;
   };
 
-  // Save changes and update candidate profile
-  const handleSaveChanges = () => {
-    if (!validateForm()) {
-      setToastMessage('Please resolve form validation errors before saving.');
-      setActiveSection('personal');
-      return;
-    }
-
+  // Everything that gets saved. Manual saves and autosaves share this shape.
+  const buildUpdatedProfile = (): Partial<JobSeeker> => {
     const updatedProfile: Partial<JobSeeker> = {
       firstName,
       lastName,
@@ -432,12 +426,76 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       certificateUrl: docUrls.certificate || undefined,
       experienceLetterUrl: docUrls.experience_letter || undefined,
     };
+    return updatedProfile;
+  };
 
-    onSave(updatedProfile);
-    setToastMessage('Profile updated successfully.');
+  const draftSnapshot = JSON.stringify(buildUpdatedProfile());
+  const latestSnapshotRef = useRef(draftSnapshot);
+  latestSnapshotRef.current = draftSnapshot;
+  const savedSnapshotRef = useRef<string | null>(null);
+  const savingRef = useRef(false);
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Writes the current form. Returns false and keeps the form on screen if the save fails.
+  const persist = async (snapshot: string, silent: boolean): Promise<boolean> => {
+    savingRef.current = true;
+    setAutoSaveStatus('saving');
+    setSaveError(null);
+    try {
+      await onSaveRef.current(JSON.parse(snapshot) as Partial<JobSeeker>, { silent });
+      savedSnapshotRef.current = snapshot;
+      setLastSavedAt(new Date());
+      setAutoSaveStatus('saved');
+      return true;
+    } catch (err) {
+      setAutoSaveStatus('error');
+      setSaveError(err instanceof Error ? err.message : 'Save failed');
+      return false;
+    } finally {
+      savingRef.current = false;
+    }
+  };
+
+  // Autosave: every 5 seconds, write the form if anything changed since the last save.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (savedSnapshotRef.current === null) savedSnapshotRef.current = latestSnapshotRef.current;
+    const timer = window.setInterval(() => {
+      const snapshot = latestSnapshotRef.current;
+      if (savingRef.current || snapshot === savedSnapshotRef.current) return;
+      void persist(snapshot, true);
+    }, 5000);
+    return () => window.clearInterval(timer);
+    // persist only reads refs and state setters, so it is not a dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Save Changes: validated, saved, then the editor closes.
+  const handleSaveChanges = async () => {
+    if (!validateForm()) {
+      setToastMessage('Please resolve form validation errors before saving.');
+      setActiveSection('personal');
+      return;
+    }
+    const ok = await persist(JSON.stringify(buildUpdatedProfile()), false);
+    if (!ok) {
+      setToastMessage('Could not save. Your changes are still on screen, please try again.');
+      return;
+    }
+    setToastMessage('Profile saved.');
     setTimeout(() => {
       onClose();
     }, 600);
+  };
+
+  // Save Draft: saves now and keeps the editor open. No validation, so partial work is kept.
+  const handleSaveDraft = async () => {
+    const ok = await persist(JSON.stringify(buildUpdatedProfile()), false);
+    setToastMessage(ok ? 'Draft saved.' : 'Could not save draft. Please try again.');
   };
 
   const sectionTabs = [
@@ -480,15 +538,15 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
       
       {/* Modal Container */}
-      <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
+      <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
 
         {/* ═══ HEADER BAR ═══ */}
         <div
-          className="relative text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
+          className="ui-modal-header relative text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}
         >
           <div
@@ -537,32 +595,17 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
         {/* ═══ STEP PROGRESS BAR ═══ */}
         <div className="px-5 sm:px-6 py-3 bg-white border-b border-slate-100 flex items-center gap-3">
-          <button
-            onClick={() => goStep(-1)}
-            disabled={activeStepIndex === 0}
-            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-            aria-label="Previous step"
-          >
-            ‹
-          </button>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-all duration-400 ease-out"
               style={{ width: `${((activeStepIndex + 1) / sectionTabs.length) * 100}%` }}
             />
           </div>
-          <button
-            onClick={() => goStep(1)}
-            disabled={activeStepIndex === sectionTabs.length - 1}
-            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-            aria-label="Next step"
-          >
-            ›
-          </button>
+          <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">Step {activeStepIndex + 1} of {sectionTabs.length}</span>
         </div>
 
         {/* ═══ BODY SECTION (LEFT TAB SIDEBAR + RIGHT FORM EDITOR) ═══ */}
-        <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+        <div className="ui-modal-split flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
           {/* LEFT STEPPER SIDEBAR (Desktop vertical stepper, Mobile scrollable pills) */}
           <div className="w-full md:w-72 bg-slate-50 border-r border-slate-200 p-3 md:p-4 flex md:flex-col gap-1 md:gap-0 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
@@ -1294,17 +1337,37 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
         </div>
 
+        {/* ═══ PREVIOUS / NEXT ═══ */}
+        <div className="px-4 sm:px-6 py-3 bg-white border-t border-slate-200 flex items-center justify-between gap-3">
+          <Button variant="outline" size="sm" onClick={() => goStep(-1)} disabled={activeStepIndex === 0} className="gap-1.5 min-w-[110px]">
+            <ChevronLeft size={15} /> Previous
+          </Button>
+          <span className="hidden sm:block text-xs text-slate-500 truncate">{sectionTabs[activeStepIndex]?.label}</span>
+          <Button size="sm" onClick={() => goStep(1)} disabled={activeStepIndex === sectionTabs.length - 1} className="gap-1.5 min-w-[110px] max-w-[60%]">
+            <span className="truncate">Next{sectionTabs[activeStepIndex + 1] ? `: ${sectionTabs[activeStepIndex + 1].label}` : ''}</span> <ChevronRight size={15} />
+          </Button>
+        </div>
+
         {/* ═══ BOTTOM ACTION BAR ═══ */}
-        <div className="bg-slate-100 p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="ui-modal-footer bg-slate-100 p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs text-slate-600 gap-1">
               <RefreshCw size={14} /> Reset Changes
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setToastMessage('Draft profile saved locally.')} className="text-xs gap-1">
+            <Button variant="outline" size="sm" onClick={handleSaveDraft} className="text-xs gap-1">
               <Save size={14} /> Save Draft
             </Button>
           </div>
 
+          <span className="text-[11px] text-slate-500 min-w-0 truncate" aria-live="polite">
+            {autoSaveStatus === 'saving'
+              ? 'Saving…'
+              : autoSaveStatus === 'error'
+              ? `Not saved yet (${saveError || 'retrying'}). Retrying every 5s.`
+              : lastSavedAt
+              ? `Saved at ${lastSavedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Changes save automatically every 5 seconds'}
+          </span>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <Button variant="ghost" size="sm" onClick={onClose}>
               Cancel

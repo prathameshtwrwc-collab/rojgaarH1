@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download, ShieldCheck } from 'lucide-react';
-import { Card, Badge, Button, Modal, Select, Input, SkillTags, Toast } from '../../components/ui';
+import { Card, Badge, Button, Modal, Select, Input, Toast } from '../../components/ui';
+import { SkillTagInput } from '../../components/SkillTagInput';
+import { allTaxonomySkills } from '../../constants/skills';
 import { AdminSearchInput, SegmentedTabs, AdminToolbar } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
@@ -13,12 +15,6 @@ const PLATFORM_OPTION = '__platform__';
 const commonQualifications = [
   '10th Pass', '12th Pass', 'ITI', 'Diploma', 'Graduate', 'B.Tech/BCA', 'B.Com', 'B.Sc',
   'BA', 'BBA', 'MBA', 'M.Sc', 'M.Com', 'B.Pharm/D.Pharm', 'Any Graduate', 'No Formal Education Required',
-];
-
-const commonSkills = [
-  'Communication', 'MS Excel', 'MS Office', 'Tally Prime', 'GST Filing', 'Data Entry', 'Sales',
-  'Customer Service', 'CNC Operation', 'Welding', 'Quality Check', 'Machine Operation', 'AutoCAD',
-  'Site Management', 'Patient Care', 'Nursing', 'React', 'Python', 'Java', 'SQL', 'Site Supervision',
 ];
 
 const indianStatesList = [
@@ -426,7 +422,7 @@ export default function JobApprovals() {
             />
           </div>
 
-          <SkillTags label="Required Skills" value={form.skills} onChange={skills => setForm({ ...form, skills })} suggestions={commonSkills} placeholder="Type a skill and press Enter..." />
+          <SkillTagInput label="Required Skills" value={form.skills} onChange={skills => setForm({ ...form, skills })} suggestions={allTaxonomySkills()} placeholder="Type a skill, then comma or Enter" hint="Separate skills with a comma or press Enter." />
 
           <Input label="Benefits" value={form.benefits} onChange={e => setForm({ ...form, benefits: e.target.value })} placeholder="e.g. PF, ESI, annual bonus" />
 

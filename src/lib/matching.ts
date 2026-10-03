@@ -14,6 +14,8 @@
  *   Qualification fit   5  — education requirement alignment
  */
 
+import { skillKey } from '../constants/skills';
+
 export interface MatchCandidate {
   skills?: string[] | null;
   total_experience_years?: number | null;
@@ -56,20 +58,19 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-/** Two skill labels are considered the same skill if either contains the other. */
-function skillsEqual(a: string, b: string): boolean {
-  const na = norm(a);
-  const nb = norm(b);
-  return na === nb || na.includes(nb) || nb.includes(na);
-}
-
+/**
+ * Skills are compared by canonical key (see constants/skills.ts), so
+ * "excel" matches "MS Excel" but "Java" does NOT match "JavaScript".
+ */
 function scoreSkills(candidateSkills: string[], jobSkills: string[]): { score: number; matched: string[]; missing: string[] } {
   if (jobSkills.length === 0) {
     // Job didn't specify required skills — don't penalize, but don't over-credit either.
     return { score: 24, matched: [], missing: [] };
   }
-  const matched = jobSkills.filter(js => candidateSkills.some(cs => skillsEqual(cs, js)));
-  const missing = jobSkills.filter(js => !matched.includes(js));
+  const have = new Set(candidateSkills.map(skillKey));
+  const matched = jobSkills.filter(js => have.has(skillKey(js)));
+  const matchedKeys = new Set(matched.map(skillKey));
+  const missing = jobSkills.filter(js => !matchedKeys.has(skillKey(js)));
   const ratio = matched.length / jobSkills.length;
   return { score: Math.round(ratio * 40), matched, missing };
 }

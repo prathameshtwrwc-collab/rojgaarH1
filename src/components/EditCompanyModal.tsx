@@ -150,14 +150,14 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
 
-      <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-3xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
+      <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-3xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
 
         {/* HEADER */}
         <div
-          className="relative text-white p-5 sm:p-6 flex items-center justify-between gap-4 overflow-hidden"
+          className="ui-modal-header relative text-white p-5 sm:p-6 flex items-center justify-between gap-4 overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}
         >
           <div
@@ -211,7 +211,7 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
         </div>
 
         {/* BODY: STEPPER SIDEBAR + FORM */}
-        <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+        <div className="ui-modal-split flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           <div className="w-full md:w-56 bg-slate-50 border-r border-slate-200 p-3 md:p-4 flex md:flex-col gap-1 md:gap-0 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
             {steps.map((step, i) => {
               const isActive = activeStep === i;
@@ -405,7 +405,7 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="bg-slate-100 p-4 border-t border-slate-200 flex items-center justify-between gap-3">
+        <div className="ui-modal-footer bg-slate-100 p-4 border-t border-slate-200 flex items-center justify-between gap-3">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             {isFirstRun ? 'Skip for now' : 'Cancel'}
           </Button>

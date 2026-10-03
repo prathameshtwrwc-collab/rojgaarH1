@@ -339,7 +339,12 @@ export async function updateCandidateProfile(userId: string, updates: Record<str
     department: updates.department || null,
   };
   const { error: candErr } = await supabase.from('candidates').update(candidatePatch as never).eq('id', userId);
-  if (candErr) throw candErr;
+  if (candErr) {
+    // 42703 = column does not exist: the database is missing a migration, not the form
+    const hint = candErr.code === '42703' ? ' A column is missing in the database. Run supabase/candidate-profile-columns.sql in the Supabase SQL editor.' : '';
+    const details = candErr.details ? ` (${candErr.details})` : '';
+    throw new Error(`Profile save failed: ${candErr.message}${details}.${hint}`);
+  }
 
   if (Array.isArray(updates.skills)) {
     await supabase.from('candidate_skills').delete().eq('candidate_id', userId);

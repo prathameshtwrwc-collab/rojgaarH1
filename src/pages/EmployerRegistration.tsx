@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, Building2, FileText, Briefcase } from 'lucide-react';
-import { Button, Input, Select, Textarea, ProgressBar, StepIndicator, Toggle, SkillTags, Toast } from '../components/ui';
+import { Button, Input, Select, Textarea, ProgressBar, StepIndicator, Toggle, Toast } from '../components/ui';
+import { SkillTagInput } from '../components/SkillTagInput';
+import { allTaxonomySkills } from '../constants/skills';
 import { useData, Employer, JobPosting } from '../context/DataContext';
 
 const indianStates = [
@@ -9,14 +11,6 @@ const indianStates = [
   'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
   'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh',
-];
-
-const skillSuggestions = [
-  'Accounting', 'Agriculture', 'Assembly', 'AutoCAD', 'CNC Operation', 'Construction', 'Cooking',
-  'Customer Service', 'Data Entry', 'Driving', 'Electrical Wiring', 'Fabrication', 'First Aid',
-  'Java', 'JavaScript', 'Machine Operation', 'Maintenance', 'Microsoft Office', 'Motor Repair',
-  'Nursing', 'Patient Care', 'Python', 'Quality Control', 'Quality Check', 'SQL', 'Safety',
-  'Sales', 'Team Management', 'Welding', 'Warehouse', 'Typing', 'Teaching',
 ];
 
 function EmployerRegistration() {
@@ -359,12 +353,13 @@ function EmployerRegistration() {
                 <Input label="Qualification Required" required value={jobForm.qualificationRequired} onChange={e => updateJob('qualificationRequired', e.target.value)} error={errors.qualificationRequired} placeholder="e.g. ITI / Diploma" />
                 <Input label="Experience Required" required value={jobForm.experienceRequired} onChange={e => updateJob('experienceRequired', e.target.value)} error={errors.experienceRequired} placeholder="e.g. 2-5 years" />
               </div>
-              <SkillTags
+              <SkillTagInput
                 label="Skills Required"
                 value={jobForm.skillsRequired}
                 onChange={tags => updateJob('skillsRequired', tags)}
-                suggestions={skillSuggestions}
-                placeholder="Type a skill and press Enter"
+                suggestions={allTaxonomySkills()}
+                placeholder="Type a skill, then comma or Enter"
+                hint="Separate skills with a comma or press Enter."
               />
               {errors.skillsRequired && <p className="text-xs text-red-600">{errors.skillsRequired}</p>}
               <Textarea

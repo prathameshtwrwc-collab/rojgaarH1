@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Building2, Briefcase, Users, MapPin, FileText, LogOut, Eye, IndianRupee,
-  Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
-  Download, Copy, Share2, PauseCircle, Trash2,
-  XCircle, CheckCircle, Clock
+  Building2, Briefcase, Users, MapPin, FileText, LogOut, IndianRupee,
+  Plus, ShieldCheck, ChevronDown, ChevronUp, Search,
+  Download, Share2, PauseCircle, Trash2,
+  CheckCircle, Clock
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Activity03Icon } from '@hugeicons/core-free-icons';
@@ -12,8 +12,10 @@ import { Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import CvRequestStatusCard from '../../components/CvRequestStatusCard';
+import ApplicantRow, { sortLatestFirst } from '../../components/ApplicantRow';
+import { AllApplicantsModal } from '../../components/AllApplicantsModal';
 import { PayFromUpiButton } from '../../components/UpiPaymentPanel';
-import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
+import { updateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
@@ -119,6 +121,7 @@ function EmployerDashboard() {
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('All');
   const [viewingApplicant, setViewingApplicant] = useState<any | null>(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
+  const [allApplicantsJobId, setAllApplicantsJobId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
@@ -309,7 +312,7 @@ function EmployerDashboard() {
       .map((a: any) => {
         const c = candidatesMap.get(a.candidate_id);
         if (!c) return null;
-        return { ...mapCandidateToApplicant(c), applicationId: a.id, applicationStatus: a.status };
+        return { ...mapCandidateToApplicant(c), applicationId: a.id, applicationStatus: a.status, appliedAt: a.applied_at };
       })
       .filter(Boolean);
   };
@@ -353,10 +356,6 @@ function EmployerDashboard() {
       } else if (action === 'Close') {
         await updateJobPosting(job.id, { status: 'Closed' });
         setToastMessage(`Job "${job.jobTitle}" marked as Closed.`);
-        await refresh();
-      } else if (action === 'Duplicate') {
-        await duplicateJobPosting(job.id);
-        setToastMessage(`Duplicated "${job.jobTitle}" as a new draft pending approval.`);
         await refresh();
       } else if (action === 'Share') {
         const link = `${window.location.origin}/jobs/${job.id}`;
@@ -863,14 +862,6 @@ function EmployerDashboard() {
                            </button>
                            <button
                              type="button"
-                             onClick={(e) => handleJobAction('Duplicate', job, e)}
-                             className="dash-btn-tertiary h-8 w-8 !p-0 rounded-lg"
-                             title="Duplicate Posting"
-                           >
-                             <Copy size={16} />
-                           </button>
-                           <button
-                             type="button"
                              onClick={(e) => handleJobAction('Share', job, e)}
                              className="dash-btn-tertiary h-8 w-8 !p-0 rounded-lg"
                              title="Share Posting"
@@ -897,22 +888,6 @@ function EmployerDashboard() {
                     {/* Expanded Section */}
                     {isExpanded && (
                        <div className="p-5 sm:p-6 bg-[#FAF7F0] border-t border-[#EFEAE1] space-y-6">
-
-                          {/* CV REQUEST STATUS (kept until delivered) */}
-                          {(() => {
-                            const mine = cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
-                            const list = applicantStageFilter === 'request_cv' ? mine : mine.filter((r: any) => r.status !== 'delivered');
-                            if (list.length === 0) return null;
-                            return (
-                              <div className="space-y-3">
-                                <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] flex items-center justify-between">
-                                  <span>Your CV requests</span>
-                                  <span className="text-[11px] normal-case font-semibold text-[var(--charcoal)]">{list.length} {list.length === 1 ? 'request' : 'requests'}</span>
-                                </div>
-                                {list.map((r: any) => <CvRequestStatusCard key={r.id} req={r} />)}
-                              </div>
-                            );
-                          })()}
 
                           {/* HIRING PIPELINE TRACKER */}
                           <div className="dash-surface dash-surface--pad">
@@ -967,6 +942,27 @@ function EmployerDashboard() {
                                 Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})
                               </button>
                            </div>
+
+                           {/* CV REQUESTS: below the filters. With "Request CV" selected, every request is shown. */}
+                           {(() => {
+                             const mine = cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
+                             const showAll = applicantStageFilter === 'request_cv';
+                             const list = showAll ? mine : mine.filter((r: any) => r.status !== 'delivered');
+                             if (list.length === 0 && !showAll) return null;
+                             return (
+                               <div className="mt-4 pt-4 border-t border-[#EFEAE1] space-y-3">
+                                 <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] flex items-center justify-between">
+                                   <span>Your CV requests</span>
+                                   <span className="text-[11px] normal-case font-semibold text-[var(--charcoal)]">{list.length} {list.length === 1 ? 'request' : 'requests'}</span>
+                                 </div>
+                                 {list.length === 0 ? (
+                                   <p className="text-xs text-[var(--charcoal)]">No CV requests yet. Use Request CV on an applicant to ask for their CV.</p>
+                                 ) : (
+                                   list.map((r: any) => <CvRequestStatusCard key={r.id} req={r} />)
+                                 )}
+                               </div>
+                             );
+                           })()}
                          </div>
 
                          {/* APPLICANT CARDS */}
@@ -998,92 +994,28 @@ function EmployerDashboard() {
                                    )}
                                  </div>
                             ) : (
-                             <div className="space-y-4">
-                               {filteredApplicants.map((applicant: any) => {
-                                 const match = jobMatches.find((m: any) => m.candidate_id === applicant.id);
-                                 const isShortlisted = applicant.applicationStatus === 'shortlisted';
-                                 const isRejected = applicant.applicationStatus === 'rejected';
-
-                                return (
-                                  <div
-                                    key={applicant.id}
-                                    className={`p-4 rounded-2xl border transition-all duration-200 bg-[var(--white)] ${
-                                      isRejected
-                                        ? 'opacity-50 border-red-200'
-                                        : isShortlisted
-                                        ? 'border-amber-300 bg-amber-50/20'
-                                        : 'border-slate-200 hover:shadow-md'
-                                    }`}
-                                  >
-                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-
-                                       {/* Candidate Info - Limited Details */}
-                                       <div className="flex items-start gap-4">
-                                         <div className="dash-avatar w-11 h-11 text-[13px]">
-                                           {applicant.firstName[0]}{applicant.lastName[0]}
-                                         </div>
-
-                                         <div>
-                                           <div className="flex items-center gap-2 flex-wrap">
-                                             <h6 className="font-extrabold text-base text-[var(--navy)]">
-                                               {applicant.firstName} {applicant.lastName}
-                                             </h6>
-                                              {isShortlisted && (
-                                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                                                  ★ Shortlisted
-                                                </span>
-                                              )}
-                                              {isRejected && (
-                                                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                                                  Rejected
-                                                </span>
-                                              )}
-                                           </div>
-
-                                           <p className="text-xs text-[var(--charcoal)] font-medium mt-0.5">
-                                             {applicant.totalExperience} • {applicant.location}, {applicant.state}
-                                           </p>
-
-                                           <div className="flex flex-wrap gap-1.5 mt-2.5">
-                                             {applicant.skills.slice(0, 4).map((s: string) => (
-                                               <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>
-                                             ))}
-                                           </div>
-                                         </div>
-                                       </div>
-
-                                       {/* Match Score & Actions */}
-                                       <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
-                                         {/* Match Indicator */}
-                                         <div className="text-center px-3 py-1.5 rounded-lg bg-[var(--orange)]/8 text-[var(--orange)]">
-                                           <p className="text-lg font-extrabold leading-tight">{match?.match_score || 88}%</p>
-                                           <p className="text-[9px] font-bold uppercase tracking-wider">Match</p>
-                                         </div>
-
-                                         {/* Action Buttons */}
-                                         <div className="flex flex-wrap items-center gap-1.5">
-                                           <Button size="sm" variant="outline" onClick={() => { setViewingApplicant(applicant); setShowApplicantModal(true); }} className="text-xs">
-                                             <Eye size={12} className="mr-1" /> View
-                                           </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="secondary"
-                                              onClick={(e) => handleCandidateAction('Shortlist', applicant, e)}
-                                              className="text-xs"
-                                            >
-                                              <Star size={12} className="mr-1" /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
-                                            </Button>
-                                            <button onClick={(e) => handleCandidateAction('Reject', applicant, e)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg" title="Reject">
-                                              <XCircle size={16} />
-                                            </button>
-                                         </div>
-                                       </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                             <div className="space-y-3">
+                               {[...filteredApplicants].sort(sortLatestFirst).slice(0, 2).map((applicant: any) => (
+                                 <ApplicantRow
+                                   key={applicant.id}
+                                   applicant={applicant}
+                                   matchScore={jobMatches.find((m: any) => m.candidate_id === applicant.id)?.match_score || 88}
+                                   onView={() => { setViewingApplicant(applicant); setShowApplicantModal(true); }}
+                                   onShortlist={(e) => handleCandidateAction('Shortlist', applicant, e)}
+                                   onReject={(e) => handleCandidateAction('Reject', applicant, e)}
+                                 />
+                               ))}
+                               {filteredApplicants.length > 2 && (
+                                 <button
+                                   type="button"
+                                   onClick={(e) => { e.stopPropagation(); setAllApplicantsJobId(job.id); }}
+                                   className="w-full py-2.5 rounded-xl border border-dashed border-[var(--orange)]/40 text-sm font-bold text-[var(--orange)] hover:bg-[var(--orange)]/5 transition-colors"
+                                 >
+                                   See all {filteredApplicants.length} applicants →
+                                 </button>
+                               )}
+                             </div>
+                           )}
                         </div>
                       </div>
                     )}
@@ -1162,6 +1094,23 @@ function EmployerDashboard() {
       </div>
 
       {/* ═══ APPLICANT DETAIL SUBMISSION MODAL ═══ */}
+      {(() => {
+        const modalJob = allApplicantsJobId ? myJobs.find((j: any) => j.id === allApplicantsJobId) : null;
+        const modalMatches = allApplicantsJobId ? getMatchesForJob(allApplicantsJobId) : [];
+        return (
+          <AllApplicantsModal
+            isOpen={Boolean(modalJob)}
+            onClose={() => setAllApplicantsJobId(null)}
+            jobTitle={modalJob?.jobTitle || ''}
+            applicants={allApplicantsJobId ? getApplicantsForJob(allApplicantsJobId) : []}
+            matchFor={(candidateId: string) => modalMatches.find((m: any) => m.candidate_id === candidateId)?.match_score || 88}
+            onView={(applicant) => { setAllApplicantsJobId(null); setViewingApplicant(applicant); setShowApplicantModal(true); }}
+            onShortlist={(applicant, e) => handleCandidateAction('Shortlist', applicant, e)}
+            onReject={(applicant, e) => handleCandidateAction('Reject', applicant, e)}
+          />
+        );
+      })()}
+
       <Modal isOpen={showApplicantModal} onClose={() => setShowApplicantModal(false)} title="Applicant Full Submission Profile" size="lg">
         {viewingApplicant && (
           <div className="space-y-4">

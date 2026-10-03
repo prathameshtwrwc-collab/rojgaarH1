@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, User, Briefcase, MapPin } from 'lucide-react';
-import { Button, Input, Select, ProgressBar, StepIndicator, SkillTags, FileUpload, Toast } from '../components/ui';
+import { Button, Input, Select, ProgressBar, StepIndicator, FileUpload, Toast } from '../components/ui';
+import { SkillTagInput } from '../components/SkillTagInput';
+import { allTaxonomySkills } from '../constants/skills';
 import { useData, JobSeeker } from '../context/DataContext';
 
 const indianStates = [
@@ -9,15 +11,6 @@ const indianStates = [
   'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
   'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
   'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh',
-];
-
-const skillSuggestions = [
-  'Accounting', 'Agriculture', 'Assembly', 'AutoCAD', 'CNC Operation', 'Construction', 'Cooking',
-  'Customer Service', 'Data Entry', 'Driving', 'Electrical Wiring', 'Embroidery', 'Excel',
-  'Fabrication', 'First Aid', 'Handicraft', 'HR', 'Java', 'Machine Operation', 'Maintenance',
-  'Microsoft Office', 'Motor Repair', 'Nursing', 'Patient Care', 'Payroll', 'Pharmacy',
-  'Python', 'Quality Control', 'Recruitment', 'Sales', 'SQL', 'Tailoring', 'Teaching',
-  'Team Management', 'Typing', 'Welding', 'Warehouse', 'Quality Check',
 ];
 
 function JobSeekerRegistration() {
@@ -257,12 +250,13 @@ function JobSeekerRegistration() {
                 value={form.qualification}
                 onChange={e => update('qualification', e.target.value)}
               />
-              <SkillTags
+              <SkillTagInput
                 label="Key Skills"
                 value={form.skills}
                 onChange={tags => update('skills', tags)}
-                suggestions={skillSuggestions}
-                placeholder="Type a skill and press Enter"
+                suggestions={allTaxonomySkills()}
+                placeholder="Type a skill, then comma or Enter"
+                hint="Separate skills with a comma or press Enter."
               />
               <div className="grid sm:grid-cols-2 gap-4">
                 <Input label="Previous Company" value={form.previousCompany} onChange={e => update('previousCompany', e.target.value)} placeholder="e.g. Local Traders Pvt Ltd" hint="Leave blank if fresher" />

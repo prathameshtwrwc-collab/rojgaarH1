@@ -195,7 +195,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       {/* Panel: owns the rounded boundary, clips content, never exceeds viewport */}
       <div className={`ui-modal-panel relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}>
         {/* Header: non-scrolling */}
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div className="ui-modal-header flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <h3 className="text-lg font-bold text-[var(--navy)]">{title}</h3>
           <button
             onClick={onClose}
@@ -207,7 +207,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         </div>
 
         {/* Body: the ONLY scrollable region */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
+        <div className="ui-modal-body flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
       </div>
     </div>
   );
