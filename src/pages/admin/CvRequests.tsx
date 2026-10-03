@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
-import { Inbox } from 'lucide-react';
+import { Inbox, Trash2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   FileText, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
@@ -12,7 +12,8 @@ import { Card, Button, Modal, Select, Toast } from '../../components/ui';
 import { TableSkeleton } from '../../components/Skeleton';
 import { AdminSearchInput } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
-import { updateCvRequest } from '../../lib/supabase/data';
+import { updateCvRequest, adminDeleteCvRequest } from '../../lib/supabase/data';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { exportToCsv } from '../../lib/csvExport';
 
 const STATUS_OPTIONS = ['All', 'pending', 'processing', 'delivered', 'cancelled'];
@@ -124,6 +125,7 @@ export default function CvRequests() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [deleteCvTarget, setDeleteCvTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const enrichedRequests = useMemo(() => {
@@ -452,6 +454,13 @@ export default function CvRequests() {
                               <CheckCircle size={14} />
                             </button>
                           )}
+                          <button
+                            onClick={() => setDeleteCvTarget(req)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="Delete request"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -594,6 +603,15 @@ export default function CvRequests() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteCvTarget)}
+        onClose={() => setDeleteCvTarget(null)}
+        title="Delete this CV request?"
+        description="This permanently deletes the request and its payment record from the system. Use Cancel instead if you only want to stop it. This cannot be undone."
+        confirmLabel="Delete request"
+        onConfirm={async () => { await adminDeleteCvRequest(deleteCvTarget.id); await refresh(); }}
+      />
 
       {/* Cancel Confirmation Modal */}
       <Modal isOpen={Boolean(confirmCancelId)} onClose={() => setConfirmCancelId(null)} title="Cancel CV Request?" size="sm">

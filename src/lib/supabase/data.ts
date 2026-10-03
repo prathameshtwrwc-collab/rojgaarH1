@@ -1136,6 +1136,7 @@ export async function getAllCvRequests(): Promise<any[]> {
 
 export async function createCvRequest(payload: {
   employer_id: string;
+  job_id?: string | null;
   plan_key: string;
   plan_label: string;
   cv_count: number;
@@ -1150,6 +1151,7 @@ export async function createCvRequest(payload: {
     .from('cv_requests')
     .insert({
       employer_id: payload.employer_id,
+      job_id: payload.job_id || null,
       plan_key: payload.plan_key,
       plan_label: payload.plan_label,
       cv_count: payload.cv_count,
@@ -1185,5 +1187,10 @@ export async function adminDeleteJob(jobId: string): Promise<void> {
 
 export async function adminDeleteAccount(userId: string): Promise<void> {
   const { error } = await (supabase as any).rpc('admin_delete_account', { target_user: userId });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminDeleteCvRequest(requestId: string): Promise<void> {
+  const { error } = await (supabase as any).rpc('admin_delete_cv_request', { target_request: requestId });
   if (error) throw new Error(error.message);
 }

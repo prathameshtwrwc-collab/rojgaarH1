@@ -139,6 +139,7 @@ function EmployerDashboard() {
   const [selectedCvPlan, setSelectedCvPlan] = useState<any | null>(null);
   const [processingCvRequest, setProcessingCvRequest] = useState(false);
   const [cvRequestSuccess, setCvRequestSuccess] = useState(false);
+  const [cvRequestJobId, setCvRequestJobId] = useState<string | null>(null);
   const [cvRequestUpiTxn, setCvRequestUpiTxn] = useState('');
 
   const mappedEmployer = useMemo(() => {
@@ -455,7 +456,8 @@ function EmployerDashboard() {
     }
   };
 
-  const handleOpenCvRequestModal = () => {
+  const handleOpenCvRequestModal = (jobId: string | null = null) => {
+    setCvRequestJobId(jobId);
     setSelectedCvPlan(null);
     setCvRequestUpiTxn('');
     setCvRequestSuccess(false);
@@ -478,6 +480,7 @@ function EmployerDashboard() {
     try {
       await createCvRequest({
         employer_id: employer.id,
+        job_id: cvRequestJobId,
         plan_key: selectedCvPlan.key,
         plan_label: selectedCvPlan.label,
         cv_count: selectedCvPlan.count,
@@ -893,7 +896,7 @@ function EmployerDashboard() {
                          <div className="flex items-center gap-2 self-start lg:self-center dash-job-actions">
                            <button
                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleOpenCvRequestModal(); }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenCvRequestModal(job.id); }}
                              className="dash-job-cv flex flex-col items-center justify-center gap-0.5 h-[44px] w-[68px] bg-[var(--orange)] text-white rounded-lg border-0 cursor-pointer"
                              title="Request CV"
                            >
@@ -993,7 +996,7 @@ function EmployerDashboard() {
 
                            {/* CV REQUESTS: below the filters. With "Request CV" selected, every request is shown. */}
                            {(() => {
-                             const mine = cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
+                             const mine = cvRequests.filter((r: any) => r.employer_id === employer.id && r.job_id === job.id && r.status !== 'cancelled');
                              const showAll = applicantStageFilter === 'request_cv';
                              const list = showAll ? mine : mine.filter((r: any) => r.status !== 'delivered');
                              if (list.length === 0 && !showAll) return null;
@@ -1034,7 +1037,7 @@ function EmployerDashboard() {
                                    </p>
                                    {applicants.length === 0 && (
                                      <button
-                                       onClick={(e) => { e.stopPropagation(); handleOpenCvRequestModal(); }}
+                                       onClick={(e) => { e.stopPropagation(); handleOpenCvRequestModal(job.id); }}
                                        className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--orange)] text-white text-xs font-bold rounded-full border-0 cursor-pointer"
                                      >
                                        <FileText size={14} /> Request Verified CVs
@@ -1500,11 +1503,11 @@ function EmployerDashboard() {
       </Modal>
 
       {/* ═══ REQUESTED CVs SECTION ═══ */}
-      {cvRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled') && (
+      {cvRequests.some((r: any) => r.employer_id === employer.id && !r.job_id && r.status !== 'cancelled') && (
         <div className="dash-surface dash-surface--pad">
           <div className="dash-section-title mb-4">Your Resume Requests</div>
           <div className="space-y-3">
-            {cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled').map((req: any) => (
+            {cvRequests.filter((r: any) => r.employer_id === employer.id && !r.job_id && r.status !== 'cancelled').map((req: any) => (
               <div key={req.id} className="p-4 bg-[var(--white)] rounded-xl border border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
