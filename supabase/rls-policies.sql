@@ -66,6 +66,23 @@ DROP POLICY IF EXISTS "Employers can delete own jobs" ON public.job_postings;
 CREATE POLICY "Employers can delete own jobs" ON public.job_postings
   FOR DELETE USING (auth.uid() = employer_id);
 
+-- cv_requests
+DROP POLICY IF EXISTS "Employers can view own cv requests" ON public.cv_requests;
+CREATE POLICY "Employers can view own cv requests" ON public.cv_requests
+  FOR SELECT USING (auth.uid() = employer_id);
+
+DROP POLICY IF EXISTS "Employers can insert own cv requests" ON public.cv_requests;
+CREATE POLICY "Employers can insert own cv requests" ON public.cv_requests
+  FOR INSERT WITH CHECK (auth.uid() = employer_id);
+
+DROP POLICY IF EXISTS "Employers can update own cv requests" ON public.cv_requests;
+CREATE POLICY "Employers can update own cv requests" ON public.cv_requests
+  FOR UPDATE USING (auth.uid() = employer_id);
+
+DROP POLICY IF EXISTS "Authenticated users can view all cv requests" ON public.cv_requests;
+CREATE POLICY "Authenticated users can view all cv requests" ON public.cv_requests
+  FOR SELECT USING (auth.role() = 'authenticated');
+
 -- applications
 DROP POLICY IF EXISTS "Candidates can view own applications" ON public.applications;
 CREATE POLICY "Candidates can view own applications" ON public.applications

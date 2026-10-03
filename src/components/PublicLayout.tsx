@@ -13,6 +13,7 @@ function PublicLayout({ children }: { children: ReactNode }) {
   const [isHeaderTransparent, setIsHeaderTransparent] = useState(false);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<Event | null>(null);
+  const [showPwaInstructions, setShowPwaInstructions] = useState(false);
   const { t } = useAppTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,6 +60,8 @@ function PublicLayout({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
   const handlePwaInstall = async () => {
     if (!pwaInstallPrompt) return;
     const promptEvent = pwaInstallPrompt as any;
@@ -72,6 +75,8 @@ function PublicLayout({ children }: { children: ReactNode }) {
   const handleGetAppClick = async () => {
     if (pwaInstallPrompt) {
       await handlePwaInstall();
+    } else if (isIos) {
+      setShowPwaInstructions(true);
     } else {
       window.open(window.location.href, '_blank');
     }
@@ -225,16 +230,19 @@ function PublicLayout({ children }: { children: ReactNode }) {
                   {link.label}
                 </Link>
               ))}
-              <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-                <div className="py-1">
-                  <LanguageSwitcher />
+              <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <LanguageSwitcher />
+                  </div>
+                  <button
+                    onClick={handleGetAppClick}
+                    className="flex flex-col items-center justify-center gap-1 w-16 h-16 bg-[var(--navy)] text-white rounded-xl border-0 cursor-pointer"
+                  >
+                    <Download size={20} />
+                    <span className="text-[10px] font-bold leading-none">Get App</span>
+                  </button>
                 </div>
-                <button
-                  onClick={handleGetAppClick}
-                  className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full border-0 cursor-pointer"
-                >
-                  <Download size={16} /> Get App
-                </button>
                 {!displayUser && (
                   <button
                     onClick={() => { setMobileOpen(false); setShowRoleChooser(true); }}
@@ -255,6 +263,30 @@ function PublicLayout({ children }: { children: ReactNode }) {
       </main>
 
       <RoleChooserModal isOpen={showRoleChooser} onClose={() => setShowRoleChooser(false)} mode="signup" />
+
+      {showPwaInstructions && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => setShowPwaInstructions(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-sm overflow-hidden z-10 animate-fade-in">
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-full bg-[var(--orange)] text-white flex items-center justify-center mx-auto mb-4">
+                <Download size={28} />
+              </div>
+              <h3 className="text-lg font-extrabold text-[var(--navy)] mb-2">Install Rojgaar Hai</h3>
+              <p className="text-sm text-[var(--charcoal)] mb-4">Add this app to your home screen for quick access, just like a native app.</p>
+              <div className="bg-[var(--bg-warm)] rounded-xl p-4 text-left text-sm space-y-2 mb-5">
+                <p className="font-bold text-[var(--navy)]">Steps to install:</p>
+                <ol className="list-decimal list-inside space-y-1 text-[var(--charcoal)]">
+                  <li>Tap the <strong>Share</strong> button <span className="inline-block w-5 h-5 bg-[var(--navy)] text-white text-[10px] leading-5 text-center rounded">⎋</span> in your browser toolbar.</li>
+                  <li>Scroll down and tap <strong>"Add to Home Screen"</strong>.</li>
+                  <li>Tap <strong>"Add"</strong> to confirm.</li>
+                </ol>
+              </div>
+              <button onClick={() => setShowPwaInstructions(false)} className="w-full h-[44px] bg-[var(--navy)] text-white font-bold rounded-full">Got it</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

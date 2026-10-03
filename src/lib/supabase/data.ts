@@ -1091,3 +1091,50 @@ export async function duplicateJobPosting(jobId: string): Promise<JobPostingRow>
   if (skills.length > 0) await setJobSkills(duplicated.id, skills);
   return duplicated;
 }
+
+export async function getCvRequestsByEmployer(employerId: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('cv_requests')
+      .select('*')
+      .eq('employer_id', employerId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching cv requests:', err);
+    return [];
+  }
+}
+
+export async function createCvRequest(payload: {
+  employer_id: string;
+  plan_key: string;
+  plan_label: string;
+  cv_count: number;
+  amount: number;
+  upi_transaction_id?: string;
+  payment_status?: string;
+  paid_at?: string;
+  status?: string;
+  notes?: string;
+}): Promise<any> {
+  const { data, error } = await supabase
+    .from('cv_requests')
+    .insert({
+      employer_id: payload.employer_id,
+      plan_key: payload.plan_key,
+      plan_label: payload.plan_label,
+      cv_count: payload.cv_count,
+      amount: payload.amount,
+      upi_transaction_id: payload.upi_transaction_id || null,
+      payment_status: payload.payment_status || 'pending',
+      paid_at: payload.paid_at || null,
+      status: payload.status || 'pending',
+      notes: payload.notes || null,
+    } as never)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}

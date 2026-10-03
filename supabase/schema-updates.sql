@@ -22,3 +22,24 @@ ALTER TABLE public.job_postings ADD COLUMN IF NOT EXISTS upi_id TEXT;
 ALTER TABLE public.job_postings ADD COLUMN IF NOT EXISTS payment_verified BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.job_postings ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMPTZ;
 ALTER TABLE public.job_postings ADD COLUMN IF NOT EXISTS payment_verified_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+-- CV/Resume requests from employers for verified candidate profiles
+CREATE TABLE IF NOT EXISTS public.cv_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employer_id UUID NOT NULL REFERENCES public.employers(id) ON DELETE CASCADE,
+  plan_key TEXT NOT NULL,
+  plan_label TEXT NOT NULL,
+  cv_count INTEGER NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  upi_transaction_id TEXT,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  paid_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'pending',
+  delivered_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cv_requests_employer ON public.cv_requests(employer_id);
+CREATE INDEX IF NOT EXISTS idx_cv_requests_status ON public.cv_requests(status);

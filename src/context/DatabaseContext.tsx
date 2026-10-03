@@ -27,6 +27,7 @@ import {
   getRecruiterByUserId,
   getAllRecruiters,
   getCandidatesReferredByRecruiter,
+  getCvRequestsByEmployer,
 } from '../lib/supabase/data';
 
 export interface DashboardStats {
@@ -55,6 +56,7 @@ interface DatabaseContextValue {
   communications: any[];
   placements: any[];
   jobSkills: Record<string, string[]>;
+  cvRequests: any[];
   refresh: () => Promise<void>;
 }
 
@@ -78,6 +80,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [communications, setCommunications] = useState<any[]>([]);
   const [placements, setPlacements] = useState<any[]>([]);
   const [jobSkills, setJobSkills] = useState<Record<string, string[]>>({});
+  const [cvRequests, setCvRequests] = useState<any[]>([]);
 
   const loadData = async () => {
     if (!user) {
@@ -94,6 +97,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       setCommunications([]);
       setPlacements([]);
       setJobSkills({});
+      setCvRequests([]);
       setStats(null);
       setLoading(false);
       return;
@@ -117,13 +121,14 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getJobsByEmployer(user.id),
         ]);
         const employerJobIds = (employerJobs || []).map((j: any) => j.id);
-        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap] = await Promise.all([
+        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap, employerCvRequests] = await Promise.all([
           getApplicationsForJobs(employerJobIds),
           getMatchesForJobs(employerJobIds),
           getPlacements({ employerId: user.id }),
           getAllCandidates(),
           getAllCandidateSkills(),
           getAllJobSkills(employerJobIds),
+          getCvRequestsByEmployer(user.id),
         ]);
         setEmployer(employerData);
         setJobs(employerJobs || []);
@@ -135,6 +140,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           skills: candidateSkillsMap[c.id] || [],
         })));
         setJobSkills(jobSkillsMap || {});
+        setCvRequests(employerCvRequests || []);
       } else if (user.role === 'candidate') {
         const [candidateData, candidateApplications, candidateMatches, approvedJobs, skills, education, experience, languages, certifications, allEmployers] = await Promise.all([
           getCandidateByUserId(user.id),
@@ -216,6 +222,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     communications,
     placements,
     jobSkills,
+    cvRequests,
     refresh: loadData,
   };
 

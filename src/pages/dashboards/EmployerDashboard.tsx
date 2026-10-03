@@ -4,14 +4,14 @@ import {
   Building2, Briefcase, Users, MapPin, FileText, LogOut, Eye, IndianRupee,
   Plus, ShieldCheck, Star, ChevronDown, ChevronUp, Search,
   Download, Copy, Share2, PauseCircle, Trash2,
-  XCircle, Video
+  XCircle, CheckCircle, Clock
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Activity03Icon } from '@hugeicons/core-free-icons';
 import { Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
-import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile } from '../../lib/supabase/data';
+import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
@@ -106,7 +106,7 @@ function mapCandidateToApplicant(candidate: any): any {
 
 function EmployerDashboard() {
   const { t } = useAppTranslation();
-  const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, loading, refresh } = useDatabase();
+  const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, cvRequests, loading, refresh } = useDatabase();
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -126,6 +126,11 @@ function EmployerDashboard() {
   const [applicantStageFilter, setApplicantStageFilter] = useState<string>('all');
   const [companyForm, setCompanyForm] = useState<any>(null);
   const [savingCompany, setSavingCompany] = useState(false);
+  const [showCvRequestModal, setShowCvRequestModal] = useState(false);
+  const [selectedCvPlan, setSelectedCvPlan] = useState<any | null>(null);
+  const [processingCvRequest, setProcessingCvRequest] = useState(false);
+  const [cvRequestSuccess, setCvRequestSuccess] = useState(false);
+  const [cvRequestUpiTxn, setCvRequestUpiTxn] = useState('');
 
   const mappedEmployer = useMemo(() => {
     if (!employerData) return null;
@@ -172,6 +177,26 @@ function EmployerDashboard() {
   const activeJobs = useMemo(() => {
     return myJobs.filter(j => j.status === 'Open').length;
   }, [myJobs]);
+
+  const pendingJobs = useMemo(() => {
+    return myJobs.filter(j => j.status === 'Pending');
+  }, [myJobs]);
+
+  const activeJobsList = useMemo(() => {
+    return myJobs.filter(j => j.status === 'Open');
+  }, [myJobs]);
+
+  const pendingApprovalCount = useMemo(() => {
+    return pendingJobs.length;
+  }, [pendingJobs]);
+
+  const cvPlans = [
+    { key: 'plan_10', label: '10 Verified CVs', count: 10, amount: 2000 },
+    { key: 'plan_20', label: '20 CVs', count: 20, amount: 3000 },
+    { key: 'plan_30', label: '30 CVs', count: 30, amount: 4000 },
+    { key: 'plan_50', label: '50 CVs', count: 50, amount: 6000 },
+    { key: 'plan_100', label: '100 CVs', count: 100, amount: 8000 },
+  ];
 
   const interviewsScheduled = useMemo(() => {
     const myJobIds = new Set(myJobs.map(j => j.id));
@@ -267,6 +292,10 @@ function EmployerDashboard() {
 
   const employer = mappedEmployer;
 
+  const hasRequestedCv = useMemo(() => {
+    return cvRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
+  }, [cvRequests, employer]);
+
   const toggleExpandJob = (jobId: string) => {
     if (expandedJobIds.includes(jobId)) {
       setExpandedJobIds(expandedJobIds.filter(id => id !== jobId));
@@ -314,6 +343,10 @@ function EmployerDashboard() {
     e.stopPropagation();
     try {
       if (action === 'Pause') {
+        if (job.status !== 'Open') {
+          setToastMessage('Only approved active jobs can be paused or resumed.');
+          return;
+        }
         const newStatus = job.status === 'On Hold' ? 'Open' : 'On Hold';
         await updateJobPosting(job.id, { status: newStatus });
         setToastMessage(`Job "${job.jobTitle}" status changed to ${newStatus}.`);
@@ -360,6 +393,11 @@ function EmployerDashboard() {
         await updateApplicationStatus(applicant.applicationId, 'rejected');
         setToastMessage(`Application for ${applicant.firstName} ${applicant.lastName} moved to rejected.`);
         await refresh();
+      } else if (action === 'RequestCV') {
+        setSelectedCvPlan({ plan_key: 'plan_10', label: '10 Verified CVs', count: 10, amount: 2000 });
+        setCvRequestUpiTxn('');
+        setCvRequestSuccess(false);
+        setShowCvRequestModal(true);
       } else if (action === 'Download') {
         if (applicant.resumeFile) {
           window.open(applicant.resumeFile, '_blank');
@@ -397,6 +435,43 @@ function EmployerDashboard() {
       setToastMessage(err instanceof Error ? err.message : 'Failed to delete job.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleOpenCvRequestModal = (plan: any) => {
+    setSelectedCvPlan(plan);
+    setCvRequestUpiTxn('');
+    setCvRequestSuccess(false);
+    setShowCvRequestModal(true);
+  };
+
+  const handleCvPaymentConfirm = async () => {
+    if (!selectedCvPlan) return;
+    if (!cvRequestUpiTxn.trim()) {
+      setToastMessage('Please enter your UPI transaction ID.');
+      return;
+    }
+    setProcessingCvRequest(true);
+    try {
+      await createCvRequest({
+        employer_id: employer.id,
+        plan_key: selectedCvPlan.key,
+        plan_label: selectedCvPlan.label,
+        cv_count: selectedCvPlan.count,
+        amount: selectedCvPlan.amount,
+        upi_transaction_id: cvRequestUpiTxn.trim(),
+        payment_status: 'paid',
+        paid_at: new Date().toISOString(),
+        status: 'processing',
+        notes: 'Request submitted via employer dashboard',
+      });
+      setCvRequestSuccess(true);
+      setToastMessage('Your CV request has been submitted. Our team will contact you shortly.');
+      await refresh();
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to submit CV request.');
+    } finally {
+      setProcessingCvRequest(false);
     }
   };
 
@@ -572,6 +647,64 @@ function EmployerDashboard() {
           </div>
         </div>
 
+        {/* ═══ PENDING APPROVAL JOBS ═══ */}
+        <div>
+          <div className="dash-section-title mb-4">Pending Approval ({pendingApprovalCount})</div>
+          {pendingJobs.length === 0 ? (
+            <div className="dash-surface text-center py-10">
+              <p className="text-sm text-[var(--charcoal)]">No jobs pending approval.</p>
+            </div>
+          ) : (
+            <div className="dash-surface divide-y divide-[#EFEAE1]">
+              {pendingJobs.map((job: any) => {
+                const isExpanded = expandedJobIds.includes(job.id);
+                const applicants = getApplicantsForJob(job.id);
+                const jobMatches = getMatchesForJob(job.id);
+
+                return (
+                  <div key={job.id}>
+                    <div
+                      onClick={() => toggleExpandJob(job.id)}
+                      className="p-5 sm:p-6 hover:bg-[#FAF7F0] cursor-pointer transition-colors"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
+                            <h4 className="text-lg font-extrabold text-[var(--navy)]">{job.jobTitle}</h4>
+                            <span className="dash-status dash-status--warning">Pending Approval</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--charcoal)] font-medium">
+                            <span className="flex items-center gap-1"><MapPin size={13} />{job.city}, {job.state}</span>
+                            <span className="text-[#D8D2C6]">·</span>
+                            <span className="font-bold text-[var(--green)]"><IndianRupee size={13} className="inline -mt-0.5" />{parseInt(job.salaryMin).toLocaleString()} - {parseInt(job.salaryMax).toLocaleString()}/mo</span>
+                            <span className="text-[#D8D2C6]">·</span>
+                            <span>{job.employmentType}</span>
+                            <span className="text-[#D8D2C6]">·</span>
+                            <span>{job.experienceRequired}</span>
+                            <span className="text-[#D8D2C6]">·</span>
+                            <span>{job.numberOfOpenings} Vacancies</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-[13px] font-semibold">
+                            <span className="text-[var(--navy)]">{applicants.length} Applicants</span>
+                            <span className="text-[var(--charcoal)]">{jobMatches.length} Compatible Matches</span>
+                            <span className="text-[12px] text-[var(--charcoal)] font-medium">Posted {job.createdAt ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'} · Expires {job.deadline || 'N/A'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 self-start lg:self-center">
+                          <div className="flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
+                            <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* ═══ SEARCH, FILTER & SORT BAR FOR POSTINGS ═══ */}
         <div className="dash-surface dash-surface--pad">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -626,28 +759,28 @@ function EmployerDashboard() {
           </div>
         </div>
 
-        {/* ═══ MY JOB POSTINGS ═══ */}
-        <div>
-          <div className="dash-section-title mb-4">My Active Job Openings ({filteredJobs.length})</div>
+         {/* ═══ MY JOB POSTINGS ═══ */}
+         <div>
+           <div className="dash-section-title mb-4">Active Jobs ({activeJobsList.length})</div>
 
-          {filteredJobs.length === 0 ? (
-            <div className="dash-surface text-center py-12">
-              <div className="w-16 h-16 bg-[var(--orange)]/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[var(--orange)]">
-                <Briefcase size={32} />
-              </div>
-              <h4 className="text-lg font-bold text-[var(--navy)]">No Job Postings Found</h4>
-              <p className="text-xs text-[var(--charcoal)] mt-1 max-w-sm mx-auto">
-                No job postings match your current filter. Create a new vacancy requirement to start receiving pre-screened applicants.
-              </p>
-              <Link to="/dashboard/employer/post-job">
-                <button className="dash-btn dash-btn-primary mt-4 mx-auto">
-                  <Plus size={16} /> Create First Job Posting
-                </button>
-              </Link>
-            </div>
-          ) : (
-            <div className="dash-surface divide-y divide-[#EFEAE1]">
-              {filteredJobs.map((job: any) => {
+           {activeJobsList.length === 0 ? (
+             <div className="dash-surface text-center py-12">
+               <div className="w-16 h-16 bg-[var(--orange)]/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[var(--orange)]">
+                 <Briefcase size={32} />
+               </div>
+               <h4 className="text-lg font-bold text-[var(--navy)]">No Active Jobs</h4>
+               <p className="text-xs text-[var(--charcoal)] mt-1 max-w-sm mx-auto">
+                 You don't have any approved active jobs right now. Create a new vacancy to start receiving applicants.
+               </p>
+               <Link to="/dashboard/employer/post-job">
+                 <button className="dash-btn dash-btn-primary mt-4 mx-auto">
+                   <Plus size={16} /> Post New Job
+                 </button>
+               </Link>
+             </div>
+           ) : (
+             <div className="dash-surface divide-y divide-[#EFEAE1]">
+               {activeJobsList.map((job: any) => {
                 const isExpanded = expandedJobIds.includes(job.id);
                 const applicants = getApplicantsForJob(job.id);
                 const jobMatches = getMatchesForJob(job.id);
@@ -656,10 +789,10 @@ function EmployerDashboard() {
                 // Filter applicants by selected stage
                 const filteredApplicants = applicants.filter((a: any) => {
                   if (applicantStageFilter === 'all') return true;
-                  if (applicantStageFilter === 'applied') return !['shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'joined', 'rejected', 'withdrawn'].includes(a.applicationStatus);
+                  if (applicantStageFilter === 'applied') return !['shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'joined', 'rejected', 'withdrawn', 'request_cv'].includes(a.applicationStatus);
                   if (applicantStageFilter === 'reviewed') return a.applicationStatus !== 'applied';
                   if (applicantStageFilter === 'shortlisted') return a.applicationStatus === 'shortlisted';
-                  if (applicantStageFilter === 'interview') return a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed';
+                  if (applicantStageFilter === 'request_cv') return a.applicationStatus === 'request_cv';
                   if (applicantStageFilter === 'selected') return a.applicationStatus === 'selected';
                   if (applicantStageFilter === 'joined') return a.applicationStatus === 'joined';
                   return true;
@@ -785,24 +918,24 @@ function EmployerDashboard() {
                              >
                                Shortlisted ({applicants.filter((a: any) => a.applicationStatus === 'shortlisted').length})
                              </button>
-                             <button
-                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'interview' ? 'all' : 'interview')}
-                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'interview' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
-                             >
-                               Interview ({applicants.filter((a: any) => a.applicationStatus === 'interview_scheduled' || a.applicationStatus === 'interviewed').length})
-                             </button>
-                             <button
-                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'selected' ? 'all' : 'selected')}
-                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'selected' ? 'bg-[var(--green)] text-white border-[var(--green)] shadow-md' : 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/30 hover:bg-[var(--green)]/20'}`}
-                             >
-                               Selected ({applicants.filter((a: any) => a.applicationStatus === 'selected').length})
-                             </button>
-                             <button
-                               onClick={() => setApplicantStageFilter(applicantStageFilter === 'joined' ? 'all' : 'joined')}
-                               className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'joined' ? 'bg-[var(--navy)] text-white border-[var(--navy)] shadow-md' : 'bg-[#FAF7F0] text-[var(--charcoal)] border-[#E7E2D9] hover:border-[var(--navy)]'}`}
-                             >
-                               Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})
-                             </button>
+                              <button
+                                onClick={() => setApplicantStageFilter(applicantStageFilter === 'request_cv' ? 'all' : 'request_cv')}
+                                className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'request_cv' ? 'bg-[var(--orange)] text-white border-[var(--orange)] shadow-md' : 'bg-[#FAF7F0] text-[var(--navy)] border-[#E7E2D9] hover:border-[var(--orange)]'}`}
+                              >
+                                Request CV ({applicants.filter((a: any) => a.applicationStatus === 'request_cv').length})
+                              </button>
+                              <button
+                                onClick={() => setApplicantStageFilter(applicantStageFilter === 'selected' ? 'all' : 'selected')}
+                                className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'selected' ? 'bg-[var(--green)] text-white border-[var(--green)] shadow-md' : 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/30 hover:bg-[var(--green)]/20'}`}
+                              >
+                                Selected ({applicants.filter((a: any) => a.applicationStatus === 'selected').length})
+                              </button>
+                              <button
+                                onClick={() => setApplicantStageFilter(applicantStageFilter === 'joined' ? 'all' : 'joined')}
+                                className={`p-2 rounded-lg border transition-all ${applicantStageFilter === 'joined' ? 'bg-[var(--navy)] text-white border-[var(--navy)] shadow-md' : 'bg-[#FAF7F0] text-[var(--charcoal)] border-[#E7E2D9] hover:border-[var(--navy)]'}`}
+                              >
+                                Joined ({applicants.filter((a: any) => a.applicationStatus === 'joined').length})
+                              </button>
                            </div>
                          </div>
 
@@ -844,76 +977,72 @@ function EmployerDashboard() {
                                   >
                                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 
-                                      {/* Candidate Info */}
-                                      <div className="flex items-start gap-4">
-                                        <div className="dash-avatar w-11 h-11 text-[13px]">
-                                          {applicant.firstName[0]}{applicant.lastName[0]}
-                                        </div>
+                                       {/* Candidate Info - Limited Details */}
+                                       <div className="flex items-start gap-4">
+                                         <div className="dash-avatar w-11 h-11 text-[13px]">
+                                           {applicant.firstName[0]}{applicant.lastName[0]}
+                                         </div>
 
-                                        <div>
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <h6 className="font-extrabold text-base text-[var(--navy)]">
-                                              {applicant.firstName} {applicant.lastName}
-                                            </h6>
-                                             {isShortlisted && (
-                                               <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                                                 ★ Shortlisted
-                                               </span>
-                                             )}
-                                             {isRejected && (
-                                               <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                                                 Rejected
-                                               </span>
-                                             )}
-                                          </div>
+                                         <div>
+                                           <div className="flex items-center gap-2 flex-wrap">
+                                             <h6 className="font-extrabold text-base text-[var(--navy)]">
+                                               {applicant.firstName} {applicant.lastName}
+                                             </h6>
+                                              {isShortlisted && (
+                                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                                  ★ Shortlisted
+                                                </span>
+                                              )}
+                                              {isRejected && (
+                                                <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                                                  Rejected
+                                                </span>
+                                              )}
+                                           </div>
 
-                                          <p className="text-xs text-[var(--charcoal)] font-medium mt-0.5">
-                                            {applicant.qualification} • {applicant.totalExperience} • {applicant.location}, {applicant.state}
-                                          </p>
+                                           <p className="text-xs text-[var(--charcoal)] font-medium mt-0.5">
+                                             {applicant.totalExperience} • {applicant.location}, {applicant.state}
+                                           </p>
 
-                                          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--charcoal)] mt-2 font-medium">
-                                             <span>Expected: <strong className="text-emerald-600 font-bold">₹{parseInt(applicant.expectedSalary).toLocaleString()}/mo</strong></span>
-                                            <span>• Availability: ⚡ {applicant.immediateJoining ? 'Immediate' : 'As per notice period'}</span>
-                                            <span>• Resume: 📄 {applicant.resumeFile ? 'Uploaded' : 'Not uploaded'}</span>
-                                          </div>
+                                           <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                             {applicant.skills.slice(0, 4).map((s: string) => (
+                                               <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       </div>
 
-                                          <div className="flex flex-wrap gap-1.5 mt-2.5">
-                                            {applicant.skills.slice(0, 4).map((s: string) => (
-                                              <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
+                                       {/* Match Score & Actions */}
+                                       <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
+                                         {/* Match Indicator */}
+                                         <div className="text-center px-3 py-1.5 rounded-lg bg-[var(--orange)]/8 text-[var(--orange)]">
+                                           <p className="text-lg font-extrabold leading-tight">{match?.match_score || 88}%</p>
+                                           <p className="text-[9px] font-bold uppercase tracking-wider">Match</p>
+                                         </div>
 
-                                      {/* Match Score & Actions */}
-                                      <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-center">
-                                        {/* Match Indicator */}
-                                        <div className="text-center px-3 py-1.5 rounded-lg bg-[var(--orange)]/8 text-[var(--orange)]">
-                                          <p className="text-lg font-extrabold leading-tight">{match?.match_score || 88}%</p>
-                                          <p className="text-[9px] font-bold uppercase tracking-wider">Match</p>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                          <Button size="sm" variant="outline" onClick={() => { setViewingApplicant(applicant); setShowApplicantModal(true); }} className="text-xs">
-                                            <Eye size={12} className="mr-1" /> View
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={(e) => handleCandidateAction('Shortlist', applicant, e)}
-                                            className="text-xs"
-                                          >
-                                            <Star size={12} className="mr-1" /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
-                                          </Button>
-                                          <Button size="sm" variant="primary" onClick={(e) => handleCandidateAction('Interview', applicant, e)} className="text-xs">
-                                            <Video size={12} className="mr-1" /> Interview
-                                          </Button>
-                                          <button onClick={(e) => handleCandidateAction('Reject', applicant, e)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg" title="Reject">
-                                            <XCircle size={16} />
-                                          </button>
-                                        </div>
-                                      </div>
+                                         {/* Action Buttons */}
+                                         <div className="flex flex-wrap items-center gap-1.5">
+                                           <Button size="sm" variant="outline" onClick={() => { setViewingApplicant(applicant); setShowApplicantModal(true); }} className="text-xs">
+                                             <Eye size={12} className="mr-1" /> View
+                                           </Button>
+                                           <Button
+                                             size="sm"
+                                             variant="secondary"
+                                             onClick={(e) => handleCandidateAction('Shortlist', applicant, e)}
+                                             className="text-xs"
+                                           >
+                                             <Star size={12} className="mr-1" /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
+                                           </Button>
+                                           {!hasRequestedCv && (
+                                             <Button size="sm" variant="primary" onClick={() => handleOpenCvRequestModal(cvPlans[0])} className="text-xs">
+                                               <FileText size={12} className="mr-1" /> Request CV
+                                             </Button>
+                                           )}
+                                           <button onClick={(e) => handleCandidateAction('Reject', applicant, e)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg" title="Reject">
+                                             <XCircle size={16} />
+                                           </button>
+                                         </div>
+                                       </div>
                                     </div>
                                   </div>
                                 );
@@ -1197,6 +1326,105 @@ function EmployerDashboard() {
           </div>
         </div>
       </Modal>
+
+      {/* ═══ CV REQUEST PAYMENT MODAL ═══ */}
+      <Modal isOpen={showCvRequestModal} onClose={() => setShowCvRequestModal(false)} title="Request Verified Resumes" size="lg">
+        <div className="space-y-0">
+          {cvRequestSuccess ? (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <CheckCircle size={32} />
+              </div>
+              <h3 className="text-xl font-extrabold text-[var(--navy)] mb-2">Request Submitted!</h3>
+              <p className="text-sm text-[var(--charcoal)] mb-4">Your request has been submitted and you will get a call from our team. The resumes will be delivered to you within a few hours.</p>
+              <div className="flex items-center justify-center gap-2 text-sm text-[var(--orange)] font-semibold">
+                <Clock size={16} /> You can track this request below.
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="relative text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[var(--orange)] rounded-xl flex items-center justify-center">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold">Complete Payment</h3>
+                    <p className="text-xs text-white/70">Scan QR or use UPI ID to pay</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 space-y-5">
+                {selectedCvPlan && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
+                      <img
+                        src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent("upi://pay?pa=8422976666-2@ybl&pn=RojgaarHai&am=" + selectedCvPlan.amount + "&cu=INR")}
+                        alt="UPI QR Code"
+                        width={180}
+                        height={180}
+                        className="rounded-xl"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">UPI ID</p>
+                      <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
+                    </div>
+                    <div className="mt-3 text-center">
+                      <p className="text-2xl font-extrabold text-[var(--navy)]">₹{selectedCvPlan.amount}</p>
+                      <p className="text-xs text-[var(--charcoal)]">{selectedCvPlan.label} (one-time)</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-[var(--navy)] mb-1.5">Enter UPI Transaction ID *</label>
+                  <input
+                    value={cvRequestUpiTxn}
+                    onChange={e => setCvRequestUpiTxn(e.target.value)}
+                    placeholder="e.g. TXN123456789"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    disabled={processingCvRequest}
+                  />
+                  <p className="text-[11px] text-[var(--charcoal)]">Find this in your UPI app after completing the payment.</p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button variant="ghost" onClick={() => setShowCvRequestModal(false)} disabled={processingCvRequest} className="flex-1">Cancel</Button>
+                  <Button variant="primary" onClick={handleCvPaymentConfirm} disabled={processingCvRequest} className="flex-1 bg-[var(--orange)]">
+                    {processingCvRequest ? 'Verifying...' : 'Proceed'}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* ═══ REQUESTED CVs SECTION ═══ */}
+      {hasRequestedCv && (
+        <div className="dash-surface dash-surface--pad">
+          <div className="dash-section-title mb-4">Your Resume Requests</div>
+          <div className="space-y-3">
+            {cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled').map((req: any) => (
+              <div key={req.id} className="flex items-center justify-between p-4 bg-[var(--white)] rounded-xl border border-slate-200">
+                <div>
+                  <p className="text-sm font-bold text-[var(--navy)]">{req.plan_label}</p>
+                  <p className="text-xs text-[var(--charcoal)]">Requested on {new Date(req.created_at).toLocaleDateString('en-IN')} • ₹{req.amount}</p>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${req.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : req.status === 'processing' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {req.status === 'delivered' ? 'Delivered' : req.status === 'processing' ? 'Processing' : 'Pending'}
+                  </span>
+                </div>
+                {req.status === 'processing' && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--orange)] font-semibold">
+                    <Clock size={14} /> Our team will contact you shortly
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
