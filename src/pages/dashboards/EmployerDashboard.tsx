@@ -465,7 +465,7 @@ function EmployerDashboard() {
         upi_transaction_id: cvRequestUpiTxn.trim(),
         payment_status: 'paid',
         paid_at: new Date().toISOString(),
-        status: 'processing',
+        status: 'pending',
         notes: 'Request submitted via employer dashboard',
       });
       setCvRequestSuccess(true);
@@ -1349,7 +1349,6 @@ function EmployerDashboard() {
         <div className="p-6 space-y-5">
           <div className="text-center">
             <p className="text-sm text-[var(--charcoal)]">Choose a plan that fits your hiring needs. All plans include verified candidate profiles.</p>
-            <p className="text-xs text-[var(--charcoal)] mt-1">All prices include 18% GST</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {cvPlans.map((plan: any) => (
@@ -1370,11 +1369,11 @@ function EmployerDashboard() {
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-slate-100">
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-extrabold text-[var(--navy)]">₹{plan.total}</p>
-                        <span className="text-[10px] font-bold text-[var(--charcoal)] uppercase tracking-wider">incl. 18% GST</span>
-                      </div>
-                    <p className="text-[10px] text-[var(--charcoal)] mt-1">₹{plan.amount} base + ₹{plan.gst} GST</p>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-xl font-extrabold text-[var(--navy)] group-hover:text-[var(--orange)] transition-colors">₹{plan.amount.toLocaleString()}/-</span>
+                      <span className="text-sm font-bold text-[var(--charcoal)]">+ 18% GST</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">Payable amount: ₹{plan.total.toLocaleString()}</p>
                   </div>
                 </div>
               </button>
@@ -1421,6 +1420,12 @@ function EmployerDashboard() {
               <div className="p-6 space-y-5">
                 {selectedCvPlan && (
                   <div className="flex flex-col items-center">
+                    <div className="w-full rounded-2xl border border-[var(--orange)]/20 bg-[var(--orange)]/5 p-4 text-center mb-4">
+                      <p className="text-[11px] font-bold text-[var(--orange)] uppercase tracking-wider">Total Payable Amount</p>
+                      <p className="text-3xl font-extrabold text-[var(--navy)] mt-1">₹{selectedCvPlan.total.toLocaleString()}</p>
+                      <p className="text-xs text-[var(--charcoal)] mt-1">{selectedCvPlan.label} · {selectedCvPlan.count} verified CVs</p>
+                    </div>
+
                     <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
                       <img
                         src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent("upi://pay?pa=8422976666-2@ybl&pn=Pacific+Jobs+India+Pvt+Ltd&am=" + selectedCvPlan.total + "&cu=INR")}
@@ -1430,15 +1435,25 @@ function EmployerDashboard() {
                         className="rounded-xl"
                       />
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">UPI ID</p>
+                    <div className="text-center mb-4">
+                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">Scan with any UPI app, or pay to</p>
                       <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
                       <p className="text-xs text-[var(--charcoal)] mt-1">Receiver: Pacific Jobs India Pvt. Ltd.</p>
                     </div>
-                    <div className="mt-3 text-center">
-                      <p className="text-2xl font-extrabold text-[var(--navy)]">₹{selectedCvPlan.total}</p>
-                      <p className="text-xs text-[var(--charcoal)]">{selectedCvPlan.label} (incl. 18% GST)</p>
-                      <p className="text-[10px] text-[var(--charcoal)] mt-0.5">Base: ₹{selectedCvPlan.amount} + GST: ₹{selectedCvPlan.gst}</p>
+
+                    <div className="w-full rounded-xl border border-[#E7E2D9] overflow-hidden text-sm">
+                      <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-warm)]">
+                        <span className="text-[var(--charcoal)]">Base Amount</span>
+                        <span className="font-semibold text-[var(--navy)]">₹{selectedCvPlan.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-2 border-t border-[#EFEAE1]">
+                        <span className="text-[var(--charcoal)]">GST (18%)</span>
+                        <span className="font-semibold text-[var(--navy)]">₹{selectedCvPlan.gst.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#EFEAE1] bg-[var(--orange)]/5">
+                        <span className="font-bold text-[var(--navy)]">Total to Pay</span>
+                        <span className="font-extrabold text-[var(--orange)]">₹{selectedCvPlan.total.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1477,15 +1492,21 @@ function EmployerDashboard() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-bold text-[var(--navy)]">{req.plan_label}</p>
-                    <p className="text-xs text-[var(--charcoal)] mt-0.5">Requested on {new Date(req.created_at).toLocaleDateString('en-IN')} • ₹{req.amount} + ₹{req.amount * 0.18} GST = ₹{req.amount * 1.18}</p>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${req.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' : req.status === 'processing' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {req.status === 'delivered' ? 'Delivered' : req.status === 'processing' ? 'Processing' : 'Pending'}
+                    <p className="text-xs text-[var(--charcoal)] mt-0.5">
+                      Requested on {new Date(req.created_at).toLocaleDateString('en-IN')} • ₹{Number(req.amount).toLocaleString()} + ₹{Math.round(Number(req.amount) * 0.18).toLocaleString()} GST = <strong className="text-[var(--navy)]">₹{Math.round(Number(req.amount) * 1.18).toLocaleString()}</strong>
+                    </p>
+                    <span className={`dash-status mt-1.5 ${req.status === 'delivered' ? 'dash-status--success' : req.status === 'processing' ? 'dash-status--warning' : req.status === 'cancelled' ? 'dash-status--danger' : 'dash-status--neutral'}`}>
+                      {req.status === 'delivered' ? 'Delivered' : req.status === 'processing' ? 'Processing' : req.status === 'cancelled' ? 'Cancelled' : 'Pending'}
                     </span>
                   </div>
-                  {req.status === 'processing' && (
+                  {(req.status === 'pending' || req.status === 'processing') && (
                     <div className="bg-[var(--bg-warm)] rounded-xl p-3 text-xs text-[var(--charcoal)] space-y-1">
                       <p className="font-bold text-[var(--navy)]">Please note:</p>
-                      <p>• Our team will call you within <strong>2-4 hours</strong> to confirm your request.</p>
+                      {req.status === 'pending' ? (
+                        <p>• Our team will call you within <strong>2-4 hours</strong> to confirm your request.</p>
+                      ) : (
+                        <p>• Your request is confirmed and being processed.</p>
+                      )}
                       <p>• Verified resumes will be delivered to your email within <strong>24 hours</strong>.</p>
                       <p>• For urgent queries, contact <strong>support@rojgaarhai.com</strong> or call <strong>+91-8422976666</strong>.</p>
                     </div>

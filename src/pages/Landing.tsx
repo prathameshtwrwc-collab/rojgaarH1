@@ -7,6 +7,10 @@ import RoleChooserModal from '../components/RoleChooserModal';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Download } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { Modal } from '../components/ui';
+import {
+  onPwaInstallAvailabilityChange, promptPwaInstall, isPwaInstalled, getManualInstallInstructions,
+} from '../lib/pwaInstall';
 
 const testimonialCards = [
   {
@@ -33,7 +37,8 @@ function Landing() {
   const [activeCard, setActiveCard] = useState(1);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
   const [lang, setLang] = useState(i18n.language);
-  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<Event | null>(null);
+  const [pwaInstallAvailable, setPwaInstallAvailable] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setAtTop(window.scrollY === 0);
@@ -53,35 +58,20 @@ function Landing() {
     };
   }, [i18n]);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setPwaInstallPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handlePwaInstall = async () => {
-    if (!pwaInstallPrompt) return;
-    const promptEvent = pwaInstallPrompt as any;
-    promptEvent.prompt();
-    const { outcome } = await promptEvent.userChoice;
-    if (outcome === 'accepted') {
-      setPwaInstallPrompt(null);
-    }
-  };
+  useEffect(() => onPwaInstallAvailabilityChange(setPwaInstallAvailable), []);
 
   const handleGetAppClick = async () => {
-    if (pwaInstallPrompt) {
-      await handlePwaInstall();
-    } else {
-      window.open(window.location.href, '_blank');
+    if (isPwaInstalled()) {
+      return;
     }
+    if (pwaInstallAvailable) {
+      await promptPwaInstall();
+      return;
+    }
+    // Browser doesn't support (or hasn't yet surfaced) the native install
+    // prompt — e.g. Safari/Firefox — so show manual "Add to Home Screen" steps
+    // instead of uselessly opening the same page in a new tab.
+    setShowInstallHelp(true);
   };
 
   return (
@@ -544,6 +534,15 @@ function Landing() {
       </section>
 
       <RoleChooserModal isOpen={showRoleChooser} onClose={() => setShowRoleChooser(false)} mode="signup" />
+
+      <Modal isOpen={showInstallHelp} onClose={() => setShowInstallHelp(false)} title="Install Rojgaar Hai" size="sm">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">
+            <Download size={18} />
+          </div>
+          <p className="text-sm text-[var(--charcoal)] leading-relaxed">{getManualInstallInstructions()}</p>
+        </div>
+      </Modal>
       </>
     </div>
   );

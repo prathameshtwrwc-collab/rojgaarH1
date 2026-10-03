@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rojgaar-hai-v1';
+const CACHE_NAME = 'rojgaar-hai-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -28,16 +28,30 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+
+  // Only handle same-origin GET requests. Cross-origin requests (fonts,
+  // QR code API, Supabase, etc.) and non-GET requests pass through
+  // untouched instead of being routed through respondWith().
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request).then((response) => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => cached);
+    caches.match(request).then((cached) => {
+      const networkFetch = fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => cached || Response.error());
+
+      // respondWith() must always resolve to a real Response — never
+      // fall through to `undefined` when there's nothing cached and the
+      // network call also fails.
       return cached || networkFetch;
     })
   );
