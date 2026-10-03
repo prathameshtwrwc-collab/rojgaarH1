@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
@@ -16,6 +16,7 @@ const sidebarItems = [
   { to: '/admin/matching', label: 'Matching', icon: <GitMerge size={20} /> },
   { to: '/admin/communications', label: 'Communications', icon: <MessageSquare size={20} /> },
   { to: '/admin/placements', label: 'Placements', icon: <Award size={20} /> },
+  { to: '/admin/cv-requests', label: 'CV Requests', icon: <FileText size={20} /> },
 ];
 
 function AdminLayout({ children }: { children: ReactNode }) {

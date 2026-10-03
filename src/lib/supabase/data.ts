@@ -1111,6 +1111,24 @@ export async function getCvRequestsByEmployer(employerId: string): Promise<any[]
   }
 }
 
+export async function getAllCvRequests(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('cv_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  } catch (err: any) {
+    const status = err?.status || err?.code;
+    if (status === '404' || status === 'PGRST204' || status === '42P01') {
+      return [];
+    }
+    console.error('Error fetching all cv requests:', err);
+    return [];
+  }
+}
+
 export async function createCvRequest(payload: {
   employer_id: string;
   plan_key: string;
@@ -1137,6 +1155,17 @@ export async function createCvRequest(payload: {
       status: payload.status || 'pending',
       notes: payload.notes || null,
     } as never)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCvRequest(requestId: string, updates: Record<string, any>): Promise<any> {
+  const { data, error } = await supabase
+    .from('cv_requests')
+    .update(updates as never)
+    .eq('id', requestId)
     .select()
     .single();
   if (error) throw error;

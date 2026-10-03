@@ -1346,18 +1346,37 @@ function EmployerDashboard() {
 
       {/* ═══ CV REQUEST PLAN SELECTION MODAL ═══ */}
       <Modal isOpen={showCvPlanSelectionModal} onClose={() => setShowCvPlanSelectionModal(false)} title="Select CV Request Plan" size="lg">
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-[var(--charcoal)] text-center mb-4">Choose a plan that fits your hiring needs. All plans include verified candidate profiles.</p>
+        <div className="p-6 space-y-5">
+          <div className="text-center">
+            <p className="text-sm text-[var(--charcoal)]">Choose a plan that fits your hiring needs. All plans include verified candidate profiles.</p>
+            <p className="text-xs text-[var(--charcoal)] mt-1">All prices include 18% GST</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {cvPlans.map((plan: any) => (
               <button
                 key={plan.key}
                 onClick={() => handleSelectCvPlan(plan)}
-                className="p-4 rounded-2xl border-2 border-slate-200 bg-[var(--white)] hover:border-[var(--orange)] hover:shadow-md transition-all text-left"
+                className="group relative p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-[var(--orange)] hover:shadow-lg hover:shadow-[var(--orange)]/10 transition-all duration-200 text-left overflow-hidden"
               >
-                <p className="text-lg font-extrabold text-[var(--navy)]">{plan.label}</p>
-                <p className="text-xs text-[var(--charcoal)] mt-1">Base: ₹{plan.amount} + 18% GST: ₹{plan.gst}</p>
-                <p className="text-xl font-extrabold text-[var(--orange)] mt-2">₹{plan.total} <span className="text-xs font-semibold text-[var(--charcoal)]">total</span></p>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--orange)]/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-300" />
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-base font-extrabold text-[var(--navy)] group-hover:text-[var(--orange)] transition-colors">{plan.label}</p>
+                      <p className="text-xs text-[var(--charcoal)] mt-0.5">{plan.count} verified candidate profiles</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center group-hover:bg-[var(--orange)] group-hover:text-white transition-colors">
+                      <FileText size={20} />
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-extrabold text-[var(--navy)]">₹{plan.total}</p>
+                        <span className="text-[10px] font-bold text-[var(--charcoal)] uppercase tracking-wider">incl. 18% GST</span>
+                      </div>
+                    <p className="text-[10px] text-[var(--charcoal)] mt-1">₹{plan.amount} base + ₹{plan.gst} GST</p>
+                  </div>
+                </div>
               </button>
             ))}
           </div>

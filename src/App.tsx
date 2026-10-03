@@ -37,6 +37,7 @@ const JobApprovals = lazy(() => import('./pages/admin/JobApprovals'));
 const JobPostDetail = lazy(() => import('./pages/admin/JobPostDetail'));
 const Recruiters = lazy(() => import('./pages/admin/Recruiters'));
 const RecruiterDetail = lazy(() => import('./pages/admin/RecruiterDetail'));
+const CvRequests = lazy(() => import('./pages/admin/CvRequests'));
 const CandidateLogin = lazy(() => import('./pages/auth/CandidateLogin'));
 const EmployerLogin = lazy(() => import('./pages/auth/EmployerLogin'));
 const RecruiterLogin = lazy(() => import('./pages/auth/RecruiterLogin'));
@@ -169,7 +170,8 @@ function AppRoutes() {
           <Route path="/recruiter/:id" element={<ProtectedAdminRoute><RecruiterDetail /></ProtectedAdminRoute>} />
           <Route path="/admin/matching" element={<ProtectedAdminRoute><Matching /></ProtectedAdminRoute>} />
           <Route path="/admin/communications" element={<ProtectedAdminRoute><Communications /></ProtectedAdminRoute>} />
-          <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />
+           <Route path="/admin/placements" element={<ProtectedAdminRoute><Placements /></ProtectedAdminRoute>} />
+           <Route path="/admin/cv-requests" element={<ProtectedAdminRoute><CvRequests /></ProtectedAdminRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

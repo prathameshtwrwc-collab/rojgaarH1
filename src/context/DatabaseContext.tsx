@@ -28,6 +28,7 @@ import {
   getAllRecruiters,
   getCandidatesReferredByRecruiter,
   getCvRequestsByEmployer,
+  getAllCvRequests,
 } from '../lib/supabase/data';
 
 export interface DashboardStats {
@@ -170,7 +171,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setRecruiter(recruiterData);
         setCandidates(referredCandidates || []);
       } else if (user.role === 'superadmin') {
-        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters] = await Promise.all([
+        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters, allCvRequests] = await Promise.all([
           getAllEmployers(),
           getAllCandidates(),
           getAllJobs(),
@@ -179,6 +180,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getCommunications(),
           getAllCandidateSkills(),
           getAllRecruiters(),
+          getAllCvRequests(),
         ]);
         const jobIds = (allJobs || []).map((j: any) => j.id);
         const jobSkillsMap = await getAllJobSkills(jobIds);
@@ -190,6 +192,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setCommunications(allCommunications || []);
         setJobSkills(jobSkillsMap || {});
         setRecruiters(allRecruiters || []);
+        setCvRequests(allCvRequests || []);
       }
     } catch (err) {
       console.error('Error loading database data:', err);
