@@ -10,12 +10,12 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   CheckmarkCircle02Icon, CircleIcon, File01Icon, ViewIcon, Download04Icon,
-  Upload04Icon, Activity03Icon,
+  Activity03Icon,
 } from '@hugeicons/core-free-icons';
 import { Card, Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
-import { createApplication, updateCandidateProfile, updateCandidateStatus, uploadCandidateResume } from '../../lib/supabase/data';
+import { createApplication, updateCandidateProfile, updateCandidateStatus } from '../../lib/supabase/data';
 import { EditProfileModal } from '../../components/EditProfileModal';
 import { DashboardSkeleton } from '../../components/Skeleton';
 
@@ -130,8 +130,6 @@ function CandidateDashboard() {
   const [candidateStatus, setCandidateStatus] = useState<'Open to Work' | 'Interviewing' | 'Placed' | 'Actively Looking'>('Open to Work');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState<any | null>(null);
-  const [showResumeModal, setShowResumeModal] = useState(false);
-  const [uploadingResume, setUploadingResume] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -459,7 +457,6 @@ function CandidateDashboard() {
 
         <div className="flex flex-wrap gap-x-8 gap-y-2 -mt-4 text-[13px] font-semibold text-[var(--charcoal)]">
           <span>{savedJobs.length} Saved Jobs</span>
-          <span>5 Recruiter Contacts</span>
           <span>{myMatches.filter(m => m.status === 'Shortlisted').length} Shortlisted</span>
           <span>{myMatches.filter(m => m.status === 'Offered').length} Offers Received</span>
           <span>{Math.round(myMatches.reduce((acc, m) => acc + m.matchScore, 0) / (myMatches.length || 1))}% Avg Match Score</span>
@@ -468,7 +465,6 @@ function CandidateDashboard() {
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           {[
             { label: 'Complete Profile', icon: <CheckSquare size={15} />, action: () => setShowEditProfileModal(true) },
-            { label: 'Upload Resume', icon: <Upload size={15} />, action: () => setShowResumeModal(true) },
             { label: 'Browse Jobs', icon: <Search size={15} />, action: () => navigate('/jobs') },
             { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => scrollToSection('saved-jobs', savedJobs.length === 0 ? 'No saved jobs yet. Tap the bookmark on any job to save it.' : null) },
             { label: 'My Applications', icon: <FileText size={15} />, action: () => scrollToSection('my-applications', applicationRows.length === 0 ? 'You have not applied to any jobs yet.' : null) },
@@ -762,8 +758,6 @@ function CandidateDashboard() {
                   { label: 'Resume Uploaded', done: Boolean(candidate.resume_url) },
                   { label: 'Education Added', done: Boolean(candidate.qualification) },
                   { label: 'Experience Added', done: Boolean(candidate.total_experience_years) },
-                  { label: 'Aadhaar Verification', done: false },
-                  { label: 'Skills Assessment', done: false },
                   { label: 'Profile Picture', done: Boolean(candidate.profile_photo_url) },
                 ].map((item, i) => (
                   <div key={i} className="py-2 flex items-center justify-between text-[13px]">
@@ -794,19 +788,26 @@ function CandidateDashboard() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   className="dash-btn dash-btn-secondary dash-btn--compact min-w-0 px-2"
-                  onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet. Use Replace to upload one.')}
+                  onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet.')}
                 >
                   <HugeiconsIcon icon={ViewIcon} size={15} /> Preview
                 </button>
                 <button
                   className="dash-btn dash-btn-secondary dash-btn--compact flex-1"
-                  onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet. Use Replace to upload one.')}
+                  onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet.')}
                 >
                   <HugeiconsIcon icon={Download04Icon} size={15} /> Download
                 </button>
-                <button className="dash-btn dash-btn-primary dash-btn--compact flex-1" onClick={() => setShowResumeModal(true)}>
-                  <HugeiconsIcon icon={Upload04Icon} size={15} /> Replace
-                </button>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-dashed border-[var(--orange)]/40 bg-[var(--orange)]/5 px-3 py-2.5">
+                <span className="w-8 h-8 rounded-lg bg-white border border-[#E7E2D9] flex items-center justify-center text-[var(--orange)] flex-shrink-0">
+                  <Upload size={15} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[var(--navy)]">Upload Resume</p>
+                  <p className="text-[11px] text-[var(--charcoal)]">This feature is coming soon</p>
+                </div>
               </div>
             </div>
 
@@ -865,49 +866,6 @@ function CandidateDashboard() {
           </div>
         </Modal>
       )}
-
-      <Modal isOpen={showResumeModal} onClose={() => setShowResumeModal(false)} title="Upload Updated Resume" size="md">
-        <div className="space-y-4">
-          <div className="p-6 border-2 border-dashed border-slate-300 rounded-2xl text-center bg-[var(--white)]">
-            <Upload size={32} className="text-[var(--orange)] mx-auto mb-2" />
-            <p className="text-sm font-bold text-[var(--navy)]">Choose a PDF or DOCX file</p>
-            <p className="text-xs text-slate-400 mt-1">Maximum file size: 5MB</p>
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              className="hidden"
-              id="resume-upload-input"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file || !user) return;
-                if (file.size > 5 * 1024 * 1024) {
-                  setToastMessage('File too large. Maximum size is 5MB.');
-                  return;
-                }
-                setUploadingResume(true);
-                try {
-                  await uploadCandidateResume(user.id, file);
-                  await refresh();
-                  setShowResumeModal(false);
-                  setToastMessage('Resume uploaded successfully!');
-                } catch (err) {
-                  setToastMessage(err instanceof Error ? err.message : 'Failed to upload resume.');
-                } finally {
-                  setUploadingResume(false);
-                }
-              }}
-            />
-            <Button
-              size="sm"
-              className="mt-4 bg-[var(--orange)]"
-              disabled={uploadingResume}
-              onClick={() => document.getElementById('resume-upload-input')?.click()}
-            >
-              {uploadingResume ? 'Uploading...' : 'Select File'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <EditProfileModal
         isOpen={showEditProfileModal}

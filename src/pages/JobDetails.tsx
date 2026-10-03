@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, MapPin, Briefcase, IndianRupee, Clock, ShieldCheck, Bookmark, Building2,
-  CheckCircle, Mail, Phone, UserCheck, AlertCircle, Share2, Link2, Calendar, GraduationCap,
+  CheckCircle, UserCheck, AlertCircle, Share2, Link2, Calendar, GraduationCap,
   Home, Car, Sparkles,
 } from 'lucide-react';
 import { Badge, Button, Modal, Toast } from '../components/ui';
@@ -445,36 +445,12 @@ export default function JobDetails() {
               </div>
             </div>
 
-            <div className="dash-surface dash-surface--pad">
-              <h3 className="text-[15px] font-bold text-[var(--navy)] mb-3">Hiring Recruiter Contact</h3>
-              <div className="space-y-2.5 text-[13.5px]">
-                <p className="font-bold text-[var(--navy)] flex items-center gap-2">
-                  <UserCheck size={15} className="text-[var(--orange)]" />
-                  {job.recruiterName || employer?.contactName || 'HR Team'}
-                </p>
-                <p className="text-[var(--charcoal)] flex items-center gap-2">
-                  <Mail size={14} className="text-slate-400" />
-                  {job.recruiterEmail || employer?.contactEmail || 'hr@company.com'}
-                </p>
-                <p className="text-[var(--charcoal)] flex items-center gap-2">
-                  <Phone size={14} className="text-slate-400" />
-                  {job.recruiterPhone || employer?.contactPhone || '+91-9800000000'}
-                </p>
-              </div>
-            </div>
-
             {employer && (
               <div className="dash-surface dash-surface--pad">
                 <h3 className="text-[15px] font-bold text-[var(--navy)] mb-3">About {employer.companyName}</h3>
                 <p className="text-[12.5px] text-[var(--charcoal)] mb-3 leading-relaxed">
                   Established in {employer.yearEstablished}, {employer.companyName} is a leading organization in the {employer.industry} sector with {employer.companySize} employees.
                 </p>
-                <div className="text-[12.5px] space-y-1.5 text-[var(--charcoal)]">
-                  <p><span className="text-slate-400">Address:</span> {employer.address}, {employer.city}</p>
-                  {employer.website && (
-                    <p><span className="text-slate-400">Website:</span> <a href={`https://${employer.website}`} target="_blank" rel="noreferrer" className="text-[var(--orange)] hover:underline">{employer.website}</a></p>
-                  )}
-                </div>
               </div>
             )}
 

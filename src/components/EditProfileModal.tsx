@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   X, User, MapPin, Briefcase, GraduationCap, Sparkles, FileText,
   Upload, Shield, Globe, BookOpen, Award, CheckCircle,
-  Plus, Trash2, Save, RefreshCw, Download, Eye, ChevronLeft, ChevronRight
+  Plus, Trash2, Save, RefreshCw, Eye, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -49,8 +49,8 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [gender, setGender] = useState(candidate.gender || 'Male');
   const [maritalStatus, setMaritalStatus] = useState(candidate.maritalStatus || 'Single');
   const [nationality, setNationality] = useState(candidate.nationality || 'Indian');
-  const [aadhaarNumber, setAadhaarNumber] = useState(candidate.aadhaarNumber || '5489 1234 9876');
-  const [panNumber, setPanNumber] = useState(candidate.panNumber || 'ABCDE1234F');
+  const [aadhaarNumber, setAadhaarNumber] = useState(candidate.aadhaarNumber || '');
+  const [panNumber, setPanNumber] = useState(candidate.panNumber || '');
 
   // SECTION 2: Location
   const [city, setCity] = useState(candidate.location || '');
@@ -199,12 +199,6 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [skillInput, setSkillInput] = useState('');
 
   // SECTION 6: Resume & Files (now using docUrls for uploads)
-  const [resumeFile] = useState(candidate.resumeFile || 'Rajesh_Kumar_Resume.pdf');
-  const [profilePhotoFile] = useState(candidate.profilePhotoFile || 'rajesh_photo.jpg');
-  const [aadhaarFile] = useState(candidate.aadhaarFile || 'Aadhaar_Copy.pdf');
-  const [panFile] = useState(candidate.panFile || 'PAN_Copy.pdf');
-  const [certificatesFile] = useState(candidate.certificatesFile || 'Degree_Certificate.pdf');
-  const [experienceLetterFile] = useState(candidate.experienceLetterFile || 'Experience_Letter.pdf');
 
   // SECTION 7: Experience Entries
   const [experienceList, setExperienceList] = useState<ExperienceEntry[]>(candidate.experienceList || [
@@ -341,11 +335,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     if (email && phone) score += 15;
     if (city && state) score += 10;
     if (skills.length >= 3) score += 15;
-    if (resumeFile) score += 15;
+    if (docUrls.resume) score += 15;
     if (educationList.length > 0) score += 10;
     if (experienceList.length > 0) score += 10;
     if (expectedSalary) score += 5;
-    if (profilePhotoFile) score += 5;
+    if (docUrls.photo) score += 5;
     if (bio) score += 5;
     return Math.min(score, 100);
   })();
@@ -395,12 +389,6 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       department,
       qualification: educationList[0]?.degree || candidate.qualification,
       skills,
-      resumeFile,
-      profilePhotoFile,
-      aadhaarFile,
-      panFile,
-      certificatesFile,
-      experienceLetterFile,
       expectedSalary,
       preferredJobRole,
       preferredIndustry,
@@ -535,6 +523,16 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
+  const isFirstStep = activeStepIndex === 0;
+  const isLastStep = activeStepIndex === sectionTabs.length - 1;
+  const autoSaveText = autoSaveStatus === 'saving'
+    ? 'Saving…'
+    : autoSaveStatus === 'error'
+    ? `Not saved yet (${saveError || 'retrying'}). Retrying every 5s.`
+    : lastSavedAt
+    ? `Saved at ${lastSavedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+    : 'Changes save automatically every 5 seconds';
+
   if (!isOpen) return null;
 
   return (
@@ -546,7 +544,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
         {/* ═══ HEADER BAR ═══ */}
         <div
-          className="ui-modal-header relative text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 overflow-hidden"
+          className="ui-modal-header relative text-white px-4 py-3 sm:p-6 flex flex-row items-center justify-between gap-3 overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}
         >
           <div
@@ -554,13 +552,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
             style={{ background: 'radial-gradient(circle, var(--orange) 0%, transparent 70%)' }}
           />
 
-          <div className="relative flex items-center gap-3.5">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--orange)] to-[#d94d1a] text-white rounded-2xl flex items-center justify-center font-extrabold text-xl shadow-lg ring-2 ring-white/15">
+          <div className="relative flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-[var(--orange)] to-[#d94d1a] text-white rounded-2xl flex items-center justify-center font-extrabold text-base sm:text-xl shadow-lg ring-2 ring-white/15">
               {firstName[0] || 'C'}{lastName[0] || 'P'}
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>Manage & Edit Profile</h2>
-              <p className="text-xs text-white/70 mt-0.5">Step {activeStepIndex + 1} of {sectionTabs.length} · {sectionTabs[activeStepIndex]?.label}</p>
+              <h2 className="text-base sm:text-2xl font-extrabold tracking-tight truncate" style={{ fontFamily: 'var(--font-display)' }}>Manage & Edit Profile</h2>
+              <p className="text-[11px] sm:text-xs text-white/70 mt-0.5 truncate">Step {activeStepIndex + 1} of {sectionTabs.length} · {sectionTabs[activeStepIndex]?.label}</p>
             </div>
           </div>
 
@@ -594,21 +592,36 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
         </div>
 
         {/* ═══ STEP PROGRESS BAR ═══ */}
-        <div className="px-5 sm:px-6 py-3 bg-white border-b border-slate-100 flex items-center gap-3">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-b border-slate-100 flex items-center gap-3">
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-all duration-400 ease-out"
               style={{ width: `${((activeStepIndex + 1) / sectionTabs.length) * 100}%` }}
             />
           </div>
-          <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">Step {activeStepIndex + 1} of {sectionTabs.length}</span>
+          <span className="hidden sm:inline text-[11px] font-semibold text-slate-500 whitespace-nowrap">Step {activeStepIndex + 1} of {sectionTabs.length}</span>
         </div>
 
         {/* ═══ BODY SECTION (LEFT TAB SIDEBAR + RIGHT FORM EDITOR) ═══ */}
         <div className="ui-modal-split flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
-          {/* LEFT STEPPER SIDEBAR (Desktop vertical stepper, Mobile scrollable pills) */}
-          <div className="w-full md:w-72 bg-slate-50 border-r border-slate-200 p-3 md:p-4 flex md:flex-col gap-1 md:gap-0 overflow-x-auto md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
+          {/* PHONE: one section picker instead of a row of pills */}
+          <div className="md:hidden px-4 pt-3 pb-2 bg-white border-b border-slate-100 flex-shrink-0">
+            <label htmlFor="profile-section" className="block text-[11px] font-semibold text-slate-500 mb-1">Section</label>
+            <select
+              id="profile-section"
+              value={activeSection}
+              onChange={e => goToSection(e.target.value)}
+              className="w-full h-11 px-3 rounded-xl border border-slate-300 bg-white text-base font-semibold text-[var(--navy)]"
+            >
+              {sectionTabs.map((tab, i) => (
+                <option key={tab.id} value={tab.id}>{i + 1}. {tab.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* DESKTOP: vertical stepper */}
+          <div className="hidden md:flex md:w-72 bg-slate-50 border-r border-slate-200 md:p-4 overflow-x-auto md:flex-col md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
             {sectionTabs.map((tab, i) => {
               const isActive = activeSection === tab.id;
               const isDone = visitedSections.has(tab.id) && !isActive;
@@ -647,7 +660,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
 
           {/* RIGHT SCROLLABLE SECTION EDITOR */}
-          <div className="flex-1 min-h-0 p-5 sm:p-8 overflow-y-auto space-y-8 bg-white" data-lenis-prevent>
+          <div className="flex-1 min-h-0 p-4 sm:p-8 overflow-y-auto space-y-6 sm:space-y-8 bg-white" data-lenis-prevent>
             
             {/* ═══ SECTION 1: PERSONAL INFORMATION ═══ */}
             {activeSection === 'personal' && (
@@ -720,12 +733,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Aadhaar Number (Dummy Verification)</label>
-                    <input value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value)} placeholder="5489 1234 9876" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono" />
+                    <label htmlFor="aadhaar-number" className="block text-xs font-semibold text-slate-700 mb-1">Aadhaar Number</label>
+                    <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value)} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">PAN Number (Dummy Verification)</label>
-                    <input value={panNumber} onChange={e => setPanNumber(e.target.value)} placeholder="ABCDE1234F" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono uppercase" />
+                    <label htmlFor="pan-number" className="block text-xs font-semibold text-slate-700 mb-1">PAN Number</label>
+                    <input id="pan-number" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} autoComplete="off" maxLength={10} placeholder="e.g. ABCDE1234F" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono uppercase" />
                   </div>
                 </div>
               </div>
@@ -991,37 +1004,18 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <FileText className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">6. Resume Center</h3>
+                  <h3 className="text-lg font-bold text-slate-900">Resume</h3>
                 </div>
-
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-[rgba(241,90,36,0.1)] text-[var(--orange)] rounded-2xl">
-                      <FileText size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-base">{resumeFile}</h4>
-                      <p className="text-xs text-slate-500">PDF Document • Uploaded Jan 2024</p>
-                    </div>
-                  </div>
-                  <Badge variant="success" className="text-xs font-bold">ATS Score: 92%</Badge>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <Button variant="outline" size="sm" onClick={() => setToastMessage('Previewing current resume...')} className="gap-1">
-                    <Eye size={14} /> Preview
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setToastMessage('Downloading resume file...')} className="gap-1">
-                    <Download size={14} /> Download
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={() => setToastMessage('Select a file to replace current resume')} className="gap-1">
-                    <Upload size={14} /> Replace
-                  </Button>
+                <div className="p-8 rounded-2xl border border-dashed border-[var(--orange)]/40 bg-[var(--orange)]/5 text-center">
+                  <span className="w-12 h-12 mx-auto rounded-xl bg-white border border-[#E7E2D9] flex items-center justify-center text-[var(--orange)]">
+                    <Upload size={20} />
+                  </span>
+                  <p className="mt-3 text-sm font-bold text-[var(--navy)]">Upload Resume</p>
+                  <p className="mt-1 text-xs text-[var(--charcoal)]">This feature is coming soon</p>
                 </div>
               </div>
             )}
 
-            {/* ═══ SECTION 7: WORK EXPERIENCE ═══ */}
             {activeSection === 'experience' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200">
@@ -1337,19 +1331,30 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
         </div>
 
-        {/* ═══ PREVIOUS / NEXT ═══ */}
-        <div className="px-4 sm:px-6 py-3 bg-white border-t border-slate-200 flex items-center justify-between gap-3">
-          <Button variant="outline" size="sm" onClick={() => goStep(-1)} disabled={activeStepIndex === 0} className="gap-1.5 min-w-[110px]">
-            <ChevronLeft size={15} /> Previous
-          </Button>
-          <span className="hidden sm:block text-xs text-slate-500 truncate">{sectionTabs[activeStepIndex]?.label}</span>
-          <Button size="sm" onClick={() => goStep(1)} disabled={activeStepIndex === sectionTabs.length - 1} className="gap-1.5 min-w-[110px] max-w-[60%]">
-            <span className="truncate">Next{sectionTabs[activeStepIndex + 1] ? `: ${sectionTabs[activeStepIndex + 1].label}` : ''}</span> <ChevronRight size={15} />
-          </Button>
+        {/* ═══ PREVIOUS / NEXT: the main way through the form ═══ */}
+        <div className="px-4 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:py-3 bg-white border-t border-slate-200 flex-shrink-0">
+          <p className="sm:hidden text-[11px] text-slate-500 text-center mb-2 truncate">{autoSaveText}</p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="md" onClick={() => goStep(-1)} disabled={isFirstStep} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
+              <ChevronLeft size={16} /> Previous
+            </Button>
+            <span className="hidden sm:block flex-1 text-xs text-slate-500 truncate text-center">{sectionTabs[activeStepIndex]?.label}</span>
+            <Button size="md" onClick={isLastStep ? handleSaveChanges : () => goStep(1)} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
+              {isLastStep ? (
+                <><CheckCircle size={16} /> Save profile</>
+              ) : (
+                <>
+                  <span className="sm:hidden">Next</span>
+                  <span className="hidden sm:inline truncate">Next: {sectionTabs[activeStepIndex + 1]?.label}</span>
+                  <ChevronRight size={16} />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* ═══ BOTTOM ACTION BAR ═══ */}
-        <div className="ui-modal-footer bg-slate-100 p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="ui-modal-footer hidden sm:flex bg-slate-100 p-4 border-t border-slate-200 flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs text-slate-600 gap-1">
               <RefreshCw size={14} /> Reset Changes
@@ -1360,13 +1365,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
 
           <span className="text-[11px] text-slate-500 min-w-0 truncate" aria-live="polite">
-            {autoSaveStatus === 'saving'
-              ? 'Saving…'
-              : autoSaveStatus === 'error'
-              ? `Not saved yet (${saveError || 'retrying'}). Retrying every 5s.`
-              : lastSavedAt
-              ? `Saved at ${lastSavedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
-              : 'Changes save automatically every 5 seconds'}
+            {autoSaveText}
           </span>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <Button variant="ghost" size="sm" onClick={onClose}>
