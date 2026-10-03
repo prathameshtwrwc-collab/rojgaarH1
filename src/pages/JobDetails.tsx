@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  ChevronRight, MapPin, Briefcase, IndianRupee, Clock, ShieldCheck, Bookmark, Building2,
+  ChevronRight, MapPin, Briefcase, ShieldCheck, Bookmark, Building2,
   CheckCircle, UserCheck, AlertCircle, Share2, Link2, Calendar, GraduationCap,
   Home, Car, Sparkles,
 } from 'lucide-react';
@@ -134,10 +134,11 @@ export default function JobDetails() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
 
-  const matchScore = useMemo(() => {
+  const matchDetail = useMemo(() => {
     if (!isCandidateLoggedIn || !candidate || !rawJobForMatch) return undefined;
-    return computeMatch(candidate, rawJobForMatch).score;
+    return computeMatch(candidate, rawJobForMatch);
   }, [isCandidateLoggedIn, candidate, rawJobForMatch]);
+  const matchScore = matchDetail?.score;
 
   if (jobLoading) {
     return <PageLoader label="Loading job details..." />;
@@ -253,7 +254,7 @@ export default function JobDetails() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-warm)] pb-24 lg:pb-10 transition-colors duration-300" style={{ fontFamily: "var(--font)" }}>
-      <div className="dash-container py-6">
+      <div className="dash-container py-6 dash-enter">
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-[12.5px] text-[var(--charcoal)] mb-5 flex-wrap">
@@ -265,7 +266,8 @@ export default function JobDetails() {
         </div>
 
         {/* ═══ TOP HERO BANNER ═══ */}
-        <div className="dash-surface dash-surface--pad mb-6">
+        <div className="dash-surface dash-surface--pad mb-6 relative overflow-hidden">
+          <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--orange)] via-[#F7A072] to-[#1C2B52]" />
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
             <div className="flex items-start gap-4 min-w-0">
               <div className="dash-avatar w-14 h-14 !rounded-2xl text-xl flex-shrink-0">
@@ -287,6 +289,9 @@ export default function JobDetails() {
                       <Sparkles size={12} /> {matchScore}% Match
                     </span>
                   )}
+                  {matchDetail && !matchDetail.confident && (
+                    <span className="text-[11px] text-slate-500 self-center">Based on limited profile data</span>
+                  )}
                 </div>
 
                 <p className="text-[15px] font-semibold text-[var(--charcoal)] flex items-center gap-2">
@@ -297,9 +302,27 @@ export default function JobDetails() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[var(--charcoal)] mt-3">
                   <span className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" />{job.city}, {job.state}</span>
                   <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-slate-400" />{job.employmentType}</span>
-                  <span className="flex items-center gap-1.5 text-[var(--green)] font-bold"><IndianRupee size={14} />₹{parseInt(job.salaryMin).toLocaleString()} - ₹{parseInt(job.salaryMax).toLocaleString()} / mo</span>
-                  <span className="flex items-center gap-1.5"><Clock size={14} className="text-slate-400" />{job.numberOfOpenings} openings</span>
                   <span className="flex items-center gap-1.5 text-slate-400">Posted {timeAgo(job.createdAt)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5">
+                  <div className="rounded-xl bg-[var(--green)]/5 border border-[var(--green)]/20 px-3.5 py-3">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--green)]">Monthly pay</p>
+                    <p className="mt-0.5 text-[15px] font-extrabold text-[var(--navy)] leading-tight">₹{parseInt(job.salaryMin).toLocaleString()} – ₹{parseInt(job.salaryMax).toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl bg-[var(--bg-warm)] border border-[#EFEAE1] px-3.5 py-3">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--charcoal)]">Experience</p>
+                    <p className="mt-0.5 text-[15px] font-extrabold text-[var(--navy)] leading-tight">{job.experienceRequired || 'Any'}</p>
+                  </div>
+                  <div className="rounded-xl bg-[var(--bg-warm)] border border-[#EFEAE1] px-3.5 py-3">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--charcoal)]">Openings</p>
+                    <p className="mt-0.5 text-[15px] font-extrabold text-[var(--navy)] leading-tight">{job.numberOfOpenings}</p>
+                  </div>
+                  <div className={`rounded-xl border px-3.5 py-3 ${matchScore != null ? matchColor : 'bg-[var(--bg-warm)] border-[#EFEAE1]'}`}>
+                    <p className="text-[10.5px] font-bold uppercase tracking-wider">Your match</p>
+                    <p className="mt-0.5 text-[15px] font-extrabold leading-tight">{matchScore != null ? `${matchScore}%` : 'Sign in'}</p>
+                    {matchDetail && !matchDetail.confident && <p className="text-[10.5px] opacity-80 mt-0.5">Limited profile data</p>}
+                  </div>
                 </div>
               </div>
             </div>
@@ -328,7 +351,7 @@ export default function JobDetails() {
         </div>
 
         {/* ═══ MAIN CONTENT GRID ═══ */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid lg:grid-cols-3 gap-6 mb-12 dash-enter dash-enter-d1">
 
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">

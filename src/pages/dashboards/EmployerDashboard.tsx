@@ -13,7 +13,10 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import CvRequestStatusCard from '../../components/CvRequestStatusCard';
 import ApplicantRow, { sortLatestFirst } from '../../components/ApplicantRow';
+import EmptyState from '../../components/EmptyState';
+import { timeGreeting } from '../../lib/greeting';
 import { AllApplicantsModal } from '../../components/AllApplicantsModal';
+import { computeMatch } from '../../lib/matching';
 import { PayFromUpiButton } from '../../components/UpiPaymentPanel';
 import { updateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
 import { supabase } from '../../lib/supabase/client';
@@ -276,8 +279,16 @@ function EmployerDashboard() {
   }, [applications, matches, jobs, candidatesMap]);
 
   const atsInsights = useMemo(() => {
-    const totalMatches = matches.length;
-    const avgMatchScore = totalMatches > 0 ? Math.round(matches.reduce((sum: number, m: any) => sum + (m.match_score || 0), 0) / totalMatches) : 0;
+    // Live scores for every application on your jobs, from the same engine candidates see
+    const liveScores = applications
+      .map((a: any) => {
+        const c = candidatesMap.get(a.candidate_id);
+        const j = jobs.find((x: any) => x.id === a.job_id);
+        return c && j ? computeMatch(c, { ...j, skills_required: jobSkills[j.id] || [] }).score : null;
+      })
+      .filter((v: number | null): v is number => v !== null);
+    const totalMatches = liveScores.length;
+    const avgMatchScore = totalMatches > 0 ? Math.round(liveScores.reduce((sum: number, v: number) => sum + v, 0) / totalMatches) : 0;
     const respondedCount = applications.filter((a: any) => a.status !== 'applied').length;
     const responseRate = applications.length > 0 ? Math.round((respondedCount / applications.length) * 100) : 0;
     return {
@@ -285,7 +296,7 @@ function EmployerDashboard() {
       responseRate,
       totalApplications: applications.length,
     };
-  }, [matches, applications]);
+  }, [applications, jobs, candidatesMap, jobSkills]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -319,6 +330,14 @@ function EmployerDashboard() {
 
   const getMatchesForJob = (jobId: string) => {
     return matches.filter((m: any) => m.job_id === jobId);
+  };
+
+  // Same engine candidates see, so the employer and the candidate read the same number
+  const liveMatchFor = (candidateId: string, jobId: string): number => {
+    const candidate = candidatesMap.get(candidateId);
+    const job = jobs.find((j: any) => j.id === jobId);
+    if (!candidate || !job) return 0;
+    return computeMatch(candidate, { ...job, skills_required: jobSkills[jobId] || [] }).score;
   };
 
   const filteredJobs = myJobs.filter((job: any) => {
@@ -573,6 +592,7 @@ function EmployerDashboard() {
         {/* ═══ HEADER: identity + primary action ═══ */}
         <div className="dash-header">
           <div>
+            <p className="text-[13px] font-semibold text-[var(--charcoal)] mb-1">{timeGreeting()}, {employer.contactName || 'there'}</p>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="dash-header__title">{employer.companyName || 'Complete Your Company Profile'}</h1>
               {employer.verified && <span className="dash-status dash-status--success"><ShieldCheck size={11} /> Verified</span>}
@@ -597,16 +617,14 @@ function EmployerDashboard() {
         </div>
 
         {/* ═══ METRICS STRIP ═══ */}
-        <div className="dash-metrics">
+        <div className="dash-metrics dash-enter">
           <div className="dash-metric">
             <div className="dash-metric__value dash-metric__value--accent">{activeJobs}</div>
             <div className="dash-metric__label">Active Openings</div>
-            <div className="dash-metric__trend">↑ 12% this week</div>
           </div>
           <div className="dash-metric">
             <div className="dash-metric__value">{totalApplicants}</div>
             <div className="dash-metric__label">Total Applicants</div>
-            <div className="dash-metric__trend">↑ 18% this week</div>
           </div>
           <div className="dash-metric">
             <div className="dash-metric__value">{interviewsScheduled}</div>
@@ -617,6 +635,44 @@ function EmployerDashboard() {
             <div className="dash-metric__label">Placements Joined</div>
           </div>
         </div>
+
+        {/* ═══ APPLICANT FUNNEL: real counts from every application on your jobs ═══ */}
+        {(() => {
+          const reached = (...statuses: string[]) => applications.filter((a: any) => statuses.includes(a.status)).length;
+          const total = applications.length;
+          const stages = [
+            { label: 'Applied', value: total, tone: 'bg-[var(--navy)]' },
+            { label: 'Shortlisted', value: reached('shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'joined'), tone: 'bg-amber-500' },
+            { label: 'Interviewed', value: reached('interviewed', 'selected', 'joined'), tone: 'bg-[var(--orange)]' },
+            { label: 'Selected', value: reached('selected', 'joined'), tone: 'bg-emerald-600' },
+            { label: 'Joined', value: reached('joined'), tone: 'bg-emerald-800' },
+          ];
+          return (
+            <div className="dash-surface dash-surface--pad dash-surface--lift dash-enter dash-enter-d1">
+              <div className="flex items-center justify-between mb-4">
+                <div className="dash-section-title">Hiring funnel</div>
+                <span className="text-xs text-[var(--charcoal)]">{total === 0 ? 'No applications yet' : `${total} applications across your jobs`}</span>
+              </div>
+              <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                {stages.map((stage, i) => {
+                  const pct = total > 0 ? Math.round((stage.value / total) * 100) : 0;
+                  const prev = i > 0 ? stages[i - 1].value : 0;
+                  const conversion = i > 0 && prev > 0 ? Math.round((stage.value / prev) * 100) : null;
+                  return (
+                    <div key={stage.label} className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--charcoal)] truncate">{stage.label}</p>
+                      <p className="mt-1 text-xl sm:text-2xl font-extrabold text-[var(--navy)] leading-none">{stage.value}</p>
+                      <div className="mt-2.5 h-2 rounded-full bg-[#EFEAE1] overflow-hidden">
+                        <div className={`h-full rounded-full ${stage.tone} transition-[width] duration-700 ease-out`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-[var(--charcoal)] truncate">{conversion === null ? `${pct}% of applied` : `${conversion}% from prev`}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ═══ PERMANENT RECRUITMENT PREMIUM CTA ═══ */}
         <div className="dash-premium-card bg-gradient-to-r from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
@@ -768,20 +824,12 @@ function EmployerDashboard() {
            <div className="dash-section-title mb-4">Active Jobs ({activeJobsList.length})</div>
 
            {activeJobsList.length === 0 ? (
-             <div className="dash-surface text-center py-12">
-               <div className="w-16 h-16 bg-[var(--orange)]/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[var(--orange)]">
-                 <Briefcase size={32} />
-               </div>
-               <h4 className="text-lg font-bold text-[var(--navy)]">No Active Jobs</h4>
-               <p className="text-xs text-[var(--charcoal)] mt-1 max-w-sm mx-auto">
-                 You don't have any approved active jobs right now. Create a new vacancy to start receiving applicants.
-               </p>
-               <Link to="/dashboard/employer/post-job">
-                 <button className="dash-btn dash-btn-primary mt-4 mx-auto">
-                   <Plus size={16} /> Post New Job
-                 </button>
-               </Link>
-             </div>
+             <EmptyState
+               icon={<Briefcase size={20} />}
+               title="No active jobs yet"
+               body="You don't have any approved active jobs right now. Create a vacancy to start receiving applicants."
+               action={<Link to="/dashboard/employer/post-job" className="dash-btn dash-btn-primary dash-btn--compact"><Plus size={14} /> Post New Job</Link>}
+             />
            ) : (
              <div className="dash-surface divide-y divide-[#EFEAE1]">
                {activeJobsList.map((job: any) => {
@@ -999,7 +1047,7 @@ function EmployerDashboard() {
                                  <ApplicantRow
                                    key={applicant.id}
                                    applicant={applicant}
-                                   matchScore={jobMatches.find((m: any) => m.candidate_id === applicant.id)?.match_score || 88}
+                                   matchScore={liveMatchFor(applicant.id, job.id)}
                                    onView={() => { setViewingApplicant(applicant); setShowApplicantModal(true); }}
                                    onShortlist={(e) => handleCandidateAction('Shortlist', applicant, e)}
                                    onReject={(e) => handleCandidateAction('Reject', applicant, e)}
@@ -1096,14 +1144,13 @@ function EmployerDashboard() {
       {/* ═══ APPLICANT DETAIL SUBMISSION MODAL ═══ */}
       {(() => {
         const modalJob = allApplicantsJobId ? myJobs.find((j: any) => j.id === allApplicantsJobId) : null;
-        const modalMatches = allApplicantsJobId ? getMatchesForJob(allApplicantsJobId) : [];
         return (
           <AllApplicantsModal
             isOpen={Boolean(modalJob)}
             onClose={() => setAllApplicantsJobId(null)}
             jobTitle={modalJob?.jobTitle || ''}
             applicants={allApplicantsJobId ? getApplicantsForJob(allApplicantsJobId) : []}
-            matchFor={(candidateId: string) => modalMatches.find((m: any) => m.candidate_id === candidateId)?.match_score || 88}
+            matchFor={(candidateId: string) => (allApplicantsJobId ? liveMatchFor(candidateId, allApplicantsJobId) : 0)}
             onView={(applicant) => { setAllApplicantsJobId(null); setViewingApplicant(applicant); setShowApplicantModal(true); }}
             onShortlist={(applicant, e) => handleCandidateAction('Shortlist', applicant, e)}
             onReject={(applicant, e) => handleCandidateAction('Reject', applicant, e)}

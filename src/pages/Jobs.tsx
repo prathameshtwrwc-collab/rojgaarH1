@@ -9,8 +9,10 @@ import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
 import { getOpenJobsPublic, getAllEmployers, getAllJobSkills, createApplication } from '../lib/supabase/data';
-import { computeMatch } from '../lib/matching';
+import { computeMatch, MIN_RECOMMEND_COVERAGE } from '../lib/matching';
 import { JobCard, JobCardData } from '../components/JobCard';
+import { locationKey, locationLabel } from '../lib/location';
+import Pagination from '../components/Pagination';
 import {
   JobFiltersPanel, JobFilterState, emptyFilters, countActive, buildFilterChips,
 } from '../components/JobFilters';
@@ -83,8 +85,9 @@ export default function Jobs() {
     const map = new Map<string, number>();
     if (!isCandidateLoggedIn || !candidate) return map;
     rawJobs.forEach((j: any) => {
-      const { score } = computeMatch(candidate, { ...j, skills_required: jobSkillsMap[j.id] || [] });
-      map.set(j.id, score);
+      const result = computeMatch(candidate, { ...j, skills_required: jobSkillsMap[j.id] || [] });
+      // Too little checkable data for a meaningful score: show no badge
+      if (result.coverage >= MIN_RECOMMEND_COVERAGE) map.set(j.id, result.score);
     });
     return map;
   }, [isCandidateLoggedIn, candidate, rawJobs, jobSkillsMap]);
@@ -95,7 +98,7 @@ export default function Jobs() {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highestSalary' | 'lowestSalary'>('newest');
   const [view, setView] = useState<'list' | 'grid'>('list');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(1);
 
   const [filters, setFiltersState] = useState<JobFilterState>(emptyFilters);
   const updateFilters = (patch: Partial<JobFilterState>) => setFiltersState(f => ({ ...f, ...patch }));
@@ -164,10 +167,14 @@ export default function Jobs() {
   };
 
   // Derived filter option lists from real data
+  // "Mumbai", "mumbai" and " MUMBAI " are one location
   const locations = useMemo(() => {
-    const set = new Set<string>();
-    jobPostings.forEach(j => j.city && set.add(j.city));
-    return Array.from(set).sort();
+    const byKey = new Map<string, string>();
+    jobPostings.forEach(j => {
+      const key = locationKey(j.city);
+      if (key && !byKey.has(key)) byKey.set(key, locationLabel(j.city));
+    });
+    return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b));
   }, [jobPostings]);
 
   const industries = useMemo(() => {
@@ -207,7 +214,7 @@ export default function Jobs() {
         if (!matchesTitle && !matchesCompany && !matchesSkill && !matchesCity) return false;
       }
 
-      if (selectedLocation && job.city !== selectedLocation) return false;
+      if (selectedLocation && locationKey(job.city) !== locationKey(selectedLocation)) return false;
 
       if (filters.jobTypes.length && !filters.jobTypes.includes(job.employmentType)) return false;
 
@@ -261,10 +268,17 @@ export default function Jobs() {
 
   // Reset pagination whenever the active query changes
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    setPage(1);
   }, [searchTerm, selectedLocation, filters, sortBy, activeTab]);
 
-  const pagedJobs = visibleJobs.slice(0, visibleCount);
+  const pageCount = Math.max(1, Math.ceil(visibleJobs.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedJobs = visibleJobs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const shownTo = Math.min(currentPage * PAGE_SIZE, visibleJobs.length);
+  const goToPage = (p: number) => {
+    setPage(Math.min(Math.max(1, p), pageCount));
+    document.getElementById('jobs-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -368,12 +382,12 @@ export default function Jobs() {
                   <SlidersHorizontal size={14} /> Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
                 </button>
                 <span className="hidden sm:inline">
-                  Showing <span className="font-extrabold text-[var(--navy)] text-base">{Math.min(visibleCount, visibleJobs.length)}</span>
+                  Showing <span className="font-extrabold text-[var(--navy)] text-base">{shownTo}</span>
                   {' '}of <span className="font-extrabold text-[var(--navy)]">{visibleJobs.length}</span>{' '}
                   {visibleJobs.length === 1 ? 'job' : 'jobs'}
                 </span>
                 <span className="sm:hidden font-semibold text-[var(--navy)]">
-                  {Math.min(visibleCount, visibleJobs.length)}/{visibleJobs.length}
+                  {shownTo}/{visibleJobs.length}
                 </span>
               </div>
 
@@ -460,7 +474,7 @@ export default function Jobs() {
                 <Button onClick={resetFilters} variant="outline" className="mt-5">Reset Filters</Button>
               </div>
             ) : view === 'list' ? (
-              <div key={visibleCount} className="dash-surface divide-y divide-[#EFEAE1] animate-fade-in">
+              <div id="jobs-results" key={currentPage} className="dash-surface divide-y divide-[#EFEAE1] animate-fade-in scroll-mt-24">
                 {pagedJobs.map(job => (
                   <JobCard
                     key={job.id}
@@ -475,7 +489,7 @@ export default function Jobs() {
                 ))}
               </div>
             ) : (
-              <div key={visibleCount} className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 animate-fade-in">
+              <div id="jobs-results" key={currentPage} className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 animate-fade-in scroll-mt-24">
                 {pagedJobs.map(job => (
                   <JobCard
                     key={job.id}
@@ -491,15 +505,8 @@ export default function Jobs() {
               </div>
             )}
 
-            {!loading && visibleJobs.length > visibleCount && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                  className="dash-btn dash-btn-secondary"
-                >
-                  Load {Math.min(PAGE_SIZE, visibleJobs.length - visibleCount)} More Jobs
-                </button>
-              </div>
+            {!loading && (
+              <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visibleJobs.length} onPageChange={goToPage} label="jobs" />
             )}
           </div>
         </div>

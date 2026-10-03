@@ -16,6 +16,9 @@ import { Card, Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { createApplication, updateCandidateProfile, updateCandidateStatus } from '../../lib/supabase/data';
+import { computeMatch, rankJobs } from '../../lib/matching';
+import EmptyState from '../../components/EmptyState';
+import { timeGreeting } from '../../lib/greeting';
 import { EditProfileModal } from '../../components/EditProfileModal';
 import { DashboardSkeleton } from '../../components/Skeleton';
 
@@ -255,15 +258,32 @@ function CandidateDashboard() {
     });
   }, [applications, jobs]);
 
-  const jobMatchScores = useMemo(() => {
-    const map: Record<string, number> = {};
-    matches.forEach(m => {
-      if (m.job_id && m.match_score != null) {
-        map[m.job_id] = m.match_score;
-      }
-    });
-    return map;
-  }, [matches]);
+  // Live match for every open job, worked out from this candidate's profile
+  const jobMatchResults = useMemo(() => {
+    const results = new Map<string, ReturnType<typeof computeMatch>>();
+    if (!candidate) return results;
+    jobs.forEach((j: any) => results.set(j.id, computeMatch(candidate, { ...j, skills_required: jobSkills[j.id] || [] })));
+    return results;
+  }, [candidate, jobs, jobSkills]);
+
+  // Average score across the jobs this candidate has applied to
+  const appliedAvgMatch = useMemo(() => {
+    const scores = applications
+      .map(a => jobMatchResults.get(a.job_id)?.score)
+      .filter((v): v is number => v !== undefined);
+    return scores.length ? Math.round(scores.reduce((sum, v) => sum + v, 0) / scores.length) : null;
+  }, [applications, jobMatchResults]);
+
+  // Best matches first. Jobs already applied to are skipped, and jobs with too little data to judge are left out.
+  const recommendedJobs = useMemo(() => {
+    const ranked = rankJobs(candidate || {}, jobs as any[], jobSkills);
+    const byId = new Map(displayJobs.map(j => [j.id, j]));
+    return ranked
+      .filter(r => !appliedJobIds.has(r.job.id))
+      .slice(0, 4)
+      .map(r => byId.get(r.job.id))
+      .filter((j): j is (typeof displayJobs)[number] => Boolean(j));
+  }, [candidate, jobs, jobSkills, displayJobs, appliedJobIds]);
 
   const handleApplyConfirm = async () => {
     if (showApplyModal && candidate) {
@@ -394,7 +414,7 @@ function CandidateDashboard() {
       <div className="dash-container space-y-9">
         <div className="dash-header">
           <div>
-            <h1 className="dash-header__title">Good morning, {firstName}</h1>
+            <h1 className="dash-header__title">{timeGreeting()}, {firstName}</h1>
             <p className="dash-header__subtitle">
               {candidate.location || 'Unknown'}, {candidate.state || 'Unknown'} · {candidate.total_experience_years ?? 0} yrs exp · Expected ₹{(candidate.expected_salary_min ?? 0).toLocaleString()}/mo
             </p>
@@ -431,11 +451,45 @@ function CandidateDashboard() {
           </div>
         </div>
 
-        <div className="dash-metrics">
+        {(() => {
+          const nextStep = profileCompletion < 80
+            ? {
+                eyebrow: 'Your next step',
+                title: `Finish your profile (${profileCompletion}% complete)`,
+                body: 'Profiles above 80% get about three times more recruiter contacts. Add your skills, experience and expected salary for sharper matches.',
+                cta: 'Complete profile',
+                onClick: () => setShowEditProfileModal(true),
+              }
+            : {
+                eyebrow: 'Your next step',
+                title: 'Browse open jobs',
+                body: 'New roles are posted every day. Save the ones you like and apply in one tap.',
+                cta: 'Search jobs',
+                onClick: () => navigate('/jobs'),
+              };
+          return (
+            <div className="dash-enter relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#101A36] to-[#1C2B52] text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-[#101A36]/15">
+              <div className="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-[var(--orange)]/20 blur-3xl" />
+              <div className="relative min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">{nextStep.eyebrow}</p>
+                <p className="mt-1 text-lg sm:text-xl font-extrabold tracking-tight break-words">{nextStep.title}</p>
+                <p className="mt-1 text-sm text-white/70 leading-relaxed">{nextStep.body}</p>
+              </div>
+              <button
+                type="button"
+                onClick={nextStep.onClick}
+                className="relative self-start sm:self-auto inline-flex items-center h-11 px-5 rounded-xl bg-[var(--orange)] hover:bg-[#d94d1a] text-white text-sm font-bold whitespace-nowrap shadow-md transition-colors"
+              >
+                {nextStep.cta}
+              </button>
+            </div>
+          );
+        })()}
+
+        <div className="dash-metrics dash-enter dash-enter-d1">
           <div className="dash-metric">
             <div className="dash-metric__value dash-metric__value--accent">{myMatches.length}</div>
             <div className="dash-metric__label">Job Matches</div>
-            <div className="dash-metric__trend">90%+ compatible</div>
           </div>
           <div className="dash-metric">
             <div className="dash-metric__value">{appliedJobs.length}</div>
@@ -459,7 +513,7 @@ function CandidateDashboard() {
           <span>{savedJobs.length} Saved Jobs</span>
           <span>{myMatches.filter(m => m.status === 'Shortlisted').length} Shortlisted</span>
           <span>{myMatches.filter(m => m.status === 'Offered').length} Offers Received</span>
-          <span>{Math.round(myMatches.reduce((acc, m) => acc + m.matchScore, 0) / (myMatches.length || 1))}% Avg Match Score</span>
+          <span>{appliedAvgMatch === null ? '—' : `${appliedAvgMatch}%`} Avg Match Score</span>
         </div>
 
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
@@ -539,7 +593,7 @@ function CandidateDashboard() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 min-w-0">
+        <div className="grid lg:grid-cols-3 gap-8 min-w-0 dash-enter dash-enter-d2">
           <div className="lg:col-span-2 space-y-8 min-w-0">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -555,7 +609,12 @@ function CandidateDashboard() {
               </div>
 
               <div className="dash-surface">
-                {displayJobs.slice(0, 4).map(job => {
+                {recommendedJobs.length === 0 ? (
+                  <div className="px-5 py-8 text-center">
+                    <p className="text-sm font-bold text-[var(--navy)]">No recommendations yet</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-1">Add your skills, experience, location and expected salary to your profile to get matched jobs.</p>
+                  </div>
+                ) : recommendedJobs.map(job => {
                   const isSaved = savedJobIds.includes(job.id);
                   const isApplied = appliedJobIds.has(job.id);
 
@@ -572,7 +631,7 @@ function CandidateDashboard() {
                                <ShieldCheck size={13} className="text-[var(--green)]" />
                              )}
                              <span className="text-[12px] font-bold text-[var(--orange)]">
-                               {jobMatchScores[job.id] != null ? `${jobMatchScores[job.id]}% Match` : 'New'}
+                               {jobMatchResults.get(job.id) ? `${jobMatchResults.get(job.id)?.score}% Match${jobMatchResults.get(job.id)?.confident ? '' : ' · limited data'}` : 'New'}
                              </span>
                           </div>
                           <p className="text-[13px] text-[var(--charcoal)] font-medium mt-0.5">
@@ -619,10 +678,12 @@ function CandidateDashboard() {
               </h3>
 
               {applicationRows.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-sm text-[var(--charcoal)]">You haven't applied to any jobs yet.</p>
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate('/jobs')}>Browse Jobs</Button>
-                </div>
+                <EmptyState
+                  icon={<FileText size={20} />}
+                  title="No applications yet"
+                  body="Apply to a job and its progress will show up here, step by step."
+                  action={<Button size="sm" variant="outline" onClick={() => navigate('/jobs')}>Browse Jobs</Button>}
+                />
               ) : (
                 <div className="space-y-4">
                   {applicationRows.map(({ app, job }) => {
@@ -710,10 +771,12 @@ function CandidateDashboard() {
               </h3>
 
               {savedJobs.length === 0 ? (
-                <div className="text-center py-6">
-                  <p className="text-sm text-[var(--charcoal)]">No saved jobs yet. Tap the bookmark icon on any job to keep it here.</p>
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate('/jobs')}>Browse Jobs</Button>
-                </div>
+                <EmptyState
+                  icon={<Bookmark size={20} />}
+                  title="No saved jobs yet"
+                  body="Tap the bookmark icon on any job to keep it here for later."
+                  action={<Button size="sm" variant="outline" onClick={() => navigate('/jobs')}>Browse Jobs</Button>}
+                />
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                   {savedJobs.map(job => {

@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { adminDeleteAccount } from '../../lib/supabase/data';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Building2, Download } from 'lucide-react';
 import { Card, Badge, Button, Select } from '../../components/ui';
@@ -6,7 +13,8 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { exportToCsv } from '../../lib/csvExport';
 
 export default function Employers() {
-  const { employers, jobs: jobPostings } = useDatabase();
+  const { employers, jobs: jobPostings, refresh } = useDatabase();
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
 
@@ -45,8 +53,18 @@ export default function Employers() {
     })));
   };
 
+  const paging = usePagination(filtered, 10);
+
   return (
     <div className="space-y-6">
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete this company?"
+        description="This permanently deletes the company's sign-in, profile and all of its job postings, applications and CV requests. It cannot be undone. Companies with placement records cannot be deleted."
+        confirmLabel="Delete company"
+        onConfirm={async () => { await adminDeleteAccount(deleteTarget.id); await refresh(); }}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Employers</h2>
@@ -78,7 +96,7 @@ export default function Employers() {
       </Card>
 
       <Card padding={false}>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]">
@@ -91,7 +109,7 @@ export default function Employers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((employer: any) => {
+              {paging.pageItems.map((employer: any) => {
                 const jobs = getEmployerJobs(employer.id);
                 return (
                   <tr key={employer.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
@@ -117,17 +135,27 @@ export default function Employers() {
                       <p className="text-xs text-[var(--charcoal)]">{employer.contact_email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <Link to={`/employer/${employer.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Eye size={16} />
+                      <div className="flex items-center gap-1">
+                        <Link to={`/employer/${employer.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye size={16} />
+                          </Button>
+                        </Link>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(employer)} title="Delete company" className="text-red-600 hover:text-red-700">
+                          <Trash2 size={16} />
                         </Button>
-                      </Link>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No employers to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="employers" />
+                )}
           {filtered.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]"><p className="text-sm">No employers found</p></div>
           )}

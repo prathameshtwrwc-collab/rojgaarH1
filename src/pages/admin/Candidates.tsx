@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { adminDeleteAccount } from '../../lib/supabase/data';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Search, Eye, Mail, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Filter, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
@@ -83,6 +90,7 @@ function checkDateMatch(
 
 export default function Candidates() {
   const { candidates, jobs: jobPostings, employers, matches, refresh } = useDatabase();
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
 
@@ -226,8 +234,18 @@ export default function Candidates() {
     })));
   };
 
+  const paging = usePagination(filtered, 10);
+
   return (
     <div className="space-y-6">
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete this candidate?"
+        description="This permanently deletes the candidate's sign-in, profile, applications and skills. It cannot be undone. Candidates with placement records cannot be deleted."
+        confirmLabel="Delete candidate"
+        onConfirm={async () => { await adminDeleteAccount(deleteTarget.id); await refresh(); }}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Candidates</h2>
@@ -351,7 +369,7 @@ export default function Candidates() {
 
       {/* ═══ TABLE ═══ */}
       <Card padding={false}>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]/90">
@@ -365,7 +383,7 @@ export default function Candidates() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(candidate => (
+              {paging.pageItems.map(candidate => (
                 <tr key={candidate.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -403,12 +421,18 @@ export default function Candidates() {
                       {candidate.status !== 'Placed' && (
                         <Button variant="ghost" size="sm" onClick={() => openHire(candidate)} title="Hire" className="text-[var(--green)] hover:text-[var(--green)]"><UserCheck size={16} /></Button>
                       )}
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(candidate)} title="Delete candidate" className="text-red-600 hover:text-red-700"><Trash2 size={16} /></Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No candidates to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="candidates" />
+                )}
           {filtered.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]">
               <Filter size={32} className="mx-auto mb-2 opacity-50" />

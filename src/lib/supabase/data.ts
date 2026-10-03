@@ -1176,3 +1176,14 @@ export async function updateCvRequest(requestId: string, updates: Record<string,
   if (error) throw error;
   return data;
 }
+
+/* ---------- Superadmin deletions (enforced in the database, see supabase/admin-delete.sql) ---------- */
+export async function adminDeleteJob(jobId: string): Promise<void> {
+  const { error } = await (supabase as any).rpc('admin_delete_job', { target_job: jobId });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminDeleteAccount(userId: string): Promise<void> {
+  const { error } = await (supabase as any).rpc('admin_delete_account', { target_user: userId });
+  if (error) throw new Error(error.message);
+}

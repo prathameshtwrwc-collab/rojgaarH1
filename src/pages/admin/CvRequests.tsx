@@ -1,4 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   FileText, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
@@ -235,6 +239,8 @@ export default function CvRequests() {
     };
   }, [cvRequests, enrichedRequests]);
 
+  const paging = usePagination(filteredRequests, 10);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -321,7 +327,7 @@ export default function CvRequests() {
         </Card>
       ) : (
         <div className="dash-surface overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="admin-table overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[var(--bg-warm)] border-b border-[#E7E2D9]">
@@ -337,7 +343,7 @@ export default function CvRequests() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EFEAE1]">
-                {filteredRequests.map((req: any) => {
+                {paging.pageItems.map((req: any) => {
                   const st = statusMeta(req.status);
                   return (
                     <tr key={req.id} className="hover:bg-[var(--bg-warm)] transition-colors cursor-pointer" onClick={() => handleViewDetails(req)}>
@@ -453,6 +459,11 @@ export default function CvRequests() {
                 })}
               </tbody>
             </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No requests to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="requests" />
+                )}
           </div>
         </div>
       )}

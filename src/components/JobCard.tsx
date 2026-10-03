@@ -141,7 +141,7 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
 
   if (view === 'grid') {
     return (
-      <div className="dash-surface flex flex-col h-full hover:border-[#D8D2C6] hover:shadow-sm transition-all">
+      <div className="dash-surface dash-surface--lift flex flex-col h-full">
         <div className="p-5 flex-1">
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="dash-avatar">{job.companyName.charAt(0)}</div>

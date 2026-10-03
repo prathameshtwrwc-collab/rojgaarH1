@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { adminDeleteJob } from '../../lib/supabase/data';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download, ShieldCheck } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input, Toast } from '../../components/ui';
@@ -36,6 +43,7 @@ export default function JobApprovals() {
   const [employerFilter, setEmployerFilter] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [confirmReject, setConfirmReject] = useState<any | null>(null);
+  const [deleteJobTarget, setDeleteJobTarget] = useState<any | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -187,8 +195,18 @@ export default function JobApprovals() {
     }
   };
 
+  const paging = usePagination(filteredJobs, 10);
+
   return (
     <div className="space-y-6">
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteJobTarget)}
+        onClose={() => setDeleteJobTarget(null)}
+        title="Delete this job?"
+        description="This permanently deletes the job with its applications and matches. It cannot be undone. Jobs with placement records cannot be deleted; close those instead."
+        confirmLabel="Delete job"
+        onConfirm={async () => { await adminDeleteJob(deleteJobTarget.id); await refresh(); }}
+      />
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Job Postings</h2>
@@ -254,7 +272,7 @@ export default function JobApprovals() {
       </div>
 
       <Card padding={false}>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]">
@@ -268,7 +286,7 @@ export default function JobApprovals() {
               </tr>
             </thead>
             <tbody>
-              {filteredJobs.map((job: any) => (
+              {paging.pageItems.map((job: any) => (
                 <tr key={job.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3">
                     <Link to={`/admin/jobs/${job.id}`} className="text-sm font-bold text-[var(--navy)] hover:text-[var(--orange)] hover:underline">{job.job_title}</Link>
@@ -317,12 +335,20 @@ export default function JobApprovals() {
                           <XCircle size={12} /> {job.status === 'Pending' ? 'Reject' : 'Close'}
                         </Button>
                       )}
+                      <Button size="sm" variant="ghost" disabled={busyJobId === job.id} onClick={() => setDeleteJobTarget(job)} title="Delete job" className="text-red-600 hover:text-red-700 text-xs">
+                        <Trash2 size={12} />
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No jobs to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="jobs" />
+                )}
           {filteredJobs.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]"><Briefcase size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No jobs found</p></div>
           )}

@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Modal } from './ui';
+import Pagination from './Pagination';
+
+const PAGE_SIZE = 8;
 import ApplicantRow, { sortLatestFirst } from './ApplicantRow';
 
 type StatusChip = 'all' | 'shortlisted' | 'rejected' | 'request_cv';
@@ -27,6 +30,7 @@ interface AllApplicantsModalProps {
 export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matchFor, onView, onShortlist, onReject }: AllApplicantsModalProps) {
   const [query, setQuery] = useState('');
   const [chip, setChip] = useState<StatusChip>('all');
+  const [page, setPage] = useState(1);
 
   const counts = useMemo(() => ({
     all: applicants.length,
@@ -46,6 +50,12 @@ export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matc
       })
       .sort(sortLatestFirst);
   }, [applicants, chip, query]);
+
+  // Back to the first page whenever the list changes
+  useEffect(() => { setPage(1); }, [chip, query]);
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageItems = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`All applicants · ${jobTitle}`} size="lg">
@@ -84,8 +94,8 @@ export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matc
           </p>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-[var(--charcoal)]">Showing {visible.length} of {applicants.length}, newest first</p>
-            {visible.map(applicant => (
+            <p className="text-xs text-[var(--charcoal)]">{visible.length} of {applicants.length} applicants, newest first</p>
+            {pageItems.map(applicant => (
               <ApplicantRow
                 key={applicant.applicationId || applicant.id}
                 applicant={applicant}
@@ -97,6 +107,7 @@ export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matc
             ))}
           </div>
         )}
+        <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} label="applicants" />
       </div>
     </Modal>
   );

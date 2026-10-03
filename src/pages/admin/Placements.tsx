@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
@@ -79,8 +83,10 @@ export default function Placements() {
     })));
   };
 
+  const paging = usePagination(placements, 10);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dash-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Placements</h2>
@@ -126,7 +132,7 @@ export default function Placements() {
 
       {/* Placements Table */}
       <Card padding={false}>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]">
@@ -140,7 +146,7 @@ export default function Placements() {
               </tr>
             </thead>
             <tbody>
-              {placements.map((p: any) => (
+              {paging.pageItems.map((p: any) => (
                 <tr key={p.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-sm font-bold text-[var(--navy)]">{candidateName(p.candidate_id)}</p>
@@ -167,6 +173,11 @@ export default function Placements() {
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No placements to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="placements" />
+                )}
           {placements.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]"><p className="text-sm">No placements yet</p></div>
           )}

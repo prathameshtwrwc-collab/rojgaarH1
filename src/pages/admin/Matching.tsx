@@ -1,9 +1,13 @@
 import { useState, useMemo } from 'react';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { GitMerge, Zap, CheckCircle, Trophy, Sparkles, Download } from 'lucide-react';
 import { Card, Badge, Button, Select } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createMatch, updateMatchStatus as updateMatchStatusApi, getCandidateEducation, getCandidateExperience, getCandidateLanguages } from '../../lib/supabase/data';
-import { computeMatch, matchLabel } from '../../lib/matching';
+import { computeMatch, matchLabel, checkText } from '../../lib/matching';
 
 function getScoreColor(score: number) {
   if (score >= 80) return 'text-[var(--green)] bg-[#0D604A]/5 border-[#0D604A]/10';
@@ -181,8 +185,10 @@ export default function Matching() {
       .slice(0, 8);
   }, [bestJobId, jobs, candidates]);
 
+  const paging = usePagination(matchesEnriched, 10);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dash-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Matching Engine</h2>
@@ -231,13 +237,16 @@ export default function Matching() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 text-xs">
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Skills</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.skillsScore}/40</p></div>
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Experience</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.experienceScore}/20</p></div>
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Salary</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.salaryScore}/15</p></div>
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Location</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.locationScore}/15</p></div>
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Job Type</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.jobTypeScore}/5</p></div>
-                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Education</p><p className="font-bold text-[var(--navy)]">{currentBreakdown.qualificationScore}/5</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Skills</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'skills')}</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Experience</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'experience')}</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Salary</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'salary')}</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Location</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'location')}</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Job Type</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'jobType')}</p></div>
+                <div className="bg-white rounded-lg p-2 border border-slate-200"><p className="text-slate-400">Education</p><p className="font-bold text-[var(--navy)]">{checkText(currentBreakdown, 'qualification')}</p></div>
               </div>
+              <p className="text-[11px] text-slate-500 mb-3">
+                Based on {Math.round(currentBreakdown.coverage * 100)}% of the profile and job details{currentBreakdown.confident ? '' : ' · limited data, treat this score with care'}.
+              </p>
 
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {currentBreakdown.reasons.map((r, i) => <span key={i} className="text-[11px] font-medium text-[var(--charcoal)] bg-white border border-slate-200 rounded-full px-2.5 py-1">{r}</span>)}
@@ -313,7 +322,7 @@ export default function Matching() {
         <div className="px-4 py-3 border-b border-slate-200 bg-[var(--bg-warm)]/80">
           <h3 className="font-bold text-[var(--navy)]">All Matches ({matches.length})</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]/90">
@@ -326,7 +335,7 @@ export default function Matching() {
               </tr>
             </thead>
             <tbody>
-              {matchesEnriched.map((match: any) => (
+              {paging.pageItems.map((match: any) => (
                 <tr key={match.id} className="border-b border-slate-100 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3 text-sm font-semibold text-[var(--navy)]">{match.candidateName}</td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)]">{match.jobTitle}</td>
@@ -355,6 +364,11 @@ export default function Matching() {
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No matches to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="matches" />
+                )}
         </div>
       </Card>
     </div>

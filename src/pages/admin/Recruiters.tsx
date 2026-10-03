@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, UserSearch, CheckCircle, XCircle, Download } from 'lucide-react';
 import { Card, Badge, Button } from '../../components/ui';
@@ -43,6 +47,8 @@ export default function Recruiters() {
     })));
   };
 
+  const paging = usePagination(recruiters, 10);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -67,7 +73,7 @@ export default function Recruiters() {
       </Card>
 
       <Card padding={false}>
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]">
@@ -116,6 +122,11 @@ export default function Recruiters() {
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No recruiters to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="recruiters" />
+                )}
           {filtered.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]"><UserSearch size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No recruiters found</p></div>
           )}

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
+import EmptyState from '../../components/EmptyState';
+import { Inbox } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Briefcase, MapPin, IndianRupee, Search, Download, Building2, Users } from 'lucide-react';
 import { Card, Badge, Select } from '../../components/ui';
@@ -68,6 +72,8 @@ export default function JobPostDetail() {
     );
   }
 
+  const paging = usePagination(filtered, 10);
+
   return (
     <div className="space-y-6">
       <Link to="/admin/jobs" className="inline-flex items-center gap-1 text-sm text-[var(--charcoal)] hover:text-[var(--navy)]">
@@ -136,7 +142,7 @@ export default function JobPostDetail() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="admin-table overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-[var(--bg-warm)]">
@@ -148,7 +154,7 @@ export default function JobPostDetail() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a: any) => (
+              {paging.pageItems.map((a: any) => (
                 <tr key={a.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-sm font-bold text-[var(--navy)]">{a.candidate.profile_name || 'Unnamed'}</p>
@@ -162,6 +168,11 @@ export default function JobPostDetail() {
               ))}
             </tbody>
           </table>
+                {paging.total === 0 ? (
+                  <EmptyState icon={<Inbox size={20} />} title="No applications to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                ) : (
+                  <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="applications" />
+                )}
           {!loading && filtered.length === 0 && (
             <div className="text-center py-12 text-[var(--charcoal)]"><Users size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No applicants found</p></div>
           )}

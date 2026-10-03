@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { timeGreeting } from '../../lib/greeting';
 import { Users, MapPin, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -155,12 +156,12 @@ export default function Dashboard() {
   ).map(([name, count]) => ({ name, count }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 dash-enter">
       {/* Welcome header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-[13px] font-medium text-[var(--charcoal)]">{today}</p>
-          <h2 className="dash-header__title !text-[26px] mt-0.5">Good evening, Admin</h2>
+          <h2 className="dash-header__title !text-[26px] mt-0.5">{timeGreeting()}, Admin</h2>
           <p className="text-[14px] text-[var(--charcoal)] mt-1.5 max-w-lg">
             <span className="font-bold text-[var(--navy)]">{newThisWeek} new candidates</span> and{' '}
             <span className="font-bold text-[var(--navy)]">{matches.filter(m => m.status === 'Pending').length} pending matches</span> need review today.
@@ -203,11 +204,10 @@ export default function Dashboard() {
       </div>
 
       {/* Metrics strip */}
-      <div className="dash-metrics">
+      <div className="dash-metrics dash-enter dash-enter-d1">
         <div className="dash-metric">
           <div className="dash-metric__value dash-metric__value--accent">{totalCandidates}</div>
           <div className="dash-metric__label">Candidates</div>
-          <div className="dash-metric__trend">↑ 12%</div>
         </div>
         <div className="dash-metric">
           <div className="dash-metric__value">{activeJobs}</div>
@@ -217,7 +217,6 @@ export default function Dashboard() {
         <div className="dash-metric">
           <div className="dash-metric__value">{totalPlacements}</div>
           <div className="dash-metric__label">Placements</div>
-          <div className="dash-metric__trend">+3 this week</div>
         </div>
         <div className="dash-metric">
           <div className="dash-metric__value">₹{totalRevenue.toLocaleString()}</div>
@@ -301,7 +300,7 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Candidates & Recent Matches */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 dash-enter dash-enter-d2">
         {/* Recent Candidates */}
         <Card>
           <div className="flex items-center justify-between mb-4">

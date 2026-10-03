@@ -57,6 +57,14 @@ export default function CandidateSignup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Changing the number means verifying the new one from the start
+  const resetPhone = () => {
+    setOtpVerified(false);
+    setOtpSent(false);
+    setOtp('');
+    setFormData(prev => ({ ...prev, phone: '' }));
+  };
+
   const handleSendOtp = async () => {
     if (!otpPhone || otpPhone.length < 10) {
       setError(t('auth.enterValidPhone'));
@@ -244,7 +252,8 @@ export default function CandidateSignup() {
               </>
             ) : (
               <div className="flex items-center gap-2 text-green-700">
-                <span className="text-sm font-semibold">{t('auth.phoneVerified')}</span>
+                <span className="text-sm font-semibold">{t('auth.phoneVerified')} · {otpPhone}</span>
+                <button type="button" onClick={resetPhone} className="ml-auto text-xs font-bold text-[var(--navy)] underline underline-offset-2">Change</button>
               </div>
             )}
           </div>
@@ -280,21 +289,7 @@ export default function CandidateSignup() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.phone')}
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder="+91 98765 43210"
-              />
-            </div>
-
+            
             <div>
               <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
                 {t('auth.password')}
