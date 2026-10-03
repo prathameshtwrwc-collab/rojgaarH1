@@ -549,6 +549,20 @@ body {
   .btn-header-cta {
     display: none;
   }
+  .header-right {
+    gap: 10px;
+  }
+  .btn-header-cta--get-app {
+    display: inline-flex;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  .btn-header-cta--get-app svg {
+    width: 13px;
+    height: 13px;
+  }
   .menu-toggle {
     display: block;
   }

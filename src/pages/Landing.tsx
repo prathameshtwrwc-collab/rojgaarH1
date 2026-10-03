@@ -95,7 +95,7 @@ function Landing() {
 
               <LanguageSwitcher />
 
-              <button onClick={handleGetAppClick} className="btn-header-cta">
+              <button onClick={handleGetAppClick} className="btn-header-cta btn-header-cta--get-app">
                 <span>Get App</span>
                 <Download size={16} />
               </button>
