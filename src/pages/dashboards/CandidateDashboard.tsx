@@ -281,16 +281,16 @@ function CandidateDashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-warm)] text-[var(--navy)] transition-colors duration-300 pb-16" style={{ fontFamily: 'var(--font)' }}>
-      <header className="sticky top-0 z-40 bg-[var(--white)]/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <header className="dash-topbar sticky top-0 z-40 bg-[var(--white)]/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+        <div className="dash-topbar__row max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-9 h-9 bg-[var(--orange)] rounded-xl flex items-center justify-center text-white shadow-md">
                 <Briefcase size={18} />
               </div>
-              <span className="font-extrabold text-lg text-[var(--navy)] tracking-tight hidden sm:inline">ROJGAARHAI</span>
+              <span className="dash-brand-name font-extrabold text-lg text-[var(--navy)] tracking-tight hidden sm:inline">ROJGAARHAI</span>
             </Link>
-            <span className="text-xs font-bold px-2.5 py-1 bg-[var(--orange)]/10 text-[var(--orange)] rounded-full border border-[var(--orange)]/20">
+            <span className="dash-hide-xs text-xs font-bold px-2.5 py-1 bg-[var(--orange)]/10 text-[var(--orange)] rounded-full border border-[var(--orange)]/20">
               Candidate Workspace
             </span>
           </div>

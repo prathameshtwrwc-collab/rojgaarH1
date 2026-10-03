@@ -189,11 +189,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   const sizes: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
   return (
     // Overlay: positions + backdrop only
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel: owns the rounded boundary, clips content, never exceeds viewport */}
-      <div className={`relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}>
+      <div className={`ui-modal-panel relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}>
         {/* Header: non-scrolling */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <h3 className="text-lg font-bold text-[var(--navy)]">{title}</h3>

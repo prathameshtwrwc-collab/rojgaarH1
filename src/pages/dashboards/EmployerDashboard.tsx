@@ -541,13 +541,13 @@ function EmployerDashboard() {
             <div className="w-8 h-8 bg-[var(--navy)] rounded-lg flex items-center justify-center text-white">
               <Building2 size={16} />
             </div>
-            <span className="font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">{t('app.name')}</span>
-            <span className="dash-status dash-status--neutral ml-1">{t('dashboard.employerWorkspace')}</span>
+            <span className="dash-brand-name font-extrabold text-[15px] text-[var(--navy)] tracking-tight hidden sm:inline">{t('app.name')}</span>
+            <span className="dash-status dash-status--neutral ml-1 dash-hide-xs">{t('dashboard.employerWorkspace')}</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 dash-header-right">
             <Link to="/dashboard/employer/post-job">
-              <button className="dash-btn dash-btn-primary dash-btn--compact hidden sm:inline-flex">
+              <button className="dash-btn dash-btn-primary dash-btn--compact hidden sm:inline-flex dash-desktop-only">
                 <Plus size={14} /> Post New Job
               </button>
             </Link>
@@ -620,7 +620,7 @@ function EmployerDashboard() {
         </div>
 
         {/* ═══ PERMANENT RECRUITMENT PREMIUM CTA ═══ */}
-        <div className="bg-gradient-to-r from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
+        <div className="dash-premium-card bg-gradient-to-r from-[#0f172a] to-[#1e293b] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-[var(--orange)]/20 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 right-10 w-24 h-24 bg-[var(--orange)]/10 rounded-full translate-y-1/2" />
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -633,14 +633,14 @@ function EmployerDashboard() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--orange)] bg-[var(--orange)]/20 px-2.5 py-1 rounded-full">Premium Service</span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full">Guaranteed Profiles</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-extrabold mb-1 leading-tight">Get Permanent Recruitment</h3>
+                <h3 className="dash-premium-title text-xl sm:text-2xl font-extrabold mb-1 leading-tight">Get Permanent Recruitment</h3>
                 <p className="text-sm text-slate-300 max-w-xl">Verified individuals, guaranteed profiles, and end-to-end hiring support. We handle sourcing, verification, and onboarding — you get ready-to-join candidates.</p>
               </div>
             </div>
             <div className="flex flex-col items-start md:items-end gap-2 flex-shrink-0">
               <div className="text-right">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-white">₹4,000</span>
+                  <span className="dash-premium-price text-3xl font-extrabold text-white">₹4,000</span>
                   <span className="text-xs text-slate-400">per candidate</span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">One-time fee · No hidden charges</p>
@@ -696,7 +696,7 @@ function EmployerDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 self-start lg:self-center">
-                          <div className="flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
+                          <div className="dash-job-expand flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
                             <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </div>
@@ -815,7 +815,7 @@ function EmployerDashboard() {
 
                         <div>
                           <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-                            <h4 className="text-lg font-extrabold text-[var(--navy)]">
+                            <h4 className="text-lg font-extrabold text-[var(--navy)] dash-job-title">
                               {job.jobTitle}
                             </h4>
                             <span className={`dash-status dash-status--${statusVariant}`}>
@@ -843,11 +843,11 @@ function EmployerDashboard() {
                         </div>
 
                          {/* Right: Toggle Expand & Quick Actions */}
-                         <div className="flex items-center gap-2 self-start lg:self-center">
+                         <div className="flex items-center gap-2 self-start lg:self-center dash-job-actions">
                            <button
                              type="button"
                               onClick={(e) => { e.stopPropagation(); handleOpenCvRequestModal(); }}
-                             className="flex flex-col items-center justify-center gap-0.5 h-[44px] w-[68px] bg-[var(--orange)] text-white rounded-lg border-0 cursor-pointer"
+                             className="dash-job-cv flex flex-col items-center justify-center gap-0.5 h-[44px] w-[68px] bg-[var(--orange)] text-white rounded-lg border-0 cursor-pointer"
                              title="Request CV"
                            >
                              <FileText size={18} />
@@ -886,7 +886,7 @@ function EmployerDashboard() {
                              <Trash2 size={16} />
                            </button>
 
-                           <div className="flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
+                           <div className="dash-job-expand flex items-center gap-1 ml-1 text-xs font-bold text-[var(--navy)] px-2.5 py-2 rounded-lg hover:bg-[#FAF7F0]">
                              <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                            </div>

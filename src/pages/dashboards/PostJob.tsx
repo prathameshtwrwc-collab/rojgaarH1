@@ -282,9 +282,9 @@ export default function PostJob() {
       </div>
 
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => !processingPayment && !paymentSuccess && setShowPaymentModal(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden z-10 animate-fade-in">
+          <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden z-10 animate-fade-in">
             {paymentSuccess ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">

@@ -98,8 +98,8 @@ function AdminLayout({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-warm)]">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-[var(--bg-warm)]/95 backdrop-blur-[10px] border-b border-[rgba(16,26,54,0.06)] shadow-sm">
-          <div className="flex items-center justify-between px-4 sm:px-6 h-16">
+        <header className="dash-topbar sticky top-0 z-30 bg-[var(--bg-warm)]/95 backdrop-blur-[10px] border-b border-[rgba(16,26,54,0.06)] shadow-sm">
+          <div className="dash-topbar__row flex items-center justify-between px-4 sm:px-6 h-16">
             <div className="flex items-center gap-3">
               <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-[var(--bg-cream)] transition-colors">
                 <Menu size={20} className="text-[var(--navy)]" />
