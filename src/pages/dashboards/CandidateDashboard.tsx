@@ -428,7 +428,7 @@ function CandidateDashboard() {
           <span>{Math.round(myMatches.reduce((acc, m) => acc + m.matchScore, 0) / (myMatches.length || 1))}% Avg Match Score</span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 dash-chip-row">
           {[
             { label: 'Complete Profile', icon: <CheckSquare size={15} />, action: () => setShowEditProfileModal(true) },
             { label: 'Upload Resume', icon: <Upload size={15} />, action: () => setShowResumeModal(true) },

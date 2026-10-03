@@ -5,6 +5,15 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { hireCandidate as hireCandidateApi } from '../../lib/supabase/data';
 import { exportToCsv } from '../../lib/csvExport';
 
+function resumeDisplayName(value: string): string {
+  const last = value.split('?')[0].split('/').pop() || '';
+  try {
+    return decodeURIComponent(last.replace(/\+/g, ' ')) || 'Resume';
+  } catch {
+    return last || 'Resume';
+  }
+}
+
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
   'New': 'info', 'Contacted': 'warning', 'Interviewed': 'default', 'Placed': 'success', 'Inactive': 'danger',
 };
@@ -385,7 +394,7 @@ export default function Candidates() {
                     </span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    {candidate.resumeFile ? <Badge variant="success" className="text-[10px]">📄 {candidate.resumeFile}</Badge> : <Badge variant="default" className="text-[10px]">Not uploaded</Badge>}
+                    {candidate.resumeFile ? <span title={candidate.resumeFile} className="block max-w-[180px]"><Badge variant="success" className="text-[10px] max-w-full truncate">📄 {resumeDisplayName(candidate.resumeFile)}</Badge></span> :<Badge variant="default" className="text-[10px]">Not uploaded</Badge>}
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[candidate.status]}>{candidate.status}</Badge></td>
                   <td className="px-4 py-3">
@@ -502,14 +511,22 @@ export default function Candidates() {
             <div className="bg-[#F15A24]/5 rounded-xl p-4 border border-[#F15A24]/10">
               <h4 className="text-sm font-bold text-[var(--navy)] mb-3 flex items-center gap-2"><span className="w-5 h-5 bg-[var(--orange)] text-white rounded text-[10px] flex items-center justify-center font-bold">4</span> Uploaded Documents</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className={`rounded-lg p-3 border ${selectedCandidate.resumeFile ? 'bg-[#0D604A]/5 border-[#0D604A]/10' : 'bg-white border-slate-200'}`}>
+                <div className={`min-w-0 rounded-lg p-3 border ${selectedCandidate.resumeFile ? 'bg-[#0D604A]/5 border-[#0D604A]/10' : 'bg-white border-slate-200'}`}>
                   <p className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1 mb-1 text-[var(--charcoal)]">
                     <FileText size={12} /> Resume
                   </p>
                   {selectedCandidate.resumeFile ? (
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-[var(--navy)] font-semibold">{selectedCandidate.resumeFile}</p>
-                      <Badge variant="success" className="text-[9px]">Uploaded</Badge>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <a
+                        href={selectedCandidate.resumeFile}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={selectedCandidate.resumeFile}
+                        className="text-sm text-[var(--navy)] font-semibold truncate min-w-0 hover:text-[var(--orange)] hover:underline"
+                      >
+                        {resumeDisplayName(selectedCandidate.resumeFile)}
+                      </a>
+                      <Badge variant="success" className="text-[9px] flex-shrink-0">Uploaded</Badge>
                     </div>
                   ) : (
                     <p className="text-sm text-[var(--charcoal)]">Not uploaded</p>

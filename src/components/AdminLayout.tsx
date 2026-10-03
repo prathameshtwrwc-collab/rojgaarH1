@@ -1,6 +1,7 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText, Bell } from 'lucide-react';
+import { useAdminNotifications } from '../lib/adminNotifications';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
@@ -17,6 +18,7 @@ const sidebarItems = [
   { to: '/admin/communications', label: 'Communications', icon: <MessageSquare size={20} /> },
   { to: '/admin/placements', label: 'Placements', icon: <Award size={20} /> },
   { to: '/admin/cv-requests', label: 'CV Requests', icon: <FileText size={20} /> },
+  { to: '/admin/notifications', label: 'Notifications', icon: <Bell size={20} /> },
 ];
 
 function AdminLayout({ children }: { children: ReactNode }) {
@@ -25,7 +27,9 @@ function AdminLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { adminLogout } = useData();
   const { logout: authLogout } = useAuth();
-  const { loading: dataLoading } = useDatabase();
+  const { loading: dataLoading, jobs, employers, cvRequests } = useDatabase();
+  const { user: notifUser } = useAuth();
+  const { unreadCount } = useAdminNotifications(notifUser?.id, useMemo(() => ({ jobs, employers, cvRequests }), [jobs, employers, cvRequests]));
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -72,7 +76,12 @@ function AdminLayout({ children }: { children: ReactNode }) {
               className={`dash-sidebar__link ${isActive(item.to) ? 'dash-sidebar__link--active' : ''}`}
             >
               {item.icon}
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.to === '/admin/notifications' && unreadCount > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--orange)] text-white text-[11px] font-bold flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -98,6 +107,14 @@ function AdminLayout({ children }: { children: ReactNode }) {
               <h1 className="text-lg font-bold text-[var(--navy)] hidden sm:block">Admin Control Center</h1>
             </div>
             <div className="flex items-center gap-3">
+              <Link to="/admin/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-xl hover:bg-[var(--bg-cream)] transition-colors">
+                <Bell size={19} className="text-[var(--navy)]" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--orange)] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[var(--bg-warm)]">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
               <div className="dash-avatar w-8 h-8 text-[13px]">A</div>
               <span className="text-sm font-semibold text-[var(--navy)] hidden sm:block">Administrator</span>
             </div>

@@ -11,6 +11,8 @@ import { Activity03Icon } from '@hugeicons/core-free-icons';
 import { Badge, Button, Modal, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
+import CvRequestStatusCard from '../../components/CvRequestStatusCard';
+import { PayFromUpiButton } from '../../components/UpiPaymentPanel';
 import { updateJobPosting, duplicateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
@@ -896,6 +898,22 @@ function EmployerDashboard() {
                     {isExpanded && (
                        <div className="p-5 sm:p-6 bg-[#FAF7F0] border-t border-[#EFEAE1] space-y-6">
 
+                          {/* CV REQUEST STATUS (kept until delivered) */}
+                          {(() => {
+                            const mine = cvRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled');
+                            const list = applicantStageFilter === 'request_cv' ? mine : mine.filter((r: any) => r.status !== 'delivered');
+                            if (list.length === 0) return null;
+                            return (
+                              <div className="space-y-3">
+                                <div className="text-[12px] font-bold uppercase tracking-wider text-[var(--charcoal)] flex items-center justify-between">
+                                  <span>Your CV requests</span>
+                                  <span className="text-[11px] normal-case font-semibold text-[var(--charcoal)]">{list.length} {list.length === 1 ? 'request' : 'requests'}</span>
+                                </div>
+                                {list.map((r: any) => <CvRequestStatusCard key={r.id} req={r} />)}
+                              </div>
+                            );
+                          })()}
+
                           {/* HIRING PIPELINE TRACKER */}
                           <div className="dash-surface dash-surface--pad">
                            <div className="flex items-center justify-between mb-3">
@@ -1435,8 +1453,11 @@ function EmployerDashboard() {
                         className="rounded-xl"
                       />
                     </div>
+                    <div className="w-full mb-4">
+                      <PayFromUpiButton amount={selectedCvPlan.total} note={`RojgaarHai CV request - ${selectedCvPlan.label}`} />
+                    </div>
                     <div className="text-center mb-4">
-                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">Scan with any UPI app, or pay to</p>
+                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">Or scan the QR code, or pay to</p>
                       <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
                       <p className="text-xs text-[var(--charcoal)] mt-1">Receiver: Pacific Jobs India Pvt. Ltd.</p>
                     </div>

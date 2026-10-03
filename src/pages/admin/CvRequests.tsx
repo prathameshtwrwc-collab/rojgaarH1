@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-  FileText, Search, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
+  FileText, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
   Download, Copy, AlertTriangle, Clock, IndianRupee, Check,
 } from 'lucide-react';
-import { Card, Button, Modal, Input, Select, Toast } from '../../components/ui';
+import { Card, Button, Modal, Select, Toast } from '../../components/ui';
 import { TableSkeleton } from '../../components/Skeleton';
+import { AdminSearchInput } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
 import { updateCvRequest } from '../../lib/supabase/data';
 import { exportToCsv } from '../../lib/csvExport';
@@ -165,6 +166,18 @@ export default function CvRequests() {
     setShowDetailModal(true);
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const rid = searchParams.get('request');
+    if (!rid) return;
+    const target = enrichedRequests.find((r: any) => r.id === rid);
+    if (target) handleViewDetails(target);
+    const next = new URLSearchParams(searchParams);
+    next.delete('request');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, enrichedRequests]);
+
   const handleUpdateStatus = async (requestId: string, newStatus: string) => {
     setUpdatingStatus(requestId);
     try {
@@ -177,7 +190,13 @@ export default function CvRequests() {
         setViewingRequest((prev: any) => ({ ...prev, ...updated }));
       }
     } catch (err) {
-      setToast({ message: err instanceof Error ? err.message : 'Failed to update status.', type: 'error' });
+      const msg = err instanceof Error ? err.message : (err as any)?.message || 'Failed to update status.';
+      const hint = /row-level security|permission|policy/i.test(msg)
+        ? ' Run supabase/cv-requests-admin-update.sql in the Supabase SQL Editor.'
+        : /column .* does not exist/i.test(msg)
+          ? ' Run supabase/cv-requests-admin-update.sql in the Supabase SQL Editor.'
+          : '';
+      setToast({ message: `Failed to update status: ${msg}.${hint}`, type: 'error' });
     } finally {
       setUpdatingStatus(null);
       setConfirmCancelId(null);
@@ -269,15 +288,12 @@ export default function CvRequests() {
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)]" />
-          <Input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search plans, employers, jobs, transaction ID..."
-            className="pl-9 h-10"
-          />
-        </div>
+        <AdminSearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search plans, employers, jobs, transaction ID…"
+          className="flex-1 min-w-[220px] sm:max-w-md"
+        />
         <Select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}

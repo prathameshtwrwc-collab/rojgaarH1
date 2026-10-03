@@ -746,3 +746,86 @@ html.lenis, html.lenis body {
     overflow-x: hidden;
   }
 }
+
+/* ============================================
+   APP-LIKE MOBILE DASHBOARD (<=767px only)
+   Desktop rules above are untouched.
+   ============================================ */
+@media (max-width: 767px) {
+  .dash-shell,
+  .dash-container {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+  }
+
+  .dash-container {
+    width: calc(100% - 24px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  }
+
+  .dash-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--bg-warm);
+    margin: 0 -12px;
+    padding: 14px 12px;
+    border-bottom: 1px solid #E7E2D9;
+    align-items: center;
+  }
+
+  .dash-header__title {
+    font-size: 20px;
+  }
+
+  .dash-surface {
+    border-radius: 16px;
+  }
+
+  .dash-surface--pad {
+    padding: 16px;
+  }
+
+  .dash-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .dash-btn {
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .dash-btn--compact {
+    min-height: 40px;
+  }
+
+  .dash-btn-tertiary {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  /* Horizontal swipeable chip/action rows instead of wrapping grids */
+  .dash-chip-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .dash-chip-row::-webkit-scrollbar { display: none; }
+  .dash-chip-row > * { flex-shrink: 0; }
+
+  /* Tables inside dashboards scroll inside their own card */
+  .dash-surface .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}

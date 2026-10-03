@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import {
   getProfile,
@@ -83,7 +83,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [jobSkills, setJobSkills] = useState<Record<string, string[]>>({});
   const [cvRequests, setCvRequests] = useState<any[]>([]);
 
-  const loadData = async () => {
+  const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!user) {
       setProfile(null);
       setEmployer(null);
@@ -104,7 +104,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setLoading(true);
+    if (!opts.silent) setLoading(true);
     setError(null);
 
     try {
@@ -206,6 +206,33 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     if (!authLoading) {
       loadData();
     }
+  }, [user?.id, authLoading]);
+
+  // Background auto-refresh: keeps dashboards live without a loading flash.
+  // Pauses while the tab is hidden, refreshes when the user returns, throttled.
+  const lastSilentRefresh = useRef(0);
+  useEffect(() => {
+    if (!user || authLoading) return;
+    const REFRESH_MS = 60_000;
+    const MIN_GAP_MS = 15_000;
+
+    const silentRefresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastSilentRefresh.current < MIN_GAP_MS) return;
+      lastSilentRefresh.current = now;
+      loadData({ silent: true });
+    };
+
+    const interval = window.setInterval(silentRefresh, REFRESH_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') silentRefresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', silentRefresh);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', silentRefresh);
+    };
   }, [user?.id, authLoading]);
 
   const value: DatabaseContextValue = {

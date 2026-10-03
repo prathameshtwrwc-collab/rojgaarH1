@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download } from 'lucide-react';
-import { Card, Badge, Button, Modal, Select, Input, SkillTags } from '../../components/ui';
+import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download, ShieldCheck } from 'lucide-react';
+import { Card, Badge, Button, Modal, Select, Input, SkillTags, Toast } from '../../components/ui';
+import { AdminSearchInput, SegmentedTabs, AdminToolbar } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { updateJobPosting, createJobPosting, setJobSkills, getOrCreatePlatformEmployer } from '../../lib/supabase/data';
@@ -35,6 +36,10 @@ export default function JobApprovals() {
   const { jobs, employers, jobSkills, refresh } = useDatabase();
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const [employerFilter, setEmployerFilter] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [confirmReject, setConfirmReject] = useState<any | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -50,8 +55,25 @@ export default function JobApprovals() {
 
   const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
 
-  const filteredJobs = jobs.filter((j: any) => statusFilter === 'All' || j.status === statusFilter);
   const pendingCount = jobs.filter((j: any) => j.status === 'Pending').length;
+  const paymentPendingCount = jobs.filter((j: any) => j.payment_status === 'paid').length;
+  const statusCount = (s: string) => (s === 'All' ? jobs.length : jobs.filter((j: any) => j.status === s).length);
+
+  const term = search.trim().toLowerCase();
+  const filteredJobs = jobs.filter((j: any) => {
+    if (statusFilter !== 'All' && j.status !== statusFilter) return false;
+    if (employerFilter && j.employer_id !== employerFilter) return false;
+    if (term) {
+      const hay = [j.job_title, employerName(j.employer_id), j.city, j.state, ...(jobSkills[j.id] || [])]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(term)) return false;
+    }
+    return true;
+  });
+
+  const jobEmployerOptions = Array.from(new Set(jobs.map((j: any) => j.employer_id)))
+    .map(id => ({ value: id as string, label: employerName(id as string) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const handleExportCsv = () => {
     exportToCsv('job-postings', filteredJobs.map((j: any) => ({
@@ -81,12 +103,18 @@ export default function JobApprovals() {
   const handleApprove = async (job: any) => {
     setBusyJobId(job.id);
     try {
+      const now = new Date().toISOString();
+      // Approving a job accepts its submitted payment, so mark it verified/paid automatically.
+      const paymentFields = job.payment_status === 'paid'
+        ? { payment_status: 'verified', payment_verified: true, payment_verified_at: now, payment_verified_by: user?.id || null }
+        : {};
       await updateJobPosting(job.id, {
-        status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: new Date().toISOString(),
+        status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: now, ...paymentFields,
       } as any);
       await refresh();
+      setToast({ type: 'success', message: job.payment_status === 'paid' ? `"${job.job_title}" is live and its payment is marked as paid.` : `"${job.job_title}" is now live.` });
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to approve job. Make sure supabase/recruiter-feature.sql has been run.');
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to approve job.' });
     } finally {
       setBusyJobId(null);
     }
@@ -97,8 +125,9 @@ export default function JobApprovals() {
     try {
       await updateJobPosting(job.id, { status: 'Closed', is_verified: false } as any);
       await refresh();
+      setToast({ type: 'success', message: `"${job.job_title}" has been ${job.status === 'Pending' ? 'rejected' : 'closed'}.` });
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update job. Make sure supabase/recruiter-feature.sql has been run.');
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update job.' });
     } finally {
       setBusyJobId(null);
     }
@@ -114,8 +143,9 @@ export default function JobApprovals() {
         payment_verified_by: user?.id || null,
       } as any);
       await refresh();
+      setToast({ type: 'success', message: `Payment verified for "${job.job_title}".` });
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to verify payment.');
+      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to verify payment.' });
     } finally {
       setBusyJobId(null);
     }
@@ -163,26 +193,68 @@ export default function JobApprovals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--navy)]">Job Postings</h2>
-          <p className="text-sm text-[var(--charcoal)] mt-1">{jobs.length} total · {pendingCount} awaiting approval</p>
+          <p className="text-sm text-[var(--charcoal)] mt-1">Review, approve and manage every job listed on the platform.</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 h-11"><Download size={15} /> Export CSV</Button>
+          <Button onClick={() => setShowPostModal(true)} className="gap-1.5 h-11"><Plus size={16} /> Post Job</Button>
+        </div>
+      </div>
+
+      <div className="dash-metrics">
+        <div className="dash-metric">
+          <div className="dash-metric__value">{jobs.length}</div>
+          <div className="dash-metric__label">Total Jobs</div>
+        </div>
+        <div className="dash-metric">
+          <div className="dash-metric__value dash-metric__value--accent">{pendingCount}</div>
+          <div className="dash-metric__label">Awaiting Approval</div>
+        </div>
+        <div className="dash-metric">
+          <div className="dash-metric__value">{statusCount('Open')}</div>
+          <div className="dash-metric__label">Live (Open)</div>
+        </div>
+        <div className="dash-metric">
+          <div className="dash-metric__value">{paymentPendingCount}</div>
+          <div className="dash-metric__label">Payments to Verify</div>
+        </div>
+      </div>
+
+      <AdminToolbar>
+        <AdminSearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by job title, employer, city, or skill…"
+          className="lg:flex-1 lg:max-w-md"
+        />
         <div className="flex items-center gap-2 flex-wrap">
           <Select
-            options={[
-              { value: 'All', label: 'All Statuses' },
-              { value: 'Pending', label: 'Pending' },
-              { value: 'Open', label: 'Open' },
-              { value: 'On Hold', label: 'On Hold' },
-              { value: 'Closed', label: 'Closed' },
-            ]}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            className="h-11 w-auto min-w-[200px]"
+            options={[{ value: '', label: 'All Employers' }, ...jobEmployerOptions]}
+            value={employerFilter}
+            onChange={e => setEmployerFilter(e.target.value)}
           />
-          <Button variant="outline" onClick={handleExportCsv} className="gap-1.5"><Download size={15} /> Download CSV</Button>
-          <Button onClick={() => setShowPostModal(true)} className="gap-1"><Plus size={16} /> Post Job</Button>
         </div>
+      </AdminToolbar>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <SegmentedTabs
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'All', label: 'All', count: statusCount('All') },
+            { value: 'Pending', label: 'Pending', count: statusCount('Pending') },
+            { value: 'Open', label: 'Open', count: statusCount('Open') },
+            { value: 'On Hold', label: 'On Hold', count: statusCount('On Hold') },
+            { value: 'Closed', label: 'Closed', count: statusCount('Closed') },
+          ]}
+        />
+        <span className="text-xs text-[var(--charcoal)] font-medium">
+          Showing <strong className="text-[var(--navy)]">{filteredJobs.length}</strong> of {jobs.length}
+        </span>
       </div>
 
       <Card padding={false}>
@@ -217,20 +289,20 @@ export default function JobApprovals() {
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[job.status]}>{job.status}</Badge></td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 min-w-0 max-w-[200px]">
+                      {job.amount_paid != null && (
+                        <p className="text-xs font-bold text-[var(--navy)]">₹{Number(job.amount_paid).toLocaleString()} <span className="font-normal text-[10px] text-[var(--charcoal)]">incl. GST</span></p>
+                      )}
                       <Badge variant={job.payment_status === 'verified' ? 'success' : job.payment_status === 'paid' ? 'warning' : 'default'} className="text-[10px] w-fit">
                         {job.payment_status === 'verified' ? 'Payment Verified' : job.payment_status === 'paid' ? 'Payment Pending' : 'No Payment'}
                       </Badge>
+                      {job.upi_transaction_id && (
+                        <p className="text-[10px] font-mono text-[var(--charcoal)] break-all" title="UPI transaction ID">Txn: {job.upi_transaction_id}</p>
+                      )}
                       {job.payment_status === 'paid' && (
-                        <button
-                          size="sm"
-                          variant="success"
-                          disabled={busyJobId === job.id}
-                          onClick={() => handleVerifyPayment(job)}
-                          className="text-[10px] w-fit"
-                        >
-                          Verify Payment
-                        </button>
+                        <Button size="sm" variant="success" disabled={busyJobId === job.id} onClick={() => handleVerifyPayment(job)} className="text-xs w-fit gap-1">
+                          <ShieldCheck size={12} /> Verify Payment
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -245,7 +317,7 @@ export default function JobApprovals() {
                         </Button>
                       )}
                       {job.status !== 'Closed' && (
-                        <Button size="sm" variant="danger" disabled={busyJobId === job.id} onClick={() => handleReject(job)} className="gap-1 text-xs">
+                        <Button size="sm" variant="danger" disabled={busyJobId === job.id} onClick={() => setConfirmReject(job)} className="gap-1 text-xs">
                           <XCircle size={12} /> {job.status === 'Pending' ? 'Reject' : 'Close'}
                         </Button>
                       )}
@@ -260,6 +332,24 @@ export default function JobApprovals() {
           )}
         </div>
       </Card>
+
+      <Modal isOpen={Boolean(confirmReject)} onClose={() => setConfirmReject(null)} title={confirmReject?.status === 'Pending' ? 'Reject this job?' : 'Close this job?'} size="sm">
+        {confirmReject && (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--charcoal)]">
+              <strong className="text-[var(--navy)]">"{confirmReject.job_title}"</strong> will be {confirmReject.status === 'Pending' ? 'rejected and hidden from candidates' : 'closed and hidden from candidates'}. You can reopen it later by approving it again.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setConfirmReject(null)}>Cancel</Button>
+              <Button variant="danger" onClick={() => { const j = confirmReject; setConfirmReject(null); handleReject(j); }}>
+                {confirmReject.status === 'Pending' ? 'Reject Job' : 'Close Job'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <Modal isOpen={showPostModal} onClose={() => setShowPostModal(false)} title="Post a Job" size="lg">
         <div className="space-y-4">

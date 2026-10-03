@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, QrCode } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, QrCode, Info } from 'lucide-react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createJobPosting, setJobSkills } from '../../lib/supabase/data';
 import { Button } from '../../components/ui';
+import { PayFromUpiButton, PaymentBreakdown, TransactionIdGuide, CopyUpiId, isValidTxnId, PaymentSteps, SecureNote, UPI_VPA, gstFor } from '../../components/UpiPaymentPanel';
+
+const JOB_FEE = gstFor(500);
 
 export default function PostJob() {
   const { employer, refresh } = useDatabase();
@@ -84,8 +87,8 @@ export default function PostJob() {
       status: 'Pending',
       is_verified: false,
       payment_status: 'pending',
-      amount_paid: 500,
-      upi_id: '8422976666-2@ybl',
+      amount_paid: JOB_FEE.total,
+      upi_id: UPI_VPA,
     };
 
     setPendingJobData(jobData);
@@ -95,6 +98,10 @@ export default function PostJob() {
   const handlePaymentConfirm = async () => {
     if (!upiTransactionId.trim()) {
       setError('Please enter your UPI transaction ID.');
+      return;
+    }
+    if (!isValidTxnId(upiTransactionId)) {
+      setError('That does not look like a UPI transaction ID. It is usually a 12-digit number from your payment history.');
       return;
     }
 
@@ -142,7 +149,7 @@ export default function PostJob() {
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-[var(--navy)]">Post a New Job</h1>
-              <p className="text-xs text-[var(--charcoal)]">A ₹500 job posting fee applies. Your job will be live after payment verification.</p>
+              <p className="text-xs text-[var(--charcoal)]">A job posting fee of ₹500 + 18% GST (₹590 total) applies. Your job will be live after payment verification.</p>
             </div>
           </div>
 
@@ -268,7 +275,7 @@ export default function PostJob() {
               disabled={loading}
               className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Processing...' : 'Proceed to Payment — ₹500'}
+              {loading ? 'Processing...' : 'Proceed to Payment — ₹590 (incl. GST)'}
             </button>
           </form>
         </div>
@@ -277,7 +284,7 @@ export default function PostJob() {
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => !processingPayment && !paymentSuccess && setShowPaymentModal(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md overflow-hidden z-10 animate-fade-in">
+          <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden z-10 animate-fade-in">
             {paymentSuccess ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -291,54 +298,65 @@ export default function PostJob() {
               </div>
             ) : (
               <>
-                <div className="relative text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
+                <div className="relative flex-shrink-0 text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[var(--orange)] rounded-xl flex items-center justify-center">
                       <QrCode size={20} />
                     </div>
                     <div>
                       <h3 className="text-lg font-extrabold">Complete Payment</h3>
-                      <p className="text-xs text-white/70">Scan QR or use UPI ID to pay</p>
+                      <p className="text-xs text-white/70">Job posting fee · Pay to Pacific Jobs India Pvt. Ltd.</p>
                     </div>
                   </div>
+                  <div className="mt-4"><PaymentSteps step={upiTransactionId.trim() ? 2 : 1} /></div>
                 </div>
-                <div className="p-6 space-y-5">
-                  <div className="flex flex-col items-center">
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
+                <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-5">
+                  <PaymentBreakdown base={JOB_FEE.base} gst={JOB_FEE.gst} total={JOB_FEE.total} label="Job posting fee (one-time)" />
+
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--charcoal)]">Or scan the QR code</p>
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=8422976666-2@ybl&pn=RojgaarHai&am=500&cu=INR`)}`}
-                        alt="UPI QR Code"
-                        width={180}
-                        height={180}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(`upi://pay?pa=${UPI_VPA}&pn=Pacific+Jobs+India+Pvt+Ltd&am=${JOB_FEE.total}&cu=INR&tn=RojgaarHai+job+posting+fee`)}`}
+                        alt={`UPI QR code to pay ₹${JOB_FEE.total}`}
+                        width={170}
+                        height={170}
                         className="rounded-xl"
                       />
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">UPI ID</p>
-                      <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
-                    </div>
-                    <div className="mt-3 text-center">
-                      <p className="text-2xl font-extrabold text-[var(--navy)]">₹500</p>
-                      <p className="text-xs text-[var(--charcoal)]">Job posting fee (one-time)</p>
+                    <div className="flex items-center gap-2 text-xs text-[var(--charcoal)]">
+                      <span className="font-bold text-[var(--navy)]">{UPI_VPA}</span> <CopyUpiId />
                     </div>
                   </div>
 
+                  <PayFromUpiButton amount={JOB_FEE.total} note="RojgaarHai job posting fee" />
+
                   <div className="space-y-2">
-                    <label className={labelClass}>Enter UPI Transaction ID *</label>
+                    <label className={labelClass}>UPI Transaction ID *</label>
                     <input
                       value={upiTransactionId}
                       onChange={e => setUpiTransactionId(e.target.value)}
-                      placeholder="e.g. TXN123456789"
-                      className={inputClass}
+                      placeholder="e.g. 412908716254"
+                      className={inputClass + ' font-mono tracking-wide'}
                       disabled={processingPayment}
+                      inputMode="text"
+                      autoCapitalize="characters"
                     />
-                    <p className="text-[11px] text-[var(--charcoal)]">Find this in your UPI app after completing the payment.</p>
+                    <TransactionIdGuide />
                   </div>
+
+                  <div className="rounded-xl bg-[var(--bg-warm)] p-3 text-[12px] text-[var(--charcoal)] space-y-1.5">
+                    <p className="font-bold text-[var(--navy)] flex items-center gap-1.5"><Info size={13} className="text-[var(--orange)]" /> What happens next</p>
+                    <p>1. We receive your payment details and verify the transaction ID (usually within 2–4 hours).</p>
+                    <p>2. Once verified, your job is reviewed and goes live on RojgaarHai.</p>
+                    <p>3. You can track the status from your dashboard at any time.</p>
+                  </div>
+                  <SecureNote text="Your payment is made directly to our UPI account. We never ask for your UPI PIN." />
 
                   <div className="flex gap-2 pt-1">
                     <Button variant="ghost" onClick={() => setShowPaymentModal(false)} disabled={processingPayment} className="flex-1">Cancel</Button>
-                    <Button variant="primary" onClick={handlePaymentConfirm} disabled={processingPayment} className="flex-1 bg-[var(--orange)]">
-                      {processingPayment ? 'Verifying...' : 'Proceed'}
+                    <Button variant="primary" onClick={handlePaymentConfirm} disabled={processingPayment || !upiTransactionId.trim()} className="flex-1 bg-[var(--orange)]">
+                      {processingPayment ? 'Submitting...' : `I've paid ₹${JOB_FEE.total}`}
                     </Button>
                   </div>
                 </div>
