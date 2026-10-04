@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from './ui';
 import { getSectorsList, getSubsectorsForSector } from '../constants/sectors';
+import { useModalBackButton } from '../hooks/useModalBackButton';
 
 export interface CompanyForm {
   companyName: string;
@@ -67,6 +68,9 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
+
+  // On a phone, back closes this editor instead of leaving the dashboard behind it.
+  useModalBackButton(isOpen, onClose);
 
   if (!isOpen) return null;
 

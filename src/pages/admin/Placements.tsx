@@ -3,10 +3,11 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
-import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle, Download } from 'lucide-react';
+import { Award, Plus, IndianRupee, CheckCircle, AlertTriangle, Download, Pencil, Trash2 } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input } from '../../components/ui';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { useDatabase } from '../../context/DatabaseContext';
-import { createPlacement, updatePlacement as updatePlacementApi } from '../../lib/supabase/data';
+import { createPlacement, updatePlacement as updatePlacementApi, deletePlacement } from '../../lib/supabase/data';
 import { exportToCsv } from '../../lib/csvExport';
 
 const statusVariant: Record<string, 'success' | 'warning' | 'danger'> = {
@@ -24,6 +25,10 @@ export default function Placements() {
     candidateId: '', jobId: '', placementDate: '', handoverDate: '', commission: '4000',
     commissionStatus: 'Unpaid', status: 'Active',
   });
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ status: 'Active', commissionStatus: 'Unpaid', commission: '', handoverDate: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
   const candidateName = (id: string) => candidates.find((c: any) => c.id === id)?.profile_name || 'Unknown';
@@ -64,6 +69,35 @@ export default function Placements() {
       await refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update placement');
+    }
+  };
+
+  const openEdit = (p: any) => {
+    setEditTarget(p);
+    setEditForm({
+      status: p.status || 'Active',
+      commissionStatus: p.commission_status || 'Unpaid',
+      commission: String(p.commission ?? ''),
+      handoverDate: p.handover_date || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    setSavingEdit(true);
+    try {
+      await updatePlacementApi(editTarget.id, {
+        status: editForm.status as any,
+        commission_status: editForm.commissionStatus as any,
+        commission: editForm.commission ? parseInt(editForm.commission) : editTarget.commission,
+        handover_date: editForm.handoverDate || null,
+      } as any);
+      await refresh();
+      setEditTarget(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update placement');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -163,11 +197,19 @@ export default function Placements() {
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[p.status]}>{p.status}</Badge></td>
                   <td className="px-4 py-3">
-                    {p.commission_status === 'Unpaid' && (
-                      <Button variant="ghost" size="sm" onClick={() => markPaid(p.id)} className="text-[var(--green)] text-xs font-semibold">
-                        Mark Paid
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {p.commission_status === 'Unpaid' && (
+                        <Button variant="ghost" size="sm" onClick={() => markPaid(p.id)} className="text-[var(--green)] text-xs font-semibold">
+                          Mark Paid
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(p)} title="Edit status">
+                        <Pencil size={15} />
                       </Button>
-                    )}
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(p)} title="Delete placement" className="text-red-600 hover:text-red-700">
+                        <Trash2 size={15} />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -232,6 +274,57 @@ export default function Placements() {
           </div>
         </div>
       </Modal>
+
+      {/* Edit Placement Modal */}
+      <Modal isOpen={Boolean(editTarget)} onClose={() => setEditTarget(null)} title="Edit Placement Status" size="md">
+        {editTarget && (
+          <div className="space-y-4">
+            <div className="rounded-xl bg-[var(--bg-warm)] p-3">
+              <p className="text-sm font-bold text-[var(--navy)]">{candidateName(editTarget.candidate_id)}</p>
+              <p className="text-xs text-[var(--charcoal)]">{jobTitle(editTarget.job_id)} at {employerName(editTarget.employer_id)}</p>
+            </div>
+            <Select
+              label="Placement Status"
+              options={[
+                { value: 'Active', label: 'Active' },
+                { value: 'Completed', label: 'Completed' },
+                { value: 'Terminated', label: 'Terminated' },
+              ]}
+              value={editForm.status}
+              onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Commission (₹)" type="number" value={editForm.commission} onChange={e => setEditForm(prev => ({ ...prev, commission: e.target.value }))} />
+              <Select
+                label="Commission Status"
+                options={[
+                  { value: 'Unpaid', label: 'Unpaid' },
+                  { value: 'Paid', label: 'Paid' },
+                  { value: 'Partial', label: 'Partial' },
+                ]}
+                value={editForm.commissionStatus}
+                onChange={e => setEditForm(prev => ({ ...prev, commissionStatus: e.target.value }))}
+              />
+            </div>
+            <Input label="Handover Date" type="date" value={editForm.handoverDate} onChange={e => setEditForm(prev => ({ ...prev, handoverDate: e.target.value }))} />
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleSaveEdit} disabled={savingEdit} variant="success" className="gap-1">
+                <CheckCircle size={14} /> {savingEdit ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button variant="ghost" onClick={() => setEditTarget(null)} disabled={savingEdit}>Cancel</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete this placement?"
+        description={deleteTarget ? `This permanently deletes the placement record for ${candidateName(deleteTarget.candidate_id)} (${jobTitle(deleteTarget.job_id)} at ${employerName(deleteTarget.employer_id)}), including its commission history. This cannot be undone.` : ''}
+        confirmLabel="Delete placement"
+        onConfirm={async () => { await deletePlacement(deleteTarget.id); await refresh(); }}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download, ShieldCheck } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input, Toast } from '../../components/ui';
 import { SkillTagInput } from '../../components/SkillTagInput';
+import { deadlineDateRange, isValidDeadline } from '../../lib/dateRange';
 import { allTaxonomySkills } from '../../constants/skills';
 import { AdminSearchInput, SegmentedTabs, AdminToolbar } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
@@ -157,6 +158,10 @@ export default function JobApprovals() {
 
   const handlePostJob = async () => {
     if (!form.employerId || !form.jobTitle || !form.jobDescription || !form.city || !form.state || !user) return;
+    if (!isValidDeadline(form.deadline)) {
+      setToast({ type: 'error', message: 'Application deadline must be between today and 1.5 months from today.' });
+      return;
+    }
     setSaving(true);
     try {
       const employerId = form.employerId === PLATFORM_OPTION
@@ -462,7 +467,15 @@ export default function JobApprovals() {
               value={form.joiningTimeline}
               onChange={e => setForm({ ...form, joiningTimeline: e.target.value })}
             />
-            <Input label="Application Deadline" type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+            <Input
+              label="Application Deadline"
+              type="date"
+              value={form.deadline}
+              onChange={e => setForm({ ...form, deadline: e.target.value })}
+              min={deadlineDateRange().min}
+              max={deadlineDateRange().max}
+              hint="Up to 1.5 months from today."
+            />
           </div>
 
           <Input label="Working Hours" value={form.workingHours} onChange={e => setForm({ ...form, workingHours: e.target.value })} placeholder="e.g. 9 AM - 6 PM, 6-day week" />

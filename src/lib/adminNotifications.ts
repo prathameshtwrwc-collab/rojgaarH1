@@ -88,9 +88,17 @@ function loadRead(userId: string): Record<string, string> {
 
 /**
  * Read state lives per admin in localStorage (this device). Map of id -> readAt.
+ *
+ * Every write goes through `persist`, which re-reads localStorage immediately before
+ * writing and applies the change on top of that, rather than on top of this hook's own
+ * React state. Multiple components use this hook at once (the sidebar bell, the list
+ * page, the detail page, each marking notifications read independently), and without
+ * this, one component's write can race another's and silently wipe out already-read
+ * notifications — reading from storage at write time, not from a `readMap` closure
+ * that may be stale, is what prevents that.
  */
 export function useAdminNotifications(userId: string | undefined, source: { jobs: any[]; employers: any[]; cvRequests: any[] }) {
-  const [readMap, setReadMap] = useState<Record<string, string>>({});
+  const [readMap, setReadMap] = useState<Record<string, string>>(() => (userId ? loadRead(userId) : {}));
 
   useEffect(() => {
     if (!userId) return;
@@ -100,32 +108,35 @@ export function useAdminNotifications(userId: string | undefined, source: { jobs
     return () => window.removeEventListener(CHANGE_EVENT, sync);
   }, [userId]);
 
-  const persist = useCallback((next: Record<string, string>) => {
+  const persist = useCallback((update: (current: Record<string, string>) => Record<string, string>) => {
+    if (!userId) return;
+    const next = update(loadRead(userId));
     setReadMap(next);
-    if (userId) {
-      try { localStorage.setItem(storageKey(userId), JSON.stringify(next)); } catch { /* storage full/blocked */ }
-      window.dispatchEvent(new Event(CHANGE_EVENT));
-    }
+    try { localStorage.setItem(storageKey(userId), JSON.stringify(next)); } catch { /* storage full/blocked */ }
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   }, [userId]);
 
   const items = useMemo(() => buildAdminNotifications(source), [source.jobs, source.employers, source.cvRequests]);
 
   const isRead = useCallback((id: string) => Boolean(readMap[id]), [readMap]);
   const markRead = useCallback((id: string) => {
-    if (readMap[id]) return;
-    persist({ ...readMap, [id]: new Date().toISOString() });
-  }, [readMap, persist]);
+    persist(current => (current[id] ? current : { ...current, [id]: new Date().toISOString() }));
+  }, [persist]);
   const markUnread = useCallback((id: string) => {
-    if (!readMap[id]) return;
-    const next = { ...readMap };
-    delete next[id];
-    persist(next);
-  }, [readMap, persist]);
+    persist(current => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  }, [persist]);
   const markAllRead = useCallback(() => {
-    const next = { ...readMap };
-    items.forEach(n => { if (!next[n.id]) next[n.id] = new Date().toISOString(); });
-    persist(next);
-  }, [items, readMap, persist]);
+    persist(current => {
+      const next = { ...current };
+      items.forEach(n => { if (!next[n.id]) next[n.id] = new Date().toISOString(); });
+      return next;
+    });
+  }, [items, persist]);
 
   const unreadCount = items.filter(n => !readMap[n.id]).length;
 

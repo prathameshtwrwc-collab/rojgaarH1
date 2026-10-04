@@ -8,6 +8,8 @@ import { SkillTagInput } from '../../components/SkillTagInput';
 import { SECTORS, getSubsectorsForSector } from '../../constants/sectors';
 import { skillsForSubsector, allTaxonomySkills } from '../../constants/skills';
 import { PayFromUpiButton, PaymentBreakdown, TransactionIdGuide, CopyUpiId, isValidTxnId, PaymentSteps, SecureNote, UPI_VPA, gstFor } from '../../components/UpiPaymentPanel';
+import { useModalBackButton } from '../../hooks/useModalBackButton';
+import { deadlineDateRange, isValidDeadline } from '../../lib/dateRange';
 
 const JOB_FEE = gstFor(500);
 
@@ -23,6 +25,12 @@ export default function PostJob() {
   const [upiTransactionId, setUpiTransactionId] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  // On a phone, back closes the payment modal (back to the filled-in form) instead of
+  // leaving this page and losing it.
+  useModalBackButton(showPaymentModal, () => {
+    if (!processingPayment && !paymentSuccess) setShowPaymentModal(false);
+  });
 
   const [form, setForm] = useState({
     jobTitle: '',
@@ -70,6 +78,10 @@ export default function PostJob() {
     }
     if (!form.jobTitle || !form.jobDescription || !form.city || !form.state || !form.qualificationRequired || !form.sector.trim() || !form.subsector.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+    if (!isValidDeadline(form.deadline)) {
+      setError('Application deadline must be between today and 1.5 months from today.');
       return;
     }
 
@@ -280,7 +292,16 @@ export default function PostJob() {
               </div>
               <div>
                 <label className={labelClass}>Application Deadline</label>
-                <input name="deadline" type="date" value={form.deadline} onChange={handleChange} className={inputClass} />
+                <input
+                  name="deadline"
+                  type="date"
+                  value={form.deadline}
+                  onChange={handleChange}
+                  min={deadlineDateRange().min}
+                  max={deadlineDateRange().max}
+                  className={inputClass}
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Up to 1.5 months from today.</p>
               </div>
             </div>
 

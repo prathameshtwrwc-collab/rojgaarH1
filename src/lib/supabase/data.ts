@@ -805,6 +805,12 @@ export async function updatePlacement(placementId: string, updates: Partial<Plac
   return data;
 }
 
+// Superadmin only — see supabase/placements-admin-delete.sql for the RLS policy this needs.
+export async function deletePlacement(placementId: string): Promise<void> {
+  const { error } = await supabase.from('placements').delete().eq('id', placementId);
+  if (error) throw error;
+}
+
 export async function updateEmployerVerification(employerId: string, verified: boolean) {
   const { error } = await supabase.from('employers').update({ verified } as never).eq('id', employerId);
   if (error) throw error;

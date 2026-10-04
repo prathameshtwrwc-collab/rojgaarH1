@@ -7,6 +7,7 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button, Badge, Toast } from './ui';
+import { useModalBackButton } from '../hooks/useModalBackButton';
 import {
   JobSeeker, EducationEntry, ExperienceEntry, LanguageEntry, CertificationEntry
 } from '../context/DataContext';
@@ -461,6 +462,10 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     // persist only reads refs and state setters, so it is not a dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // On a phone, back closes this editor (its step-by-step form autosaves, so nothing is
+  // lost) instead of leaving the dashboard behind it.
+  useModalBackButton(isOpen, onClose);
 
   // Save Changes: validated, saved, then the editor closes.
   const handleSaveChanges = async () => {

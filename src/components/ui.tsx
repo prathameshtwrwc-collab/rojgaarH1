@@ -3,6 +3,7 @@ import { X, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { cn } from '../utils/cn';
+import { useModalBackButton } from '../hooks/useModalBackButton';
 
 // Button
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -184,6 +185,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
+
+  // On a phone, the back button closes this modal instead of leaving the page behind it.
+  useModalBackButton(isOpen, onClose);
 
   if (!isOpen) return null;
   const sizes: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
