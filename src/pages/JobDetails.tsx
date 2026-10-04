@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, MapPin, Briefcase, ShieldCheck, Bookmark, Building2,
   CheckCircle, UserCheck, AlertCircle, Share2, Link2, Calendar, GraduationCap,
-  Home, Car, Sparkles,
+  Home, Car, Sparkles, Factory, Tag, User, Globe,
 } from 'lucide-react';
 import { Badge, Button, Modal, Toast } from '../components/ui';
 import PageLoader from '../components/PageLoader';
@@ -34,6 +34,7 @@ function mapEmployer(e: any) {
     website: e.website || '',
     address: e.address || '',
     city: e.city || '',
+    state: e.state || '',
     contactName: e.contact_name || '',
     contactEmail: e.contact_email || '',
     contactPhone: e.contact_phone || '',
@@ -49,6 +50,8 @@ function mapJob(job: any, skills: string[], requirements: string[], responsibili
     city: job.city || '',
     state: job.state || '',
     address: job.address || '',
+    sector: job.sector || '',
+    subsector: job.subsector || '',
     salaryMin: String(job.salary_min ?? 0),
     salaryMax: String(job.salary_max ?? 0),
     employmentType: job.employment_type,
@@ -303,6 +306,9 @@ export default function JobDetails() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[var(--charcoal)] mt-3">
                   <span className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" />{job.address ? `${job.address}, ` : ''}{job.city}, {job.state}</span>
                   <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-slate-400" />{job.employmentType}</span>
+                  {job.sector && (
+                    <span className="flex items-center gap-1.5"><Factory size={14} className="text-slate-400" />{job.sector}{job.subsector ? ` · ${job.subsector}` : ''}</span>
+                  )}
                   <span className="flex items-center gap-1.5 text-slate-400">Posted {timeAgo(job.createdAt)}</span>
                 </div>
 
@@ -393,7 +399,9 @@ export default function JobDetails() {
                 </ul>
               ) : (
                 <p className="text-[14px] text-[var(--charcoal)] mb-4">
-                  Candidate should have {job.qualificationRequired} qualification with minimum {job.experienceRequired} of relevant practical experience.
+                  Candidate should have {job.qualificationRequired} qualification with minimum {job.experienceRequired} of relevant practical experience
+                  {job.subsector ? <> in a <strong className="text-[var(--navy)]">{job.subsector}</strong> role</> : null}
+                  {job.sector ? <> within the <strong className="text-[var(--navy)]">{job.sector}</strong> sector</> : null}.
                 </p>
               )}
 
@@ -436,6 +444,18 @@ export default function JobDetails() {
             <div className="dash-surface dash-surface--pad">
               <h3 className="text-[15px] font-bold text-[var(--navy)] mb-3 pb-3 border-b border-[#EFEAE1]">Job Overview</h3>
               <div className="space-y-3 text-[13.5px]">
+                {job.sector && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Factory size={13} />Industry / Sector</span>
+                    <span className="font-semibold text-[var(--navy)] text-right">{job.sector}</span>
+                  </div>
+                )}
+                {job.subsector && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Tag size={13} />Role / Function</span>
+                    <span className="font-semibold text-[var(--navy)] text-right">{job.subsector}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-slate-400 flex items-center gap-1.5"><GraduationCap size={13} />Education</span>
                   <span className="font-semibold text-[var(--navy)] text-right">{job.qualificationRequired || 'Any'}</span>
@@ -469,12 +489,38 @@ export default function JobDetails() {
               </div>
             </div>
 
+            {job.recruiterName && (
+              <div className="dash-surface dash-surface--pad">
+                <h3 className="text-[15px] font-bold text-[var(--navy)] mb-3 pb-3 border-b border-[#EFEAE1]">Contact Person</h3>
+                <p className="flex items-center gap-2 font-semibold text-[var(--navy)] text-[13.5px]">
+                  <User size={14} className="text-[var(--orange)]" /> {job.recruiterName}
+                </p>
+              </div>
+            )}
+
             {employer && (
               <div className="dash-surface dash-surface--pad">
                 <h3 className="text-[15px] font-bold text-[var(--navy)] mb-3">About {employer.companyName}</h3>
                 <p className="text-[12.5px] text-[var(--charcoal)] mb-3 leading-relaxed">
                   Established in {employer.yearEstablished}, {employer.companyName} is a leading organization in the {employer.industry} sector with {employer.companySize} employees.
                 </p>
+                <div className="space-y-2 text-[12.5px] text-[var(--charcoal)]">
+                  {(employer.city || employer.state) && (
+                    <p className="flex items-center gap-2">
+                      <MapPin size={13} className="text-slate-400 flex-shrink-0" /> {[employer.address, employer.city, employer.state].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {employer.website && (
+                    <a
+                      href={employer.website.startsWith('http') ? employer.website : `https://${employer.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[var(--orange)] hover:underline break-all"
+                    >
+                      <Globe size={13} className="flex-shrink-0" /> {employer.website}
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 
