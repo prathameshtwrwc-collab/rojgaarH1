@@ -24,15 +24,29 @@ export interface LoginPayload {
   password: string;
 }
 
+// Phone numbers aren't unique in Supabase Auth, so this is checked ourselves.
+export async function phoneExists(phone: string): Promise<boolean> {
+  if (!phone) return false;
+  const { data } = await (supabase as any).rpc('phone_number_exists', { check_phone: phone });
+  return Boolean(data);
+}
+
+// Email lives on auth.users, not public.profiles, so this goes through a SECURITY
+// DEFINER RPC to check it ahead of time (e.g. before sending an OTP).
+export async function emailExists(email: string): Promise<boolean> {
+  if (!email) return false;
+  const { data } = await (supabase as any).rpc('email_exists', { check_email: email });
+  return Boolean(data);
+}
+
 export async function signUp(payload: SignupPayload) {
   const { email, password, fullName, phone, role } = payload;
 
-  // Phone numbers aren't unique in Supabase Auth, so this is checked ourselves first.
-  if (phone) {
-    const { data: phoneExists } = await (supabase as any).rpc('phone_number_exists', { check_phone: phone });
-    if (phoneExists) {
-      throw new Error('An account with this phone number already exists. Please sign in instead.');
-    }
+  if (phone && (await phoneExists(phone))) {
+    throw new Error('An account with this phone number already exists. Please sign in instead.');
+  }
+  if (email && (await emailExists(email))) {
+    throw new Error('An account with this email already exists. Please sign in instead.');
   }
 
   const { data, error } = await supabase.auth.signUp({

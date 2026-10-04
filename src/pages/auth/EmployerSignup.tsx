@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import PageLoader from '../../components/PageLoader';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { signUp, sendOtp, verifyOtp } from '../../lib/supabase/auth';
+import { signUp, sendOtp, verifyOtp, phoneExists, emailExists } from '../../lib/supabase/auth';
 import { createEmployer } from '../../lib/supabase/data';
 import { getSectorsList } from '../../constants/sectors';
 import { useAuth } from '../../context/AuthContext';
@@ -69,15 +69,33 @@ export default function EmployerSignup() {
       setError(t('auth.enterValidPhone'));
       return;
     }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter your email address first.');
+      return;
+    }
 
     setError('');
     setLoading(true);
 
     try {
+      const [phoneTaken, emailTaken] = await Promise.all([
+        phoneExists(otpPhone),
+        emailExists(formData.email),
+      ]);
+      if (phoneTaken || emailTaken) {
+        setError(
+          phoneTaken && emailTaken
+            ? 'An account already exists with this phone number and email. Please sign in instead.'
+            : phoneTaken
+            ? 'An account with this phone number already exists. Please sign in instead.'
+            : 'An account with this email already exists. Please sign in instead.'
+        );
+        return;
+      }
+
       const result = await sendOtp(otpPhone);
       if (!result.success) {
         setError(result.message);
-        setLoading(false);
         return;
       }
 
@@ -199,6 +217,38 @@ export default function EmployerSignup() {
             </div>
           )}
 
+          <div className="space-y-5 mb-6">
+            <div>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
+                {t('auth.fullName')}
+              </label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                placeholder={t('auth.fullName')}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
+                {t('auth.email')}
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+
           {/* Phone Verification */}
           <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
             <h3 className="text-sm font-bold text-[var(--navy)] mb-3">{t('auth.verifyPhone')}</h3>
@@ -280,37 +330,6 @@ export default function EmployerSignup() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.fullName')}
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.fullName')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.email')}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            
             <div className="pt-1">
               <h3 className="text-sm font-bold text-[var(--navy)] mb-1">Company Details</h3>
               <p className="text-xs text-[var(--charcoal)] mb-3">So your dashboard is ready to go, no extra setup step.</p>
