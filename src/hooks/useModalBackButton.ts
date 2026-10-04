@@ -1,5 +1,43 @@
 import { useEffect, useRef } from 'react';
 
+// Tracked globally, not per hook instance: how many modals are currently open across
+// the whole app, whether we've pushed the one extra history entry for them, and which
+// modal's close function the back button should call.
+//
+// One shared entry (instead of one push/pop per modal) matters because closing one
+// modal and opening another in the same update — a plan-selection modal handing off to
+// its payment modal, for example — must not pop-then-immediately-push: `history.back()`
+// only fires its `popstate` event on a later tick, so a `pushState` that happens right
+// after it, in the same update, ends up receiving that stale `popstate` and closes the
+// modal that was just opened. Deferring the "should we actually pop now" check lets a
+// same-tick close-then-open cancel itself out, since by the time the check runs, the
+// handed-off-to modal has already put the layer count back above zero.
+let openCount = 0;
+let historyPushed = false;
+let activeCloser: (() => void) | null = null;
+
+function schedulePop() {
+  setTimeout(() => {
+    if (openCount === 0 && historyPushed) {
+      historyPushed = false;
+      window.history.back();
+    }
+  }, 0);
+}
+
+function handlePopState() {
+  if (!historyPushed) return;
+  historyPushed = false;
+  openCount = Math.max(0, openCount - 1);
+  const close = activeCloser;
+  activeCloser = null;
+  close?.();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', handlePopState);
+}
+
 /**
  * Makes the phone's (or browser's) back button close an open modal, instead of
  * navigating away from the page underneath it.
@@ -8,37 +46,29 @@ import { useEffect, useRef } from 'react';
  * multi-step form's payment modal is open, for example, doesn't undo the modal — it
  * undoes the actual last navigation, so the whole page is left and the filled-in form
  * is lost.
- *
- * How it works: opening the modal pushes one extra history entry. Pressing back pops
- * just that entry (a `popstate` event), which this hook catches to close the modal —
- * the browser never reaches the entry for the page before it. Closing the modal any
- * other way (a Cancel button, tapping the overlay, a successful submit) consumes that
- * same pushed entry with `history.back()`, so the next real back-press still goes
- * where it should, instead of landing on a leftover empty entry.
  */
 export function useModalBackButton(isOpen: boolean, onClose: () => void) {
-  const pushedRef = useRef(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // A stable identity for this modal instance's closer, so it can be told apart from
+  // (and matched back up with) other modals across renders and across the module-level
+  // state above.
+  const closeThisRef = useRef(() => onCloseRef.current());
 
   useEffect(() => {
     if (!isOpen) return;
 
-    window.history.pushState({ rhModal: true }, '');
-    pushedRef.current = true;
-
-    const handlePopState = () => {
-      pushedRef.current = false;
-      onCloseRef.current();
-    };
-    window.addEventListener('popstate', handlePopState);
+    openCount += 1;
+    activeCloser = closeThisRef.current;
+    if (!historyPushed) {
+      window.history.pushState({ rhModal: true }, '');
+      historyPushed = true;
+    }
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (pushedRef.current) {
-        pushedRef.current = false;
-        window.history.back();
-      }
+      openCount = Math.max(0, openCount - 1);
+      if (activeCloser === closeThisRef.current) activeCloser = null;
+      schedulePop();
     };
   }, [isOpen]);
 }

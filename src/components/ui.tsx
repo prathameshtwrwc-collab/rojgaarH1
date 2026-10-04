@@ -71,12 +71,14 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
+  /** Set false to size this to its content instead of stretching full width — for filter toolbars where several selects sit side by side. Defaults to true, matching every existing usage inside forms. */
+  fullWidth?: boolean;
 }
 
-export function Select({ label, error, options, className = '', id, ...props }: SelectProps) {
+export function Select({ label, error, options, className = '', id, fullWidth = true, ...props }: SelectProps) {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="w-full">
+    <div className={fullWidth ? 'w-full' : 'inline-block'}>
       {label && (
         <label htmlFor={selectId} className="block text-sm font-medium text-[var(--navy)] mb-1.5">
           {label}{props.required && <span className="text-red-500 ml-0.5">*</span>}
@@ -85,7 +87,7 @@ export function Select({ label, error, options, className = '', id, ...props }: 
       <div className="relative">
         <select
           id={selectId}
-          className={`w-full px-4 py-2.5 rounded-lg border ${
+          className={`${fullWidth ? 'w-full' : ''} px-4 py-2.5 rounded-lg border ${
             error ? 'border-red-500' : 'border-slate-300'
           } focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] focus:outline-none appearance-none bg-white text-[var(--navy)] pr-10 ${className}`}
           {...props}

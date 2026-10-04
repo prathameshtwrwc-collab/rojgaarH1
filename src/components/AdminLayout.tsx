@@ -1,6 +1,6 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText, Bell, ShieldCheck } from 'lucide-react';
 import { useAdminNotifications } from '../lib/adminNotifications';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,7 @@ const sidebarItems = [
   { to: '/admin/communications', label: 'Communications', icon: <MessageSquare size={20} /> },
   { to: '/admin/placements', label: 'Placements', icon: <Award size={20} /> },
   { to: '/admin/cv-requests', label: 'CV Requests', icon: <FileText size={20} /> },
+  { to: '/admin/permanent-requests', label: 'Permanent Requests', icon: <ShieldCheck size={20} /> },
   { to: '/admin/notifications', label: 'Notifications', icon: <Bell size={20} /> },
 ];
 

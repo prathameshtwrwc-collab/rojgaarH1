@@ -1,22 +1,22 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox, Trash2 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
 import {
-  FileText, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
-  Download, Copy, AlertTriangle, Clock, IndianRupee, Check,
+  ShieldCheck, Eye, CheckCircle, XCircle, MapPin, Phone, Mail,
+  Download, Copy, AlertTriangle, Clock, IndianRupee, Check, Users,
 } from 'lucide-react';
 import { Card, Button, Modal, Select, Toast } from '../../components/ui';
 import { TableSkeleton } from '../../components/Skeleton';
 import { AdminSearchInput } from '../../components/AdminToolbar';
 import { useDatabase } from '../../context/DatabaseContext';
-import { updateCvRequest, adminDeleteCvRequest } from '../../lib/supabase/data';
+import { updatePermanentRequest, adminDeletePermanentRequest } from '../../lib/supabase/data';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { exportToCsv } from '../../lib/csvExport';
 
 const STATUS_OPTIONS = ['All', 'pending', 'processing', 'delivered', 'cancelled'];
+const TYPE_OPTIONS = ['All', 'unskilled', 'skilled'];
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
@@ -33,6 +33,12 @@ function statusMeta(status: string) {
     case 'cancelled': return { label: 'Cancelled', cls: 'dash-status--danger' };
     default: return { label: 'Pending', cls: 'dash-status--neutral' };
   }
+}
+
+function typeMeta(type: string) {
+  return type === 'skilled'
+    ? { label: 'Skilled', cls: 'dash-status--accent' }
+    : { label: 'Unskilled', cls: 'dash-status--neutral' };
 }
 
 function hoursSince(dateStr?: string): number {
@@ -87,7 +93,7 @@ function StatusTimeline({ status, createdAt, deliveredAt }: { status: string; cr
 
   const steps = [
     { key: 'pending', label: 'Requested', date: createdAt, done: true },
-    { key: 'processing', label: 'Processing', date: null, done: status === 'processing' || status === 'delivered' },
+    { key: 'processing', label: 'Sourcing', date: null, done: status === 'processing' || status === 'delivered' },
     { key: 'delivered', label: 'Delivered', date: deliveredAt, done: status === 'delivered' },
   ];
 
@@ -115,48 +121,50 @@ function StatusTimeline({ status, createdAt, deliveredAt }: { status: string; cr
   );
 }
 
-export default function CvRequests() {
-  const { cvRequests, employers, jobs, loading, refresh } = useDatabase();
+export default function PermanentRequests() {
+  const { permanentRequests, employers, loading, refresh } = useDatabase();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [viewingRequest, setViewingRequest] = useState<any | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
-  const [deleteCvTarget, setDeleteCvTarget] = useState<any | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const enrichedRequests = useMemo(() => {
-    return cvRequests.map((req: any) => {
+    return permanentRequests.map((req: any) => {
       const employer = employers.find((e: any) => e.id === req.employer_id);
-      const job = jobs.find((j: any) => j.id === req.job_id);
       const { base, gst, total } = gstBreakdown(req.amount);
       return {
         ...req,
         employerName: employer?.company_name || 'Unknown',
         employerCity: employer?.city || '',
-        jobTitle: job?.job_title || 'N/A',
-        jobCity: job?.city || '',
-        jobStatus: job?.status || 'N/A',
+        contactName: employer?.contact_name || '',
+        contactEmail: employer?.contact_email || '',
+        contactPhone: employer?.contact_phone || '',
         baseAmount: base,
         gstAmount: gst,
         totalAmount: total,
         isOverdue: req.status === 'pending' && hoursSince(req.created_at) > OVERDUE_HOURS,
       };
     });
-  }, [cvRequests, employers, jobs]);
+  }, [permanentRequests, employers]);
 
   const filteredRequests = useMemo(() => {
     const result = enrichedRequests.filter((req: any) => {
       const matchesSearch = !searchTerm.trim() ||
         req.plan_label?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.employerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        req.contactPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         req.upi_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'All' || req.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesType = typeFilter === 'All' || req.candidate_type === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
     });
     return result.sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -165,31 +173,19 @@ export default function CvRequests() {
       if (sortBy === 'lowAmount') return a.totalAmount - b.totalAmount;
       return 0;
     });
-  }, [enrichedRequests, searchTerm, statusFilter, sortBy]);
+  }, [enrichedRequests, searchTerm, statusFilter, typeFilter, sortBy]);
 
   const handleViewDetails = (req: any) => {
     setViewingRequest(req);
     setShowDetailModal(true);
   };
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    const rid = searchParams.get('request');
-    if (!rid) return;
-    const target = enrichedRequests.find((r: any) => r.id === rid);
-    if (target) handleViewDetails(target);
-    const next = new URLSearchParams(searchParams);
-    next.delete('request');
-    setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, enrichedRequests]);
-
   const handleUpdateStatus = async (requestId: string, newStatus: string) => {
     setUpdatingStatus(requestId);
     try {
       const updates: Record<string, any> = { status: newStatus };
       if (newStatus === 'delivered') updates.delivered_at = new Date().toISOString();
-      const updated = await updateCvRequest(requestId, updates);
+      const updated = await updatePermanentRequest(requestId, updates);
       await refresh();
       setToast({ message: `Request marked as ${statusMeta(newStatus).label}.`, type: 'success' });
       if (viewingRequest?.id === requestId) {
@@ -198,9 +194,9 @@ export default function CvRequests() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : (err as any)?.message || 'Failed to update status.';
       const hint = /row-level security|permission|policy/i.test(msg)
-        ? ' Run supabase/cv-requests-admin-update.sql in the Supabase SQL Editor.'
+        ? ' Run supabase/permanent-recruitment-requests.sql in the Supabase SQL Editor.'
         : /column .* does not exist/i.test(msg)
-          ? ' Run supabase/cv-requests-admin-update.sql in the Supabase SQL Editor.'
+          ? ' Run supabase/permanent-recruitment-candidate-count.sql in the Supabase SQL Editor.'
           : '';
       setToast({ message: `Failed to update status: ${msg}.${hint}`, type: 'error' });
     } finally {
@@ -211,13 +207,16 @@ export default function CvRequests() {
 
   const handleExport = () => {
     if (filteredRequests.length === 0) return;
-    exportToCsv('cv-requests', filteredRequests.map((r: any) => ({
+    exportToCsv('permanent-recruitment-requests', filteredRequests.map((r: any) => ({
       'Request ID': r.id,
       'Employer': r.employerName,
       'City': r.employerCity,
-      'Job': r.jobTitle,
+      'Contact Name': r.contactName,
+      'Contact Phone': r.contactPhone,
+      'Contact Email': r.contactEmail,
+      'Candidate Type': r.candidate_type,
+      'Candidate Count': r.candidate_count,
       'Plan': r.plan_label,
-      'CV Count': r.cv_count,
       'Base Amount': r.baseAmount,
       'GST (18%)': r.gstAmount,
       'Total Amount': r.totalAmount,
@@ -230,16 +229,18 @@ export default function CvRequests() {
   };
 
   const stats = useMemo(() => {
-    const revenue = cvRequests.reduce((sum: number, r: any) => sum + gstBreakdown(r.amount).total, 0);
+    const revenue = permanentRequests.reduce((sum: number, r: any) => sum + gstBreakdown(r.amount).total, 0);
+    const candidates = permanentRequests.reduce((sum: number, r: any) => sum + (Number(r.candidate_count) || 0), 0);
     return {
-      total: cvRequests.length,
-      pending: cvRequests.filter((r: any) => r.status === 'pending').length,
-      processing: cvRequests.filter((r: any) => r.status === 'processing').length,
-      delivered: cvRequests.filter((r: any) => r.status === 'delivered').length,
+      total: permanentRequests.length,
+      candidates,
+      pending: permanentRequests.filter((r: any) => r.status === 'pending').length,
+      processing: permanentRequests.filter((r: any) => r.status === 'processing').length,
+      delivered: permanentRequests.filter((r: any) => r.status === 'delivered').length,
       overdue: enrichedRequests.filter((r: any) => r.isOverdue).length,
       revenue,
     };
-  }, [cvRequests, enrichedRequests]);
+  }, [permanentRequests, enrichedRequests]);
 
   const paging = usePagination(filteredRequests, 10);
 
@@ -247,7 +248,7 @@ export default function CvRequests() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--navy)]">CV Requests</h2>
+          <h2 className="text-2xl font-bold text-[var(--navy)]">Permanent Recruitment Requests</h2>
           <p className="text-sm text-[var(--charcoal)] mt-1">Loading requests…</p>
         </div>
         <TableSkeleton rows={6} />
@@ -259,8 +260,8 @@ export default function CvRequests() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--navy)]">CV Requests</h2>
-          <p className="text-sm text-[var(--charcoal)] mt-1">Review paid CV requests, confirm orders and track delivery.</p>
+          <h2 className="text-2xl font-bold text-[var(--navy)]">Permanent Recruitment Requests</h2>
+          <p className="text-sm text-[var(--charcoal)] mt-1">Review paid permanent-hiring requests, confirm orders and track delivery.</p>
         </div>
         <button onClick={handleExport} disabled={filteredRequests.length === 0} className="dash-btn dash-btn-secondary dash-btn--compact disabled:opacity-50">
           <Download size={14} /> Export CSV
@@ -274,6 +275,10 @@ export default function CvRequests() {
           <div className="dash-metric__label">Total Requests</div>
         </div>
         <div className="dash-metric">
+          <div className="dash-metric__value">{stats.candidates}</div>
+          <div className="dash-metric__label">Candidates Requested</div>
+        </div>
+        <div className="dash-metric">
           <div className="dash-metric__value dash-metric__value--accent">{stats.pending}</div>
           <div className="dash-metric__label">Pending</div>
           {stats.overdue > 0 && (
@@ -282,11 +287,7 @@ export default function CvRequests() {
         </div>
         <div className="dash-metric">
           <div className="dash-metric__value">{stats.processing}</div>
-          <div className="dash-metric__label">Processing</div>
-        </div>
-        <div className="dash-metric">
-          <div className="dash-metric__value">{stats.delivered}</div>
-          <div className="dash-metric__label">Delivered</div>
+          <div className="dash-metric__label">Sourcing</div>
         </div>
         <div className="dash-metric">
           <div className="dash-metric__value">₹{stats.revenue.toLocaleString()}</div>
@@ -299,8 +300,14 @@ export default function CvRequests() {
         <AdminSearchInput
           value={searchTerm}
           onChange={setSearchTerm}
-          placeholder="Search plans, employers, jobs, transaction ID…"
+          placeholder="Search employers, contacts, transaction ID…"
           className="flex-1 min-w-[220px] sm:max-w-md"
+        />
+        <Select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          options={TYPE_OPTIONS.map(t => ({ value: t, label: t === 'All' ? 'All Types' : typeMeta(t).label }))}
+          fullWidth={false} className="h-10 w-auto min-w-[150px]"
         />
         <Select
           value={statusFilter}
@@ -315,16 +322,16 @@ export default function CvRequests() {
           fullWidth={false} className="h-10 w-auto min-w-[150px]"
         />
         <span className="text-xs text-[var(--charcoal)] font-medium whitespace-nowrap">
-          Showing <strong className="text-[var(--navy)]">{filteredRequests.length}</strong> of {cvRequests.length}
+          Showing <strong className="text-[var(--navy)]">{filteredRequests.length}</strong> of {permanentRequests.length}
         </span>
       </div>
 
       {filteredRequests.length === 0 ? (
         <Card className="p-12 text-center">
-          <FileText size={48} className="mx-auto mb-3 text-slate-300" />
-          <h3 className="text-lg font-bold text-[var(--navy)] mb-1">No CV Requests Found</h3>
+          <ShieldCheck size={48} className="mx-auto mb-3 text-slate-300" />
+          <h3 className="text-lg font-bold text-[var(--navy)] mb-1">No Permanent Recruitment Requests Found</h3>
           <p className="text-sm text-[var(--charcoal)]">
-            {cvRequests.length === 0 ? 'No CV requests have been submitted yet.' : 'No requests match your current filters.'}
+            {permanentRequests.length === 0 ? 'No requests have been submitted yet.' : 'No requests match your current filters.'}
           </p>
         </Card>
       ) : (
@@ -334,9 +341,8 @@ export default function CvRequests() {
               <thead>
                 <tr className="bg-[var(--bg-warm)] border-b border-[#E7E2D9]">
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Request</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Employer</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Plan</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Job</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Employer &amp; Contact</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Candidates</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Amount</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Payment</th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-[var(--charcoal)] uppercase tracking-wider">Status</th>
@@ -347,6 +353,7 @@ export default function CvRequests() {
               <tbody className="divide-y divide-[#EFEAE1]">
                 {paging.pageItems.map((req: any) => {
                   const st = statusMeta(req.status);
+                  const tm = typeMeta(req.candidate_type);
                   return (
                     <tr key={req.id} className="hover:bg-[var(--bg-warm)] transition-colors cursor-pointer" onClick={() => handleViewDetails(req)}>
                       <td className="px-4 py-3">
@@ -360,30 +367,20 @@ export default function CvRequests() {
                           <div className="dash-avatar w-8 h-8 text-[11px] flex-shrink-0">{req.employerName.charAt(0)}</div>
                           <div className="min-w-0">
                             <p className="font-semibold text-[var(--navy)] truncate">{req.employerName}</p>
-                            <p className="text-xs text-[var(--charcoal)] flex items-center gap-1 mt-0.5">
-                              <MapPin size={10} /> {req.employerCity || 'N/A'}
-                            </p>
+                            {req.contactName && (
+                              <p className="text-xs text-[var(--charcoal)] truncate">{req.contactName}</p>
+                            )}
+                            {req.contactPhone && (
+                              <p className="text-xs text-[var(--charcoal)] flex items-center gap-1 mt-0.5">
+                                <Phone size={10} /> {req.contactPhone}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div>
-                          <p className="font-semibold text-[var(--navy)]">{req.plan_label}</p>
-                          <p className="text-xs text-[var(--charcoal)]">{req.cv_count} CVs</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {req.job_id ? (
-                          <Link
-                            to={`/admin/jobs/${req.job_id}`}
-                            onClick={e => e.stopPropagation()}
-                            className="text-[var(--orange)] hover:underline flex items-center gap-1 max-w-[160px]"
-                          >
-                            <Briefcase size={12} className="flex-shrink-0" /> <span className="truncate">{req.jobTitle}</span>
-                          </Link>
-                        ) : (
-                          <span className="text-[var(--charcoal)]">General Request</span>
-                        )}
+                        <span className={`dash-status ${tm.cls}`}>{tm.label}</span>
+                        <p className="text-xs text-[var(--charcoal)] mt-1 flex items-center gap-1"><Users size={11} /> {req.candidate_count}</p>
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-bold text-[var(--navy)]">₹{req.totalAmount.toLocaleString()}</p>
@@ -430,7 +427,7 @@ export default function CvRequests() {
                                 onClick={() => handleUpdateStatus(req.id, 'processing')}
                                 disabled={updatingStatus === req.id}
                                 className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-50"
-                                title="Mark as Processing"
+                                title="Mark as Sourcing"
                               >
                                 <CheckCircle size={14} />
                               </button>
@@ -455,7 +452,7 @@ export default function CvRequests() {
                             </button>
                           )}
                           <button
-                            onClick={() => setDeleteCvTarget(req)}
+                            onClick={() => setDeleteTarget(req)}
                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
                             title="Delete request"
                           >
@@ -478,7 +475,7 @@ export default function CvRequests() {
       )}
 
       {/* Detail Modal */}
-      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="CV Request Details" size="lg">
+      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="Permanent Recruitment Request Details" size="lg">
         {viewingRequest && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -504,7 +501,7 @@ export default function CvRequests() {
             </div>
 
             <div className="dash-surface dash-surface--pad">
-              <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-3">Employer Information</p>
+              <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-3">Employer &amp; Contact Details</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-[var(--charcoal)]">Company</p>
@@ -514,36 +511,36 @@ export default function CvRequests() {
                   <p className="text-xs text-[var(--charcoal)]">Location</p>
                   <p className="font-semibold text-[var(--navy)] flex items-center gap-1"><MapPin size={12} /> {viewingRequest.employerCity || 'N/A'}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-[var(--charcoal)]">Contact Person</p>
+                  <p className="font-semibold text-[var(--navy)]">{viewingRequest.contactName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--charcoal)]">Phone</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-semibold text-[var(--navy)] flex items-center gap-1"><Phone size={12} /> {viewingRequest.contactPhone || 'N/A'}</p>
+                    {viewingRequest.contactPhone && <CopyButton value={viewingRequest.contactPhone} label="Phone" />}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-[var(--charcoal)]">Email</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-semibold text-[var(--navy)] flex items-center gap-1 break-all"><Mail size={12} className="flex-shrink-0" /> {viewingRequest.contactEmail || 'N/A'}</p>
+                    {viewingRequest.contactEmail && <CopyButton value={viewingRequest.contactEmail} label="Email" />}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {viewingRequest.job_id && (
-              <div className="dash-surface dash-surface--pad">
-                <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-3">Job Post Details</p>
-                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                  <div>
-                    <p className="text-xs text-[var(--charcoal)]">Job Title</p>
-                    <p className="font-semibold text-[var(--navy)]">{viewingRequest.jobTitle}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--charcoal)]">Job Status</p>
-                    <span className={`dash-status ${viewingRequest.jobStatus === 'Open' ? 'dash-status--success' : 'dash-status--neutral'}`}>
-                      {viewingRequest.jobStatus}
-                    </span>
-                  </div>
-                </div>
-                <Link to={`/admin/jobs/${viewingRequest.job_id}`} target="_blank" className="inline-flex items-center gap-1 text-xs text-[var(--orange)] hover:underline font-semibold">
-                  <ExternalLink size={12} /> View Job Post
-                </Link>
-              </div>
-            )}
-
             <div className="dash-surface dash-surface--pad">
-              <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-3">Plan & Payment Breakdown</p>
+              <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-3">Plan &amp; Payment Breakdown</p>
               <div className="flex items-center justify-between text-sm mb-3">
                 <div>
                   <p className="font-semibold text-[var(--navy)]">{viewingRequest.plan_label}</p>
-                  <p className="text-xs text-[var(--charcoal)]">{viewingRequest.cv_count} verified candidate profiles</p>
+                  <p className="text-xs text-[var(--charcoal)] flex items-center gap-1">
+                    <span className={`dash-status ${typeMeta(viewingRequest.candidate_type).cls}`}>{typeMeta(viewingRequest.candidate_type).label}</span>
+                    · {viewingRequest.candidate_count} candidate{viewingRequest.candidate_count > 1 ? 's' : ''}
+                  </p>
                 </div>
                 <span className={`dash-status ${viewingRequest.payment_status === 'paid' ? 'dash-status--success' : 'dash-status--warning'}`}>
                   {viewingRequest.payment_status === 'paid' ? 'Paid' : 'Pending'}
@@ -586,7 +583,7 @@ export default function CvRequests() {
                 {viewingRequest.status === 'pending' && (
                   <>
                     <Button variant="primary" onClick={() => handleUpdateStatus(viewingRequest.id, 'processing')} disabled={updatingStatus === viewingRequest.id} className="flex-1 gap-1.5">
-                      <CheckCircle size={14} /> Mark Processing
+                      <CheckCircle size={14} /> Mark Sourcing
                     </Button>
                     <Button variant="ghost" onClick={() => setConfirmCancelId(viewingRequest.id)} disabled={updatingStatus === viewingRequest.id} className="flex-1 gap-1.5">
                       <XCircle size={14} /> Cancel
@@ -605,16 +602,16 @@ export default function CvRequests() {
       </Modal>
 
       <ConfirmDeleteModal
-        isOpen={Boolean(deleteCvTarget)}
-        onClose={() => setDeleteCvTarget(null)}
-        title="Delete this CV request?"
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete this request?"
         description="This permanently deletes the request and its payment record from the system. Use Cancel instead if you only want to stop it. This cannot be undone."
         confirmLabel="Delete request"
-        onConfirm={async () => { await adminDeleteCvRequest(deleteCvTarget.id); await refresh(); }}
+        onConfirm={async () => { await adminDeletePermanentRequest(deleteTarget.id); await refresh(); }}
       />
 
       {/* Cancel Confirmation Modal */}
-      <Modal isOpen={Boolean(confirmCancelId)} onClose={() => setConfirmCancelId(null)} title="Cancel CV Request?" size="sm">
+      <Modal isOpen={Boolean(confirmCancelId)} onClose={() => setConfirmCancelId(null)} title="Cancel This Request?" size="sm">
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">

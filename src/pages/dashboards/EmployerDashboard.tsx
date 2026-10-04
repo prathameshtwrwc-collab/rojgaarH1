@@ -130,6 +130,7 @@ function EmployerDashboard() {
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
   const [showPermanentRecruitmentModal, setShowPermanentRecruitmentModal] = useState(false);
   const [permanentPlan, setPermanentPlan] = useState<'unskilled' | 'skilled'>('unskilled');
+  const [permanentQty, setPermanentQty] = useState(1);
   const [showPermanentPaymentModal, setShowPermanentPaymentModal] = useState(false);
   const [permanentUpiTxn, setPermanentUpiTxn] = useState('');
   const [processingPermanentRequest, setProcessingPermanentRequest] = useState(false);
@@ -218,6 +219,10 @@ function EmployerDashboard() {
     { key: 'skilled', label: 'Skilled / Technical Roles', amount: 5000, gst: 900, total: 5900 },
   ];
   const activePermanentPlan = permanentPlans.find(p => p.key === permanentPlan)!;
+  // The tiers above are per candidate; these are the actual payable numbers for the quantity chosen.
+  const permanentBase = activePermanentPlan.amount * permanentQty;
+  const permanentGst = Math.round(permanentBase * 0.18);
+  const permanentTotal = permanentBase + permanentGst;
 
   const interviewsScheduled = useMemo(() => {
     const myJobIds = new Set(myJobs.map(j => j.id));
@@ -505,6 +510,7 @@ function EmployerDashboard() {
 
   const handleOpenPermanentModal = () => {
     setPermanentPlan('unskilled');
+    setPermanentQty(1);
     setShowPermanentRecruitmentModal(true);
   };
 
@@ -525,8 +531,9 @@ function EmployerDashboard() {
       await createPermanentRecruitmentRequest({
         employer_id: employer.id,
         candidate_type: activePermanentPlan.key,
-        plan_label: activePermanentPlan.label,
-        amount: activePermanentPlan.amount,
+        plan_label: `${activePermanentPlan.label} × ${permanentQty}`,
+        candidate_count: permanentQty,
+        amount: permanentBase,
         upi_transaction_id: permanentUpiTxn.trim(),
         payment_status: 'paid',
         paid_at: new Date().toISOString(),
@@ -1370,7 +1377,46 @@ function EmployerDashboard() {
                   );
                 })}
               </div>
-              <p className="text-xs text-slate-400">One-time fee per candidate · 100% refund if profile doesn't match</p>
+
+              <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-300 mb-2.5">How many candidates do you need?</p>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPermanentQty(q => Math.max(1, q - 1))}
+                      disabled={permanentQty <= 1}
+                      aria-label="Fewer candidates"
+                      className="w-9 h-9 rounded-lg border border-white/20 text-white text-lg font-bold flex items-center justify-center hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={permanentQty}
+                      onChange={e => setPermanentQty(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                      className="w-16 h-9 rounded-lg border border-white/20 bg-white/10 text-white text-center text-base font-extrabold focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPermanentQty(q => Math.min(50, q + 1))}
+                      disabled={permanentQty >= 50}
+                      aria-label="More candidates"
+                      className="w-9 h-9 rounded-lg border border-white/20 text-white text-lg font-bold flex items-center justify-center hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Payable for {permanentQty} candidate{permanentQty > 1 ? 's' : ''}</p>
+                    <p className="text-xl font-extrabold text-white">₹{permanentTotal.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-400 mt-3">One-time fee per candidate · 100% refund if profile doesn't match</p>
             </div>
           </div>
 
@@ -1410,7 +1456,7 @@ function EmployerDashboard() {
           <div className="flex flex-col sm:flex-row gap-2 pt-1">
             <Button variant="ghost" onClick={() => setShowPermanentRecruitmentModal(false)} className="flex-1">Cancel</Button>
             <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={handleProceedToPermanentPayment}>
-              Proceed to Payment — ₹{activePermanentPlan.total.toLocaleString()}
+              Proceed to Payment — ₹{permanentTotal.toLocaleString()}
             </Button>
           </div>
         </div>
@@ -1455,13 +1501,13 @@ function EmployerDashboard() {
                 <div className="flex flex-col items-center">
                   <div className="w-full rounded-2xl border border-[var(--orange)]/20 bg-[var(--orange)]/5 p-4 text-center mb-4">
                     <p className="text-[11px] font-bold text-[var(--orange)] uppercase tracking-wider">Total Payable Amount</p>
-                    <p className="text-3xl font-extrabold text-[var(--navy)] mt-1">₹{activePermanentPlan.total.toLocaleString()}</p>
-                    <p className="text-xs text-[var(--charcoal)] mt-1">{activePermanentPlan.label}</p>
+                    <p className="text-3xl font-extrabold text-[var(--navy)] mt-1">₹{permanentTotal.toLocaleString()}</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-1">{activePermanentPlan.label} × {permanentQty} candidate{permanentQty > 1 ? 's' : ''}</p>
                   </div>
 
                   <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
                     <img
-                      src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent("upi://pay?pa=8422976666-2@ybl&pn=Pacific+Jobs+India+Pvt+Ltd&am=" + activePermanentPlan.total + "&cu=INR")}
+                      src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent("upi://pay?pa=8422976666-2@ybl&pn=Pacific+Jobs+India+Pvt+Ltd&am=" + permanentTotal + "&cu=INR")}
                       alt="UPI QR Code"
                       width={180}
                       height={180}
@@ -1469,7 +1515,7 @@ function EmployerDashboard() {
                     />
                   </div>
                   <div className="w-full mb-4">
-                    <PayFromUpiButton amount={activePermanentPlan.total} note={`RojgaarHai Permanent Recruitment - ${activePermanentPlan.label}`} />
+                    <PayFromUpiButton amount={permanentTotal} note={`RojgaarHai Permanent Recruitment - ${activePermanentPlan.label} x${permanentQty}`} />
                   </div>
                   <div className="text-center mb-4">
                     <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">Or scan the QR code, or pay to</p>
@@ -1479,16 +1525,20 @@ function EmployerDashboard() {
 
                   <div className="w-full rounded-xl border border-[#E7E2D9] overflow-hidden text-sm">
                     <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-warm)]">
+                      <span className="text-[var(--charcoal)]">Per candidate × quantity</span>
+                      <span className="font-semibold text-[var(--navy)]">₹{activePermanentPlan.amount.toLocaleString()} × {permanentQty}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-2 border-t border-[#EFEAE1]">
                       <span className="text-[var(--charcoal)]">Base Amount</span>
-                      <span className="font-semibold text-[var(--navy)]">₹{activePermanentPlan.amount.toLocaleString()}</span>
+                      <span className="font-semibold text-[var(--navy)]">₹{permanentBase.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between px-4 py-2 border-t border-[#EFEAE1]">
                       <span className="text-[var(--charcoal)]">GST (18%)</span>
-                      <span className="font-semibold text-[var(--navy)]">₹{activePermanentPlan.gst.toLocaleString()}</span>
+                      <span className="font-semibold text-[var(--navy)]">₹{permanentGst.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#EFEAE1] bg-[var(--orange)]/5">
                       <span className="font-bold text-[var(--navy)]">Total to Pay</span>
-                      <span className="font-extrabold text-[var(--orange)]">₹{activePermanentPlan.total.toLocaleString()}</span>
+                      <span className="font-extrabold text-[var(--orange)]">₹{permanentTotal.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

@@ -1178,6 +1178,7 @@ export async function createPermanentRecruitmentRequest(payload: {
   employer_id: string;
   candidate_type: string;
   plan_label: string;
+  candidate_count: number;
   amount: number;
   upi_transaction_id?: string;
   payment_status?: string;
@@ -1191,6 +1192,7 @@ export async function createPermanentRecruitmentRequest(payload: {
       employer_id: payload.employer_id,
       candidate_type: payload.candidate_type,
       plan_label: payload.plan_label,
+      candidate_count: payload.candidate_count,
       amount: payload.amount,
       upi_transaction_id: payload.upi_transaction_id || null,
       payment_status: payload.payment_status || 'pending',
@@ -1258,5 +1260,10 @@ export async function adminDeleteAccount(userId: string): Promise<void> {
 
 export async function adminDeleteCvRequest(requestId: string): Promise<void> {
   const { error } = await (supabase as any).rpc('admin_delete_cv_request', { target_request: requestId });
+  if (error) throw new Error(error.message);
+}
+
+export async function adminDeletePermanentRequest(requestId: string): Promise<void> {
+  const { error } = await (supabase as any).rpc('admin_delete_permanent_request', { target_request: requestId });
   if (error) throw new Error(error.message);
 }
