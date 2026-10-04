@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { signUp, sendOtp, verifyOtp } from '../../lib/supabase/auth';
 import { createEmployer } from '../../lib/supabase/data';
+import { getSectorsList } from '../../constants/sectors';
 import { useAuth } from '../../context/AuthContext';
 import AuthSwitcher from '../../components/AuthSwitcher';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
@@ -14,6 +15,10 @@ export default function EmployerSignup() {
     fullName: '',
     email: '',
     phone: '',
+    companyName: '',
+    industry: '',
+    city: '',
+    state: '',
     password: '',
     confirmPassword: '',
   });
@@ -47,7 +52,7 @@ export default function EmployerSignup() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -130,6 +135,11 @@ export default function EmployerSignup() {
       return;
     }
 
+    if (!formData.companyName.trim() || !formData.industry || !formData.city.trim() || !formData.state.trim()) {
+      setError('Please fill in your company details.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -141,6 +151,10 @@ export default function EmployerSignup() {
         role: 'employer',
       });
       await createEmployer(authUser.id, {
+        companyName: formData.companyName.trim(),
+        industry: formData.industry,
+        city: formData.city.trim(),
+        state: formData.state.trim(),
         contactName: formData.fullName,
         contactEmail: formData.email,
         contactPhone: formData.phone,
@@ -196,7 +210,8 @@ export default function EmployerSignup() {
                     value={otpPhone}
                     onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     required
-                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    disabled={otpSent}
+                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="9876543210"
                   />
                   {!otpSent ? (
@@ -209,9 +224,13 @@ export default function EmployerSignup() {
                       {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
                     </button>
                   ) : (
-                    <span className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full text-center">
-                      {t('auth.otpSent')}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
+                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-white border border-slate-300 text-[var(--navy)] text-sm font-bold rounded-full hover:bg-slate-50 transition-all"
+                    >
+                      Change Number
+                    </button>
                   )}
                 </div>
                 {otpSent && (
@@ -235,8 +254,21 @@ export default function EmployerSignup() {
                     </button>
                   </div>
                 )}
-                {countdown > 0 && (
-                  <p className="text-xs text-slate-500 mt-2">{t('auth.resendCode', { count: countdown })}</p>
+                {otpSent && (
+                  <div className="mt-2">
+                    {countdown > 0 ? (
+                      <p className="text-xs text-slate-500">{t('auth.resendCode', { count: countdown })}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={loading}
+                        className="text-xs font-bold text-[var(--orange)] hover:underline disabled:opacity-50"
+                      >
+                        {loading ? t('auth.sendingOtp') : 'Resend OTP'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </>
             ) : (
@@ -279,6 +311,65 @@ export default function EmployerSignup() {
             </div>
 
             
+            <div className="pt-1">
+              <h3 className="text-sm font-bold text-[var(--navy)] mb-1">Company Details</h3>
+              <p className="text-xs text-[var(--charcoal)] mb-3">So your dashboard is ready to go, no extra setup step.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Company Name</label>
+              <input
+                type="text"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                placeholder="e.g. Acme Manufacturing Pvt Ltd"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Industry / Sector</label>
+              <select
+                name="industry"
+                value={formData.industry}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent bg-white"
+              >
+                <option value="">Select industry</option>
+                {getSectorsList().map(sector => <option key={sector} value={sector}>{sector}</option>)}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                  placeholder="e.g. Pune"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">State</label>
+                <input
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                  placeholder="e.g. Maharashtra"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
                 {t('auth.password')}

@@ -1168,6 +1168,66 @@ export async function createCvRequest(payload: {
   return data;
 }
 
+export async function createPermanentRecruitmentRequest(payload: {
+  employer_id: string;
+  candidate_type: string;
+  plan_label: string;
+  amount: number;
+  upi_transaction_id?: string;
+  payment_status?: string;
+  paid_at?: string;
+  status?: string;
+  notes?: string;
+}): Promise<any> {
+  const { data, error } = await supabase
+    .from('permanent_recruitment_requests')
+    .insert({
+      employer_id: payload.employer_id,
+      candidate_type: payload.candidate_type,
+      plan_label: payload.plan_label,
+      amount: payload.amount,
+      upi_transaction_id: payload.upi_transaction_id || null,
+      payment_status: payload.payment_status || 'pending',
+      paid_at: payload.paid_at || null,
+      status: payload.status || 'pending',
+      notes: payload.notes || null,
+    } as never)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getPermanentRequestsByEmployer(employerId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('permanent_recruitment_requests')
+    .select('*')
+    .eq('employer_id', employerId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getAllPermanentRequests(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('permanent_recruitment_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updatePermanentRequest(requestId: string, updates: Record<string, any>): Promise<any> {
+  const { data, error } = await supabase
+    .from('permanent_recruitment_requests')
+    .update(updates as never)
+    .eq('id', requestId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function updateCvRequest(requestId: string, updates: Record<string, any>): Promise<any> {
   const { data, error } = await supabase
     .from('cv_requests')

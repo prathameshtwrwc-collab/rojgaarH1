@@ -29,6 +29,7 @@ export default function PostJob() {
     numberOfOpenings: '1',
     city: '',
     state: '',
+    address: '',
     salaryMin: '',
     salaryMax: '',
     employmentType: 'Full-time',
@@ -80,6 +81,7 @@ export default function PostJob() {
       number_of_openings: parseInt(form.numberOfOpenings) || 1,
       city: form.city,
       state: form.state,
+      address: form.address.trim() || null,
       salary_min: form.salaryMin ? Number(form.salaryMin) : null,
       salary_max: form.salaryMax ? Number(form.salaryMax) : null,
       employment_type: form.employmentType as any,
@@ -201,6 +203,11 @@ export default function PostJob() {
                 <label className={labelClass}>State *</label>
                 <input name="state" value={form.state} onChange={handleChange} required className={inputClass} placeholder="e.g. Maharashtra" />
               </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Exact Location / Area (optional)</label>
+              <input name="address" value={form.address} onChange={handleChange} className={inputClass} placeholder="e.g. MIDC Phase 2, near Hinjewadi" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

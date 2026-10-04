@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Building2, Briefcase, Users, MapPin, FileText, LogOut, IndianRupee,
@@ -18,7 +18,7 @@ import { timeGreeting } from '../../lib/greeting';
 import { AllApplicantsModal } from '../../components/AllApplicantsModal';
 import { computeMatch } from '../../lib/matching';
 import { PayFromUpiButton } from '../../components/UpiPaymentPanel';
-import { updateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest } from '../../lib/supabase/data';
+import { updateJobPosting, updateApplicationStatus, createCommunication, updateEmployerProfile, createCvRequest, createPermanentRecruitmentRequest } from '../../lib/supabase/data';
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
@@ -113,7 +113,7 @@ function mapCandidateToApplicant(candidate: any): any {
 
 function EmployerDashboard() {
   const { t } = useAppTranslation();
-  const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, cvRequests, loading, refresh } = useDatabase();
+  const { employer: employerData, jobs, applications, candidates, matches, placements, jobSkills, cvRequests, permanentRequests, loading, refresh } = useDatabase();
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -129,6 +129,11 @@ function EmployerDashboard() {
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
   const [showProfilePreviewModal, setShowProfilePreviewModal] = useState(false);
   const [showPermanentRecruitmentModal, setShowPermanentRecruitmentModal] = useState(false);
+  const [permanentPlan, setPermanentPlan] = useState<'unskilled' | 'skilled'>('unskilled');
+  const [showPermanentPaymentModal, setShowPermanentPaymentModal] = useState(false);
+  const [permanentUpiTxn, setPermanentUpiTxn] = useState('');
+  const [processingPermanentRequest, setProcessingPermanentRequest] = useState(false);
+  const [permanentRequestSuccess, setPermanentRequestSuccess] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [applicantStageFilter, setApplicantStageFilter] = useState<string>('all');
@@ -208,22 +213,19 @@ function EmployerDashboard() {
     { key: 'plan_100', label: '100 CVs', count: 100, amount: 8000, gst: 1440, total: 9440 },
   ];
 
+  const permanentPlans = [
+    { key: 'unskilled', label: 'Unskilled / General Labour', amount: 4000, gst: 720, total: 4720 },
+    { key: 'skilled', label: 'Skilled / Technical Roles', amount: 5000, gst: 900, total: 5900 },
+  ];
+  const activePermanentPlan = permanentPlans.find(p => p.key === permanentPlan)!;
+
   const interviewsScheduled = useMemo(() => {
     const myJobIds = new Set(myJobs.map(j => j.id));
     return matches.filter((m: any) => myJobIds.has(m.job_id) && m.status === 'Interview Scheduled').length;
   }, [matches, myJobs]);
 
-  useEffect(() => {
-    if (!mappedEmployer || mappedEmployer.companyNameSet) return;
-    const dismissedKey = `rojgaarhai_company_profile_skipped_${mappedEmployer.id}`;
-    if (localStorage.getItem(dismissedKey)) return;
-    setCompanyForm({
-      companyName: '', industry: '', companySize: '', yearEstablished: '', website: '', gstNumber: '', address: '',
-      city: mappedEmployer.city, state: mappedEmployer.state,
-      contactName: mappedEmployer.contactName, contactEmail: mappedEmployer.contactEmail, contactPhone: mappedEmployer.contactPhone,
-    });
-    setShowEditCompanyModal(true);
-  }, [mappedEmployer?.id, mappedEmployer?.companyNameSet]);
+  // New employers land straight on the dashboard. Company details are now collected at
+  // signup, and "Edit Company" is always available if they want to fill in the rest.
 
   const employerActivities = useMemo(() => {
     const activities: any[] = [];
@@ -501,6 +503,46 @@ function EmployerDashboard() {
     }
   };
 
+  const handleOpenPermanentModal = () => {
+    setPermanentPlan('unskilled');
+    setShowPermanentRecruitmentModal(true);
+  };
+
+  const handleProceedToPermanentPayment = () => {
+    setPermanentUpiTxn('');
+    setPermanentRequestSuccess(false);
+    setShowPermanentRecruitmentModal(false);
+    setShowPermanentPaymentModal(true);
+  };
+
+  const handlePermanentPaymentConfirm = async () => {
+    if (!permanentUpiTxn.trim()) {
+      setToastMessage('Please enter your UPI transaction ID.');
+      return;
+    }
+    setProcessingPermanentRequest(true);
+    try {
+      await createPermanentRecruitmentRequest({
+        employer_id: employer.id,
+        candidate_type: activePermanentPlan.key,
+        plan_label: activePermanentPlan.label,
+        amount: activePermanentPlan.amount,
+        upi_transaction_id: permanentUpiTxn.trim(),
+        payment_status: 'paid',
+        paid_at: new Date().toISOString(),
+        status: 'pending',
+        notes: 'Request submitted via employer dashboard',
+      });
+      setPermanentRequestSuccess(true);
+      setToastMessage('Your permanent recruitment request has been submitted. Our team will contact you shortly.');
+      await refresh();
+    } catch (err) {
+      setToastMessage(err instanceof Error ? err.message : 'Failed to submit request.');
+    } finally {
+      setProcessingPermanentRequest(false);
+    }
+  };
+
   const openEditCompany = () => {
     setCompanyForm({
       companyName: employer.companyName,
@@ -698,12 +740,12 @@ function EmployerDashboard() {
             <div className="flex flex-col items-start md:items-end gap-2 flex-shrink-0">
               <div className="text-right">
                 <div className="flex items-baseline gap-2">
-                  <span className="dash-premium-price text-3xl font-extrabold text-white">₹4,000</span>
+                  <span className="dash-premium-price text-3xl font-extrabold text-white">₹4,000+</span>
                   <span className="text-xs text-slate-400">per candidate</span>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">One-time fee · No hidden charges</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">₹4,000 unskilled · ₹5,000 skilled · + 18% GST</p>
               </div>
-              <button onClick={() => setShowPermanentRecruitmentModal(true)} className="inline-flex items-center gap-2 bg-[var(--orange)] hover:bg-[#d94d1f] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-900/30">
+              <button onClick={handleOpenPermanentModal} className="inline-flex items-center gap-2 bg-[var(--orange)] hover:bg-[#d94d1f] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-orange-900/30">
                 <ShieldCheck size={16} /> Get Permanent Recruitment
               </button>
             </div>
@@ -1308,11 +1350,27 @@ function EmployerDashboard() {
               </div>
               <h3 className="text-2xl sm:text-3xl font-extrabold mb-2 leading-tight">Verified individuals. Guaranteed placement.</h3>
               <p className="text-sm text-slate-300 mb-5 max-w-lg">We personally handle sourcing, verification, and onboarding. You get ready-to-join, verified candidates — no screening hassle.</p>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-extrabold text-white">₹4,000</span>
-                <span className="text-sm text-slate-400">per candidate</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-1">
+                {permanentPlans.map(plan => {
+                  const isActive = permanentPlan === plan.key;
+                  return (
+                    <button
+                      key={plan.key}
+                      type="button"
+                      onClick={() => setPermanentPlan(plan.key as 'unskilled' | 'skilled')}
+                      className={`text-left rounded-xl border-2 p-4 transition-all ${isActive ? 'border-[var(--orange)] bg-white/10' : 'border-white/15 hover:border-white/30'}`}
+                    >
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-300">{plan.label}</p>
+                      <div className="flex items-baseline gap-1.5 mt-1.5">
+                        <span className="text-2xl font-extrabold text-white">₹{plan.amount.toLocaleString()}</span>
+                        <span className="text-xs text-slate-400">+ 18% GST</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Payable: ₹{plan.total.toLocaleString()}</p>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-xs text-slate-400">One-time fee · 100% refund if profile doesn't match</p>
+              <p className="text-xs text-slate-400">One-time fee per candidate · 100% refund if profile doesn't match</p>
             </div>
           </div>
 
@@ -1351,13 +1409,111 @@ function EmployerDashboard() {
 
           <div className="flex flex-col sm:flex-row gap-2 pt-1">
             <Button variant="ghost" onClick={() => setShowPermanentRecruitmentModal(false)} className="flex-1">Cancel</Button>
-            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={() => {
-              setShowPermanentRecruitmentModal(false);
-              setToastMessage('Payment integration coming soon! Please contact support@rojgaarhai.com to proceed.');
-            }}>
-              Proceed to Payment — ₹4,000/candidate
+            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={handleProceedToPermanentPayment}>
+              Proceed to Payment — ₹{activePermanentPlan.total.toLocaleString()}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* ═══ PERMANENT RECRUITMENT PAYMENT MODAL ═══ */}
+      <Modal isOpen={showPermanentPaymentModal} onClose={() => setShowPermanentPaymentModal(false)} title="Complete Payment" size="lg">
+        <div className="space-y-0">
+          {permanentRequestSuccess ? (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <CheckCircle size={32} />
+              </div>
+              <h3 className="text-xl font-extrabold text-[var(--navy)] mb-2">Request Submitted Successfully!</h3>
+              <div className="bg-[var(--bg-warm)] rounded-xl p-4 text-left text-sm space-y-2 mb-4 max-w-sm mx-auto">
+                <p className="font-bold text-[var(--navy)]">What happens next?</p>
+                <ol className="list-decimal list-inside space-y-1 text-[var(--charcoal)]">
+                  <li>Our relationship manager will call you within <strong>2-4 hours</strong> to confirm your hiring requirement.</li>
+                  <li>We begin sourcing and verifying candidates for your role.</li>
+                  <li>You can track the status in the <strong>"Your Permanent Recruitment Requests"</strong> section below.</li>
+                </ol>
+                <p className="text-xs text-[var(--charcoal)] mt-2">If you have any questions, please contact us at <strong>support@rojgaarhai.com</strong> or call <strong>+91-8422976666</strong>.</p>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm text-[var(--orange)] font-semibold">
+                <Clock size={16} /> Thank you for your patience. We appreciate your business!
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="relative text-white p-6" style={{ background: 'linear-gradient(135deg, #101A36 0%, #1C2B52 60%, #101A36 100%)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[var(--orange)] rounded-xl flex items-center justify-center">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold">Payment Details</h3>
+                    <p className="text-xs text-white/70">Pay to: Pacific Jobs India Pvt. Ltd.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="flex flex-col items-center">
+                  <div className="w-full rounded-2xl border border-[var(--orange)]/20 bg-[var(--orange)]/5 p-4 text-center mb-4">
+                    <p className="text-[11px] font-bold text-[var(--orange)] uppercase tracking-wider">Total Payable Amount</p>
+                    <p className="text-3xl font-extrabold text-[var(--navy)] mt-1">₹{activePermanentPlan.total.toLocaleString()}</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-1">{activePermanentPlan.label}</p>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-3">
+                    <img
+                      src={"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent("upi://pay?pa=8422976666-2@ybl&pn=Pacific+Jobs+India+Pvt+Ltd&am=" + activePermanentPlan.total + "&cu=INR")}
+                      alt="UPI QR Code"
+                      width={180}
+                      height={180}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="w-full mb-4">
+                    <PayFromUpiButton amount={activePermanentPlan.total} note={`RojgaarHai Permanent Recruitment - ${activePermanentPlan.label}`} />
+                  </div>
+                  <div className="text-center mb-4">
+                    <p className="text-xs text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1">Or scan the QR code, or pay to</p>
+                    <p className="text-sm font-bold text-[var(--navy)]">8422976666-2@ybl</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-1">Receiver: Pacific Jobs India Pvt. Ltd.</p>
+                  </div>
+
+                  <div className="w-full rounded-xl border border-[#E7E2D9] overflow-hidden text-sm">
+                    <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-warm)]">
+                      <span className="text-[var(--charcoal)]">Base Amount</span>
+                      <span className="font-semibold text-[var(--navy)]">₹{activePermanentPlan.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-2 border-t border-[#EFEAE1]">
+                      <span className="text-[var(--charcoal)]">GST (18%)</span>
+                      <span className="font-semibold text-[var(--navy)]">₹{activePermanentPlan.gst.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#EFEAE1] bg-[var(--orange)]/5">
+                      <span className="font-bold text-[var(--navy)]">Total to Pay</span>
+                      <span className="font-extrabold text-[var(--orange)]">₹{activePermanentPlan.total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-[var(--navy)] mb-1.5">Enter UPI Transaction ID *</label>
+                  <input
+                    value={permanentUpiTxn}
+                    onChange={e => setPermanentUpiTxn(e.target.value)}
+                    placeholder="e.g. TXN123456789"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    disabled={processingPermanentRequest}
+                  />
+                  <p className="text-[11px] text-[var(--charcoal)]">Find this in your UPI app after completing the payment.</p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button variant="ghost" onClick={() => setShowPermanentPaymentModal(false)} disabled={processingPermanentRequest} className="flex-1">Cancel</Button>
+                  <Button variant="primary" onClick={handlePermanentPaymentConfirm} disabled={processingPermanentRequest} className="flex-1 bg-[var(--orange)]">
+                    {processingPermanentRequest ? 'Verifying...' : 'Proceed'}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
 
@@ -1528,6 +1684,41 @@ function EmployerDashboard() {
                         <p>• Your request is confirmed and being processed.</p>
                       )}
                       <p>• Verified resumes will be delivered to your email within <strong>24 hours</strong>.</p>
+                      <p>• For urgent queries, contact <strong>support@rojgaarhai.com</strong> or call <strong>+91-8422976666</strong>.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ PERMANENT RECRUITMENT REQUESTS SECTION ═══ */}
+      {permanentRequests.some((r: any) => r.employer_id === employer.id && r.status !== 'cancelled') && (
+        <div className="dash-surface dash-surface--pad">
+          <div className="dash-section-title mb-4">Your Permanent Recruitment Requests</div>
+          <div className="space-y-3">
+            {permanentRequests.filter((r: any) => r.employer_id === employer.id && r.status !== 'cancelled').map((req: any) => (
+              <div key={req.id} className="p-4 bg-[var(--white)] rounded-xl border border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-[var(--navy)]">{req.plan_label}</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-0.5">
+                      Requested on {new Date(req.created_at).toLocaleDateString('en-IN')} • ₹{Number(req.amount).toLocaleString()} + ₹{Math.round(Number(req.amount) * 0.18).toLocaleString()} GST = <strong className="text-[var(--navy)]">₹{Math.round(Number(req.amount) * 1.18).toLocaleString()}</strong>
+                    </p>
+                    <span className={`dash-status mt-1.5 ${req.status === 'delivered' ? 'dash-status--success' : req.status === 'processing' ? 'dash-status--warning' : req.status === 'cancelled' ? 'dash-status--danger' : 'dash-status--neutral'}`}>
+                      {req.status === 'delivered' ? 'Delivered' : req.status === 'processing' ? 'Processing' : req.status === 'cancelled' ? 'Cancelled' : 'Pending'}
+                    </span>
+                  </div>
+                  {(req.status === 'pending' || req.status === 'processing') && (
+                    <div className="bg-[var(--bg-warm)] rounded-xl p-3 text-xs text-[var(--charcoal)] space-y-1">
+                      <p className="font-bold text-[var(--navy)]">Please note:</p>
+                      {req.status === 'pending' ? (
+                        <p>• Our relationship manager will call you within <strong>2-4 hours</strong> to confirm your request.</p>
+                      ) : (
+                        <p>• Your request is confirmed and candidates are being sourced.</p>
+                      )}
                       <p>• For urgent queries, contact <strong>support@rojgaarhai.com</strong> or call <strong>+91-8422976666</strong>.</p>
                     </div>
                   )}

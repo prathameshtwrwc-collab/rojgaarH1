@@ -27,6 +27,14 @@ export interface LoginPayload {
 export async function signUp(payload: SignupPayload) {
   const { email, password, fullName, phone, role } = payload;
 
+  // Phone numbers aren't unique in Supabase Auth, so this is checked ourselves first.
+  if (phone) {
+    const { data: phoneExists } = await (supabase as any).rpc('phone_number_exists', { check_phone: phone });
+    if (phoneExists) {
+      throw new Error('An account with this phone number already exists. Please sign in instead.');
+    }
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -40,11 +48,22 @@ export async function signUp(payload: SignupPayload) {
   });
 
   if (error) {
+    if (/already registered|already exists|user_already_exists/i.test(error.message)) {
+      throw new Error('An account with this email already exists. Please sign in instead.');
+    }
     throw error;
   }
 
   if (!data.user) {
     throw new Error('Signup failed: no user returned');
+  }
+
+  // When Supabase is set to require email confirmation, signing up with an email that is
+  // already registered still "succeeds" with an empty identities array, rather than an
+  // error, so the signup flow can't be used to discover existing accounts. Treat that the
+  // same as the explicit error above.
+  if (data.user.identities && data.user.identities.length === 0) {
+    throw new Error('An account with this email already exists. Please sign in instead.');
   }
 
   return data.user;

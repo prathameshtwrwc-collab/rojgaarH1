@@ -29,6 +29,8 @@ import {
   getCandidatesReferredByRecruiter,
   getCvRequestsByEmployer,
   getAllCvRequests,
+  getPermanentRequestsByEmployer,
+  getAllPermanentRequests,
 } from '../lib/supabase/data';
 
 export interface DashboardStats {
@@ -58,6 +60,7 @@ interface DatabaseContextValue {
   placements: any[];
   jobSkills: Record<string, string[]>;
   cvRequests: any[];
+  permanentRequests: any[];
   refresh: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
@@ -82,6 +85,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [placements, setPlacements] = useState<any[]>([]);
   const [jobSkills, setJobSkills] = useState<Record<string, string[]>>({});
   const [cvRequests, setCvRequests] = useState<any[]>([]);
+  const [permanentRequests, setPermanentRequests] = useState<any[]>([]);
 
   const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!user) {
@@ -122,7 +126,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getJobsByEmployer(user.id),
         ]);
         const employerJobIds = (employerJobs || []).map((j: any) => j.id);
-        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap, employerCvRequests] = await Promise.all([
+        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap, employerCvRequests, employerPermanentRequests] = await Promise.all([
           getApplicationsForJobs(employerJobIds),
           getMatchesForJobs(employerJobIds),
           getPlacements({ employerId: user.id }),
@@ -130,6 +134,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getAllCandidateSkills(),
           getAllJobSkills(employerJobIds),
           getCvRequestsByEmployer(user.id),
+          getPermanentRequestsByEmployer(user.id),
         ]);
         setEmployer(employerData);
         setJobs(employerJobs || []);
@@ -142,6 +147,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         })));
         setJobSkills(jobSkillsMap || {});
         setCvRequests(employerCvRequests || []);
+        setPermanentRequests(employerPermanentRequests || []);
       } else if (user.role === 'candidate') {
         const [candidateData, candidateApplications, candidateMatches, approvedJobs, skills, education, experience, languages, certifications, allEmployers] = await Promise.all([
           getCandidateByUserId(user.id),
@@ -171,7 +177,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setRecruiter(recruiterData);
         setCandidates(referredCandidates || []);
       } else if (user.role === 'superadmin') {
-        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters, allCvRequests] = await Promise.all([
+        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters, allCvRequests, allPermanentRequests] = await Promise.all([
           getAllEmployers(),
           getAllCandidates(),
           getAllJobs(),
@@ -181,6 +187,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getAllCandidateSkills(),
           getAllRecruiters(),
           getAllCvRequests(),
+          getAllPermanentRequests(),
         ]);
         const jobIds = (allJobs || []).map((j: any) => j.id);
         const jobSkillsMap = await getAllJobSkills(jobIds);
@@ -193,6 +200,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setJobSkills(jobSkillsMap || {});
         setRecruiters(allRecruiters || []);
         setCvRequests(allCvRequests || []);
+        setPermanentRequests(allPermanentRequests || []);
       }
     } catch (err) {
       console.error('Error loading database data:', err);
@@ -253,6 +261,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     placements,
     jobSkills,
     cvRequests,
+    permanentRequests,
     refresh: loadData,
   };
 

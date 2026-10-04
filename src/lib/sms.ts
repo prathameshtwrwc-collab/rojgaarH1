@@ -1,116 +1,72 @@
-// SMS Service for HanuOTP
-// Endpoint: https://api.hanuotp.in/sms-otp.php?number=mobile_number&OTP=otp&apikey=apikey&templatesid=default
+// SMS service for HanuOTP.
+//
+// Local dev (`npm run dev`): the Vite dev server proxies /api/hanuotp straight to
+// HanuOTP (see vite.config.ts), running in Node, so CORS doesn't apply and the real
+// response can be read here directly.
+//
+// Production: HanuOTP's API doesn't send CORS headers that allow reading its response
+// from a browser, and the API key must never ship in the client bundle. So in
+// production this calls our own serverless function at /api/send-otp-sms (see
+// api/send-otp-sms.ts), which makes the real HanuOTP call server-side and returns a
+// real, readable success or failure — not a blind "it probably worked".
 
-const HANU_API_KEY = 'bc6aa8f3afb502ddfa3bdbcf4c6c357f';
-const HANU_TEMPLATE_ID = '46709819';
-const HANU_ENDPOINT = import.meta.env.DEV ? '/api/hanuotp' : 'https://api.hanuotp.in/sms-otp.php';
+const HANU_DEV_ENDPOINT = '/api/hanuotp';
+const HANU_PROD_ENDPOINT = '/api/send-otp-sms';
+// Used only for the local dev proxy above (from .env); production reads its own
+// credentials server-side (see api/send-otp-sms.ts), so nothing secret ships here.
+const HANU_DEV_API_KEY = import.meta.env.VITE_HANU_OTP_API_KEY || '';
+const HANU_DEV_TEMPLATE_ID = import.meta.env.VITE_HANU_OTP_TEMPLATE_ID || '';
 
 export interface SendOtpResult {
   success: boolean;
   message: string;
-  otp?: string;
 }
 
 /**
- * Send OTP SMS via HanuOTP API
- * @param phone - 10-digit Indian phone number (starting with 6,7,8,9)
- * @returns Response with OTP (if auto-generated) and status
- */
-export async function sendOtpSms(phone: string): Promise<SendOtpResult> {
-  // HanuOTP expects raw 10-digit Indian number (no country code)
-  const formattedPhone = phone.replace(/^\+?91/, '').replace(/\D/g, '');
-
-  const params = new URLSearchParams({
-    number: formattedPhone,
-    OTP: '', // Leave empty for auto-generated OTP
-    apikey: HANU_API_KEY,
-    templatesid: HANU_TEMPLATE_ID,
-  });
-
-  const url = `${HANU_ENDPOINT}?${params.toString()}`;
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: import.meta.env.DEV ? 'cors' : 'no-cors',
-    });
-
-    if (!import.meta.env.DEV) {
-      return { success: true, message: 'OTP sent successfully' };
-    }
-
-    const data = await response.json();
-
-    console.log('HanuOTP Response:', data);
-
-    // HanuOTP returns status: "success" on success
-    if (data.status === 'success' || data.type === 'success') {
-      return {
-        success: true,
-        message: data.message || 'OTP sent successfully',
-        otp: data.otp || data.OTP || undefined,
-      };
-    } else {
-      return {
-        success: false,
-        message: data.message || data.error || 'Failed to send OTP',
-      };
-    }
-  } catch (error) {
-    console.error('HanuOTP Error:', error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Network error',
-    };
-  }
-}
-
-/**
- * Send custom OTP via HanuOTP (if you want to use your own OTP)
- * @param phone - Phone number
- * @param otp - Custom OTP code
- * @returns Response from API
+ * Sends a given 6-digit OTP by SMS via HanuOTP, and reports whether it actually sent.
+ * Never assumes success: a network failure, a bad API key or a HanuOTP-side error all
+ * come back as `{ success: false, message }` with a reason the user can act on.
  */
 export async function sendCustomOtpSms(phone: string, otp: string): Promise<SendOtpResult> {
-  // HanuOTP expects raw 10-digit Indian number (no country code)
   const formattedPhone = phone.replace(/^\+?91/, '').replace(/\D/g, '');
 
-  const params = new URLSearchParams({
-    number: formattedPhone,
-    OTP: otp,
-    apikey: HANU_API_KEY,
-    templatesid: HANU_TEMPLATE_ID,
-  });
-
-  const url = `${HANU_ENDPOINT}?${params.toString()}`;
+  if (!/^[6-9]\d{9}$/.test(formattedPhone)) {
+    return { success: false, message: 'Enter a valid 10-digit phone number.' };
+  }
 
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: import.meta.env.DEV ? 'cors' : 'no-cors',
+    if (import.meta.env.DEV) {
+      const params = new URLSearchParams({
+        number: formattedPhone,
+        OTP: otp,
+        apikey: HANU_DEV_API_KEY,
+        templatesid: HANU_DEV_TEMPLATE_ID,
+      });
+      const response = await fetch(`${HANU_DEV_ENDPOINT}?${params.toString()}`, { method: 'GET' });
+      const data = await response.json().catch(() => null);
+      if (response.ok && (data?.status === 'success' || data?.type === 'success')) {
+        return { success: true, message: 'OTP sent successfully' };
+      }
+      return { success: false, message: data?.message || data?.error || 'Failed to send OTP. Please try again.' };
+    }
+
+    const response = await fetch(HANU_PROD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: formattedPhone, otp }),
     });
-
-    if (!import.meta.env.DEV) {
-      return { success: true, message: 'OTP sent successfully' };
+    const data = await response.json().catch(() => null);
+    if (response.ok && data?.success) {
+      return { success: true, message: data.message || 'OTP sent successfully' };
     }
-
-    const data = await response.json();
-
-    if (data.status === 'success' || data.type === 'success') {
-      return { success: true, message: 'OTP sent successfully' };
-    } else {
-      return { success: false, message: data.message || data.error || 'Failed to send OTP' };
-    }
+    return { success: false, message: data?.message || 'Failed to send OTP. Please try again.' };
   } catch (error) {
     console.error('HanuOTP Error:', error);
-    return { success: false, message: error instanceof Error ? error.message : 'Network error' };
+    return { success: false, message: 'Could not reach the SMS service. Check your connection and try again.' };
   }
 }
 
-/**
- * Generate a 6-digit OTP (for use with sendCustomOtpSms)
- * @returns 6-digit OTP string
- */
+/** Generates a 6-digit OTP, for use with sendCustomOtpSms. */
 export function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }

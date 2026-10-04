@@ -258,6 +258,7 @@ export interface Database {
           deadline: string | null;
           sector: string | null;
           subsector: string | null;
+          address: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -293,6 +294,7 @@ export interface Database {
           deadline?: string | null;
           sector?: string | null;
           subsector?: string | null;
+          address?: string | null;
           created_at?: string;
           updated_at?: string;
         };

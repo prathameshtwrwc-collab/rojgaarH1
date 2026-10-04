@@ -48,6 +48,7 @@ function mapJob(job: any, skills: string[], requirements: string[], responsibili
     companyName,
     city: job.city || '',
     state: job.state || '',
+    address: job.address || '',
     salaryMin: String(job.salary_min ?? 0),
     salaryMax: String(job.salary_max ?? 0),
     employmentType: job.employment_type,
@@ -300,7 +301,7 @@ export default function JobDetails() {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[var(--charcoal)] mt-3">
-                  <span className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" />{job.city}, {job.state}</span>
+                  <span className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" />{job.address ? `${job.address}, ` : ''}{job.city}, {job.state}</span>
                   <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-slate-400" />{job.employmentType}</span>
                   <span className="flex items-center gap-1.5 text-slate-400">Posted {timeAgo(job.createdAt)}</span>
                 </div>

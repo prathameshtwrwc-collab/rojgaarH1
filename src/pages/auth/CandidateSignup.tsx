@@ -207,7 +207,8 @@ export default function CandidateSignup() {
                     value={otpPhone}
                     onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     required
-                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
+                    disabled={otpSent}
+                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500"
                     placeholder="9876543210"
                   />
                   {!otpSent ? (
@@ -220,9 +221,13 @@ export default function CandidateSignup() {
                       {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
                     </button>
                   ) : (
-                    <span className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-full text-center">
-                      {t('auth.otpSent')}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
+                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-white border border-slate-300 text-[var(--navy)] text-sm font-bold rounded-full hover:bg-slate-50 transition-all"
+                    >
+                      Change Number
+                    </button>
                   )}
                 </div>
                 {otpSent && (
@@ -246,8 +251,21 @@ export default function CandidateSignup() {
                     </button>
                   </div>
                 )}
-                {countdown > 0 && (
-                  <p className="text-xs text-slate-500 mt-2">{t('auth.resendCode', { count: countdown })}</p>
+                {otpSent && (
+                  <div className="mt-2">
+                    {countdown > 0 ? (
+                      <p className="text-xs text-slate-500">{t('auth.resendCode', { count: countdown })}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={loading}
+                        className="text-xs font-bold text-[var(--orange)] hover:underline disabled:opacity-50"
+                      >
+                        {loading ? t('auth.sendingOtp') : 'Resend OTP'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </>
             ) : (
