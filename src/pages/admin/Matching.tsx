@@ -266,13 +266,14 @@ export default function Matching() {
             <h3 className="font-bold text-[var(--navy)]">Best Candidates for a Job</h3>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <Select
-              label="Select Job Opening"
-              options={[{ value: '', label: 'Choose a job...' }, ...openJobs.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
-              value={bestJobId}
-              onChange={e => setBestJobId(e.target.value)}
-              className="flex-1"
-            />
+            <div className="flex-1">
+              <Select
+                label="Select Job Opening"
+                options={[{ value: '', label: 'Choose a job...' }, ...openJobs.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
+                value={bestJobId}
+                onChange={e => setBestJobId(e.target.value)}
+              />
+            </div>
             <Button
               variant="secondary"
               onClick={downloadBestCandidatesCsv}

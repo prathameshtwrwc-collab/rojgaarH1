@@ -251,6 +251,7 @@ export default function JobApprovals() {
         />
         <div className="flex items-center gap-2 flex-wrap">
           <Select
+            fullWidth={false}
             className="h-11 w-auto min-w-[200px]"
             options={[{ value: '', label: 'All Employers' }, ...jobEmployerOptions]}
             value={employerFilter}

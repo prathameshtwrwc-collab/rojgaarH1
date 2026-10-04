@@ -88,6 +88,8 @@ export default function Employers() {
             />
           </div>
           <Select
+            fullWidth={false}
+            className="h-10 w-auto min-w-[180px]"
             options={[{ value: '', label: 'All Industries' }, ...industries.map(i => ({ value: i, label: i }))]}
             value={industryFilter}
             onChange={e => setIndustryFilter(e.target.value)}
