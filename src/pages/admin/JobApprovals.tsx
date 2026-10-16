@@ -7,7 +7,7 @@ import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download, ShieldCheck } from 'lucide-react';
+import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input, Toast } from '../../components/ui';
 import { SkillTagInput } from '../../components/SkillTagInput';
 import { deadlineDateRange, isValidDeadline } from '../../lib/dateRange';
@@ -61,7 +61,6 @@ export default function JobApprovals() {
   const employerName = (id: string) => employers.find((e: any) => e.id === id)?.company_name || 'Unknown';
 
   const pendingCount = jobs.filter((j: any) => j.status === 'Pending').length;
-  const paymentPendingCount = jobs.filter((j: any) => j.payment_status === 'paid').length;
   const statusCount = (s: string) => (s === 'All' ? jobs.length : jobs.filter((j: any) => j.status === s).length);
 
   const term = search.trim().toLowerCase();
@@ -109,15 +108,11 @@ export default function JobApprovals() {
     setBusyJobId(job.id);
     try {
       const now = new Date().toISOString();
-      // Approving a job accepts its submitted payment, so mark it verified/paid automatically.
-      const paymentFields = job.payment_status === 'paid'
-        ? { payment_status: 'verified', payment_verified: true, payment_verified_at: now, payment_verified_by: user?.id || null }
-        : {};
       await updateJobPosting(job.id, {
-        status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: now, ...paymentFields,
+        status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: now,
       } as any);
       await refresh();
-      setToast({ type: 'success', message: job.payment_status === 'paid' ? `"${job.job_title}" is live and its payment is marked as paid.` : `"${job.job_title}" is now live.` });
+      setToast({ type: 'success', message: `"${job.job_title}" is now live.` });
     } catch (err) {
       setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to approve job.' });
     } finally {
@@ -133,24 +128,6 @@ export default function JobApprovals() {
       setToast({ type: 'success', message: `"${job.job_title}" has been ${job.status === 'Pending' ? 'rejected' : 'closed'}.` });
     } catch (err) {
       setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update job.' });
-    } finally {
-      setBusyJobId(null);
-    }
-  };
-
-  const handleVerifyPayment = async (job: any) => {
-    setBusyJobId(job.id);
-    try {
-      await updateJobPosting(job.id, {
-        payment_status: 'verified',
-        payment_verified: true,
-        payment_verified_at: new Date().toISOString(),
-        payment_verified_by: user?.id || null,
-      } as any);
-      await refresh();
-      setToast({ type: 'success', message: `Payment verified for "${job.job_title}".` });
-    } catch (err) {
-      setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to verify payment.' });
     } finally {
       setBusyJobId(null);
     }
@@ -236,10 +213,6 @@ export default function JobApprovals() {
           <div className="dash-metric__value">{statusCount('Open')}</div>
           <div className="dash-metric__label">Live (Open)</div>
         </div>
-        <div className="dash-metric">
-          <div className="dash-metric__value">{paymentPendingCount}</div>
-          <div className="dash-metric__label">Payments to Verify</div>
-        </div>
       </div>
 
       <AdminToolbar>
@@ -287,7 +260,6 @@ export default function JobApprovals() {
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Location</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden md:table-cell">Salary</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3">Status</th>
-                <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Payment</th>
                 <th className="text-left text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -308,24 +280,6 @@ export default function JobApprovals() {
                     <span className="flex items-center gap-1"><IndianRupee size={12} /> {Number(job.salary_min || 0).toLocaleString()}-{Number(job.salary_max || 0).toLocaleString()}</span>
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[job.status]}>{job.status}</Badge></td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <div className="flex flex-col gap-1 min-w-0 max-w-[200px]">
-                      {job.amount_paid != null && (
-                        <p className="text-xs font-bold text-[var(--navy)]">₹{Number(job.amount_paid).toLocaleString()} <span className="font-normal text-[10px] text-[var(--charcoal)]">incl. GST</span></p>
-                      )}
-                      <Badge variant={job.payment_status === 'verified' ? 'success' : job.payment_status === 'paid' ? 'warning' : 'default'} className="text-[10px] w-fit">
-                        {job.payment_status === 'verified' ? 'Payment Verified' : job.payment_status === 'paid' ? 'Payment Pending' : 'No Payment'}
-                      </Badge>
-                      {job.upi_transaction_id && (
-                        <p className="text-[10px] font-mono text-[var(--charcoal)] break-all" title="UPI transaction ID">Txn: {job.upi_transaction_id}</p>
-                      )}
-                      {job.payment_status === 'paid' && (
-                        <Button size="sm" variant="success" disabled={busyJobId === job.id} onClick={() => handleVerifyPayment(job)} className="text-xs w-fit gap-1">
-                          <ShieldCheck size={12} /> Verify Payment
-                        </Button>
-                      )}
-                    </div>
-                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <Link to={`/admin/jobs/${job.id}`}>
