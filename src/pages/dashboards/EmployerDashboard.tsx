@@ -140,6 +140,7 @@ function EmployerDashboard() {
   const [applicantStageFilter, setApplicantStageFilter] = useState<string>('all');
   const [companyForm, setCompanyForm] = useState<any>(null);
   const [savingCompany, setSavingCompany] = useState(false);
+  const [showCvJobSelectModal, setShowCvJobSelectModal] = useState(false);
   const [showCvRequestModal, setShowCvRequestModal] = useState(false);
   const [showCvPlanSelectionModal, setShowCvPlanSelectionModal] = useState(false);
   const [selectedCvPlan, setSelectedCvPlan] = useState<any | null>(null);
@@ -471,6 +472,25 @@ function EmployerDashboard() {
     setShowCvPlanSelectionModal(true);
   };
 
+  // Entry point for the standalone "Request CV" action (header button, not tied to a
+  // specific applicant row) — requires at least one approved/live job to pick from.
+  const handleRequestCvClick = () => {
+    if (myJobs.length === 0) {
+      setToastMessage('Please post a job first before requesting CVs.');
+      return;
+    }
+    if (activeJobsList.length === 0) {
+      setToastMessage('Your job posting is awaiting admin approval. You can request CVs once it is approved and live.');
+      return;
+    }
+    setShowCvJobSelectModal(true);
+  };
+
+  const handlePickJobForCvRequest = (jobId: string) => {
+    setShowCvJobSelectModal(false);
+    handleOpenCvRequestModal(jobId);
+  };
+
   const handleSelectCvPlan = (plan: any) => {
     setSelectedCvPlan(plan);
     setShowCvPlanSelectionModal(false);
@@ -659,6 +679,9 @@ function EmployerDashboard() {
             </button>
             <button onClick={() => setShowProfilePreviewModal(true)} className="dash-btn dash-btn-secondary dash-btn--compact">
               Preview Profile
+            </button>
+            <button onClick={handleRequestCvClick} className="dash-btn dash-btn-secondary dash-btn--compact">
+              <FileText size={15} /> Request CV
             </button>
             <Link to="/dashboard/employer/post-job">
               <button className="dash-btn dash-btn-primary">
@@ -1564,6 +1587,32 @@ function EmployerDashboard() {
               </div>
             </>
           )}
+        </div>
+      </Modal>
+
+      {/* ═══ CV REQUEST — JOB SELECTION MODAL ═══ */}
+      <Modal isOpen={showCvJobSelectModal} onClose={() => setShowCvJobSelectModal(false)} title="Select a Job" size="lg">
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-[var(--charcoal)]">Which job opening do you want to request CVs for?</p>
+          <div className="space-y-2.5 max-h-[50vh] overflow-y-auto">
+            {activeJobsList.map((job: any) => (
+              <button
+                key={job.id}
+                onClick={() => handlePickJobForCvRequest(job.id)}
+                className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-[var(--orange)] hover:shadow-md transition-all duration-200 text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[var(--navy)] truncate">{job.jobTitle}</p>
+                  <p className="text-xs text-[var(--charcoal)] mt-0.5 flex items-center gap-1.5">
+                    <MapPin size={12} /> {job.city}, {job.state}
+                    <span className="text-slate-300">•</span>
+                    {job.numberOfOpenings} opening{job.numberOfOpenings === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <Badge variant="success" className="text-[10px] flex-shrink-0">Open</Badge>
+              </button>
+            ))}
+          </div>
         </div>
       </Modal>
 
