@@ -7,6 +7,7 @@ import RoleChooserModal from '../components/RoleChooserModal';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Download } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../context/AuthContext';
 import { Modal } from '../components/ui';
 import {
   onPwaInstallAvailabilityChange, promptPwaInstall, isPwaInstalled, getManualInstallInstructions,
@@ -30,8 +31,16 @@ const testimonialCards = [
   },
 ];
 
+const dashboardPathForRole = (role?: string) => {
+  if (role === 'superadmin') return '/admin';
+  if (role === 'employer') return '/dashboard/employer';
+  if (role === 'recruiter') return '/dashboard/recruiter';
+  return '/dashboard/candidate';
+};
+
 function Landing() {
   const { t, i18n } = useAppTranslation();
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [atTop, setAtTop] = useState(true);
   const [activeCard, setActiveCard] = useState(1);
@@ -181,16 +190,26 @@ function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Link to="/register/job-seeker" className="btn btn-hero btn-primary">
-                <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>{t('landing.iAmAJobSeeker')}</span>
-                <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </Link>
-              <Link to="/register/employer" className="btn btn-hero btn-secondary">
-                <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                <span>{t('landing.iAmAnEmployer')}</span>
-                <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </Link>
+              {user ? (
+                <Link to={dashboardPathForRole(user.role)} className="btn btn-hero btn-primary">
+                  <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                  <span>{t('landing.goToMyDashboard')}</span>
+                  <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/register/job-seeker" className="btn btn-hero btn-primary">
+                    <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span>{t('landing.iAmAJobSeeker')}</span>
+                    <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </Link>
+                  <Link to="/register/employer" className="btn btn-hero btn-secondary">
+                    <svg className="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    <span>{t('landing.iAmAnEmployer')}</span>
+                    <svg className="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </Link>
+                </>
+              )}
             </motion.div>
           </div>
 

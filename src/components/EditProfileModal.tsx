@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   X, User, MapPin, Briefcase, GraduationCap, Sparkles, FileText,
   Upload, Shield, Globe, BookOpen, Award, CheckCircle,
-  Plus, Trash2, Save, RefreshCw, Eye, ChevronLeft, ChevronRight
+  Plus, Trash2, Save, RefreshCw, Eye, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -463,10 +463,6 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // On a phone, back closes this editor (its step-by-step form autosaves, so nothing is
-  // lost) instead of leaving the dashboard behind it.
-  useModalBackButton(isOpen, onClose);
-
   // Save Changes: validated, saved, then the editor closes.
   const handleSaveChanges = async () => {
     if (!validateForm()) {
@@ -490,6 +486,37 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     const ok = await persist(JSON.stringify(buildUpdatedProfile()), false);
     setToastMessage(ok ? 'Draft saved.' : 'Could not save draft. Please try again.');
   };
+
+  // Closing the editor (X button, backdrop click, Cancel, or phone back button) must never
+  // silently drop unsaved edits. This checks for a pending change and, if one exists, saves
+  // it (no validation — partial work is still worth keeping) before the modal is allowed to
+  // close. `closing` drives a loader so the user sees the check/save happening.
+  const [closing, setClosing] = useState(false);
+  const handleRequestClose = async () => {
+    if (closing) return;
+    setClosing(true);
+    try {
+      // Don't race an autosave tick that might already be mid-flight.
+      while (savingRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+      const snapshot = latestSnapshotRef.current;
+      if (snapshot !== savedSnapshotRef.current) {
+        const ok = await persist(snapshot, true);
+        if (!ok) {
+          setToastMessage('Could not save your changes. Please try again before closing.');
+          return;
+        }
+      }
+      onClose();
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  // On a phone, back closes this editor through the same save-before-close check, instead
+  // of leaving the dashboard behind it with unsaved edits.
+  useModalBackButton(isOpen, handleRequestClose);
 
   const sectionTabs = [
     { id: 'personal', label: 'Personal Info', icon: <User size={16} /> },
@@ -542,7 +569,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
   return (
     <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
-      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
+      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => { if (!closing) handleRequestClose(); }} />
       
       {/* Modal Container */}
       <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
@@ -587,14 +614,22 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
             </div>
 
             <button
-              onClick={onClose}
+              onClick={handleRequestClose}
+              disabled={closing}
               aria-label="Close"
-              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors disabled:opacity-60"
             >
-              <HugeiconsIcon icon={Cancel01Icon} size={19} />
+              {closing ? <Loader2 size={18} className="animate-spin" /> : <HugeiconsIcon icon={Cancel01Icon} size={19} />}
             </button>
           </div>
         </div>
+
+        {/* ═══ SAVING-BEFORE-CLOSE BANNER ═══ */}
+        {closing && (
+          <div className="flex-shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-center gap-2 text-xs font-semibold text-amber-700">
+            <Loader2 size={14} className="animate-spin" /> Checking for unsaved changes and saving before closing…
+          </div>
+        )}
 
         {/* ═══ STEP PROGRESS BAR ═══ */}
         <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-b border-slate-100 flex items-center gap-3">
@@ -1344,7 +1379,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
               <ChevronLeft size={16} /> Previous
             </Button>
             <span className="hidden sm:block flex-1 text-xs text-slate-500 truncate text-center">{sectionTabs[activeStepIndex]?.label}</span>
-            <Button size="md" onClick={isLastStep ? handleSaveChanges : () => goStep(1)} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
+            <Button size="md" onClick={isLastStep ? handleSaveChanges : () => goStep(1)} disabled={closing} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
               {isLastStep ? (
                 <><CheckCircle size={16} /> Save profile</>
               ) : (
@@ -1361,10 +1396,10 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
         {/* ═══ BOTTOM ACTION BAR ═══ */}
         <div className="ui-modal-footer hidden sm:flex bg-slate-100 p-4 border-t border-slate-200 flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs text-slate-600 gap-1">
+            <Button variant="ghost" size="sm" onClick={handleReset} disabled={closing} className="text-xs text-slate-600 gap-1">
               <RefreshCw size={14} /> Reset Changes
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSaveDraft} className="text-xs gap-1">
+            <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={closing} className="text-xs gap-1">
               <Save size={14} /> Save Draft
             </Button>
           </div>
@@ -1373,10 +1408,10 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
             {autoSaveText}
           </span>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Cancel
+            <Button variant="ghost" size="sm" onClick={handleRequestClose} disabled={closing} className="gap-1.5">
+              {closing && <Loader2 size={14} className="animate-spin" />} Cancel
             </Button>
-            <Button variant="success" size="md" onClick={handleSaveChanges} className="gap-1.5 text-sm font-bold shadow-lg">
+            <Button variant="success" size="md" onClick={handleSaveChanges} disabled={closing} className="gap-1.5 text-sm font-bold shadow-lg">
               <CheckCircle size={16} /> Save Changes
             </Button>
           </div>
