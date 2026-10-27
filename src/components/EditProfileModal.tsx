@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
-  X, User, MapPin, Briefcase, GraduationCap, Sparkles, FileText,
-  Upload, Shield, Globe, BookOpen, Award, CheckCircle,
+  X, User, MapPin, Briefcase, GraduationCap, Sparkles,
+  Upload, Shield, Globe, BookOpen, Award, CheckCircle, Target,
   Plus, Trash2, Save, RefreshCw, Eye, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -36,11 +36,39 @@ const suggestedSkillList = [
 
 const languageSuggestions = ['English', 'Hindi', 'Marathi', 'Telugu', 'Tamil', 'Gujarati', 'Bengali', 'Punjabi', 'Kannada', 'Malayalam'];
 
+// Shared field styling — every text input/select/textarea in this editor uses one of
+// these two, so focus states and touch-target sizing stay consistent everywhere
+// instead of each field inventing its own (the old version had no focus ring at all).
+const fieldClass = "w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)]/40 focus:border-[var(--orange)] transition-shadow placeholder:text-slate-400";
+const miniFieldClass = "px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)]/40 focus:border-[var(--orange)] transition-shadow placeholder:text-slate-400";
+const labelClass = "block text-xs font-semibold text-slate-700 mb-1";
+const tapClass = "active:scale-[0.97] transition-transform duration-150";
+
+// One consistent sub-section header used everywhere a step combines more than one of
+// the editor's original topics (e.g. "Personal & Location" = Personal + Location).
+function SubHeading({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <span className="w-7 h-7 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">{icon}</span>
+        <h4 className="text-[13px] sm:text-sm font-extrabold text-slate-800 uppercase tracking-wide">{title}</h4>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// A sub-section's content area — gives every merged topic its own quiet card so a
+// 6-step editor still reads as clearly separated topics, not a wall of fields.
+function SubCard({ children }: { children: ReactNode }) {
+  return <div className="space-y-4 p-4 sm:p-5 rounded-2xl bg-slate-50/70 border border-slate-100">{children}</div>;
+}
+
 export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditProfileModalProps) {
   const [activeSection, setActiveSection] = useState('personal');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // SECTION 1: Personal
+  // SECTION: Personal
   const [firstName, setFirstName] = useState(candidate.firstName || '');
   const [lastName, setLastName] = useState(candidate.lastName || '');
   const [email, setEmail] = useState(candidate.email || '');
@@ -53,7 +81,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [aadhaarNumber, setAadhaarNumber] = useState(candidate.aadhaarNumber || '');
   const [panNumber, setPanNumber] = useState(candidate.panNumber || '');
 
-  // SECTION 2: Location
+  // SECTION: Location
   const [city, setCity] = useState(candidate.location || '');
   const [state, setState] = useState(candidate.state || '');
   const [country, setCountry] = useState(candidate.country || 'India');
@@ -62,7 +90,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [willingToRelocate, setWillingToRelocate] = useState(candidate.willingToRelocate ?? true);
   const [preferredLocations, setPreferredLocations] = useState<string[]>(candidate.preferredLocations || []);
 
-  // SECTION 3: Professional Info
+  // SECTION: Professional Info
   const [currentJobTitle, setCurrentJobTitle] = useState(candidate.currentJobTitle || candidate.qualification || '');
   const [currentCompany, setCurrentCompany] = useState(candidate.currentCompany || candidate.previousCompany || '');
   const [previousCompany, setPreviousCompany] = useState(candidate.previousCompany || '');
@@ -187,28 +215,25 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     }
   };
 
-
-  // SECTION 4: Education
+  // SECTION: Education
   const [educationList, setEducationList] = useState<EducationEntry[]>(candidate.educationList || [
     { id: 'edu-1', degree: candidate.qualification || 'B.Com', qualification: candidate.qualification || 'Graduate', college: 'Government College', university: 'State University', passingYear: '2020', grade: '78%' }
   ]);
   const [newEdu, setNewEdu] = useState<Partial<EducationEntry>>({ degree: '', qualification: 'B.Com', college: '', university: '', passingYear: '2021', grade: '' });
   const [showAddEdu, setShowAddEdu] = useState(false);
 
-  // SECTION 5: Skills
+  // SECTION: Skills
   const [skills, setSkills] = useState<string[]>(candidate.skills || []);
   const [skillInput, setSkillInput] = useState('');
 
-  // SECTION 6: Resume & Files (now using docUrls for uploads)
-
-  // SECTION 7: Experience Entries
+  // SECTION: Experience Entries
   const [experienceList, setExperienceList] = useState<ExperienceEntry[]>(candidate.experienceList || [
     { id: 'exp-1', company: candidate.previousCompany || 'Bharat Manufacturing Co.', designation: candidate.currentJobTitle || 'Machine Operator', startDate: '2021-06-01', endDate: '2023-12-31', currentlyWorking: false, responsibilities: 'Operate CNC machinery, ensure safety guidelines, and manage daily quality inspection logs.' }
   ]);
   const [newExp, setNewExp] = useState<Partial<ExperienceEntry>>({ company: '', designation: '', startDate: '2022-01-01', endDate: '', currentlyWorking: true, responsibilities: '' });
   const [showAddExp, setShowAddExp] = useState(false);
 
-  // SECTION 8: Expected Job Preferences
+  // SECTION: Expected Job Preferences
   const [expectedSalary, setExpectedSalary] = useState(candidate.expectedSalary || '20000');
   const [preferredJobRole, setPreferredJobRole] = useState(candidate.preferredJobRole || candidate.qualification || 'Machine Operator');
   const [preferredIndustry, setPreferredIndustry] = useState(candidate.preferredIndustry || 'Manufacturing');
@@ -217,16 +242,16 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [noticePeriod, setNoticePeriod] = useState(candidate.noticePeriod || 'Immediate');
   const [immediateJoining, setImmediateJoining] = useState(candidate.immediateJoining ?? true);
 
-  // SECTION 10: Social Links
+  // SECTION: Social Links
   const [linkedin, setLinkedin] = useState(candidate.linkedin || 'https://linkedin.com/in/rajeshkumar');
   const [github, setGithub] = useState(candidate.github || 'https://github.com/rajeshkumar');
   const [portfolio, setPortfolio] = useState(candidate.portfolio || 'https://rajeshkumar.dev');
   const [website, setWebsite] = useState(candidate.website || 'https://rajeshkumar.me');
 
-  // SECTION 11: About Me
+  // SECTION: About Me
   const [bio, setBio] = useState(candidate.bio || 'Dedicated and results-driven professional with strong technical experience, eager to leverage skills in a dynamic environment to contribute to organizational success.');
 
-  // SECTION 12: Languages
+  // SECTION: Languages
   const [languageList, setLanguageList] = useState<LanguageEntry[]>(candidate.languageList || [
     { id: 'lang-1', language: 'Hindi', proficiency: 'Native' },
     { id: 'lang-2', language: 'English', proficiency: 'Fluent' },
@@ -234,13 +259,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   ]);
   const [newLang, setNewLang] = useState({ language: 'Hindi', proficiency: 'Fluent' as LanguageEntry['proficiency'] });
 
-  // SECTION 13: Certifications
+  // SECTION: Certifications
   const [certificationList, setCertificationList] = useState<CertificationEntry[]>(candidate.certificationList || [
     { id: 'cert-1', name: 'Certified CNC Machine Operator', organization: 'MSME Training Center', year: '2021', credentialId: 'MSME-CNC-9842' }
   ]);
   const [newCert, setNewCert] = useState({ name: '', organization: '', year: '2022', credentialId: '' });
 
-  // SECTION 14: Validation Errors
+  // SECTION: Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reset to initial candidate values
@@ -345,8 +370,16 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     return Math.min(score, 100);
   })();
 
-  // Validation
-  const validateForm = () => {
+  // Which step each validated field lives on now, so a failed save jumps to the right
+  // place instead of always landing on "personal".
+  const fieldStepMap: Record<string, string> = {
+    firstName: 'personal', lastName: 'personal', email: 'personal', phone: 'personal',
+    city: 'personal', state: 'personal',
+    expectedSalary: 'preferences',
+  };
+
+  // Validation — returns the error map so callers can both show it and decide where to jump.
+  const validateForm = (): Record<string, string> => {
     const errs: Record<string, string> = {};
     if (!firstName.trim()) errs.firstName = 'First name is required';
     if (!lastName.trim()) errs.lastName = 'Last name is required';
@@ -357,7 +390,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     if (!expectedSalary || isNaN(Number(expectedSalary))) errs.expectedSalary = 'Valid monthly expected salary required';
 
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    return errs;
   };
 
   // Everything that gets saved. Manual saves and autosaves share this shape.
@@ -463,11 +496,14 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Save Changes: validated, saved, then the editor closes.
+  // Save Changes: validated, saved, then the editor closes. On a validation error it
+  // jumps straight to whichever step actually holds the first invalid field.
   const handleSaveChanges = async () => {
-    if (!validateForm()) {
+    const errs = validateForm();
+    const firstInvalidField = Object.keys(fieldStepMap).find(f => errs[f]);
+    if (firstInvalidField) {
       setToastMessage('Please resolve form validation errors before saving.');
-      setActiveSection('personal');
+      setActiveSection(fieldStepMap[firstInvalidField]);
       return;
     }
     const ok = await persist(JSON.stringify(buildUpdatedProfile()), false);
@@ -518,20 +554,15 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   // of leaving the dashboard behind it with unsaved edits.
   useModalBackButton(isOpen, handleRequestClose);
 
+  // Six steps, each grouping topics that belong together — down from the original 13
+  // single-topic steps, so the whole editor is scannable at a glance on a phone.
   const sectionTabs = [
-    { id: 'personal', label: 'Personal Info', icon: <User size={16} /> },
-    { id: 'location', label: 'Location & Relocation', icon: <MapPin size={16} /> },
-    { id: 'professional', label: 'Professional Info', icon: <Briefcase size={16} /> },
-    { id: 'education', label: 'Education', icon: <GraduationCap size={16} /> },
-    { id: 'skills', label: 'Skills', icon: <Sparkles size={16} /> },
-    { id: 'resume', label: 'Resume', icon: <FileText size={16} /> },
-    { id: 'experience', label: 'Experience', icon: <Award size={16} /> },
-    { id: 'preferences', label: 'Expected Job', icon: <Briefcase size={16} /> },
-    { id: 'documents', label: 'Documents Vault', icon: <Shield size={16} /> },
-    { id: 'social', label: 'Social Links', icon: <Globe size={16} /> },
-    { id: 'bio', label: 'About Me / Bio', icon: <BookOpen size={16} /> },
-    { id: 'languages', label: 'Languages', icon: <Globe size={16} /> },
-    { id: 'certifications', label: 'Certifications', icon: <Award size={16} /> },
+    { id: 'personal', label: 'Personal & Location', description: 'Who you are & where you live', icon: <User size={16} /> },
+    { id: 'professional', label: 'Professional Background', description: 'Current role, sector & work history', icon: <Briefcase size={16} /> },
+    { id: 'qualifications', label: 'Qualifications', description: 'Education, skills, languages & certificates', icon: <GraduationCap size={16} /> },
+    { id: 'documents', label: 'Resume & Documents', description: 'Resume, photo, ID & certificates', icon: <Shield size={16} /> },
+    { id: 'preferences', label: 'Job Preferences', description: 'Salary, role, shift & notice period', icon: <Target size={16} /> },
+    { id: 'about', label: 'About & Links', description: 'Bio, LinkedIn, GitHub & portfolio', icon: <BookOpen size={16} /> },
   ];
 
   const activeStepIndex = sectionTabs.findIndex(t => t.id === activeSection);
@@ -570,7 +601,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   return (
     <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => { if (!closing) handleRequestClose(); }} />
-      
+
       {/* Modal Container */}
       <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
 
@@ -585,10 +616,10 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           />
 
           <div className="relative flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--orange)] to-[#d94d1a] text-white rounded-2xl flex items-center justify-center font-extrabold text-base sm:text-xl shadow-lg ring-2 ring-white/15">
+            <div className="w-12 h-12 bg-gradient-to-br from-[var(--orange)] to-[#d94d1a] text-white rounded-2xl flex items-center justify-center font-extrabold text-base sm:text-xl shadow-lg ring-2 ring-white/15 flex-shrink-0">
               {firstName[0] || 'C'}{lastName[0] || 'P'}
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base sm:text-2xl font-extrabold tracking-tight truncate" style={{ fontFamily: 'var(--font-display)' }}>Manage & Edit Profile</h2>
               <p className="text-[11px] sm:text-xs text-white/70 mt-0.5 truncate">Step {activeStepIndex + 1} of {sectionTabs.length} · {sectionTabs[activeStepIndex]?.label}</p>
             </div>
@@ -617,7 +648,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
               onClick={handleRequestClose}
               disabled={closing}
               aria-label="Close"
-              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors disabled:opacity-60"
+              className={`w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors disabled:opacity-60 ${tapClass}`}
             >
               {closing ? <Loader2 size={18} className="animate-spin" /> : <HugeiconsIcon icon={Cancel01Icon} size={19} />}
             </button>
@@ -631,13 +662,17 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
         )}
 
-        {/* ═══ STEP PROGRESS BAR ═══ */}
+        {/* ═══ STEP PROGRESS — segmented, like a story progress bar, so all 6 steps are visible at a glance ═══ */}
         <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-b border-slate-100 flex items-center gap-3">
-          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-all duration-400 ease-out"
-              style={{ width: `${((activeStepIndex + 1) / sectionTabs.length) * 100}%` }}
-            />
+          <div className="flex-1 flex items-center gap-1.5">
+            {sectionTabs.map((tab, i) => (
+              <div
+                key={tab.id}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                  i < activeStepIndex ? 'bg-[var(--green)]' : i === activeStepIndex ? 'bg-gradient-to-r from-[var(--orange)] to-[#d94d1a]' : 'bg-slate-100'
+                }`}
+              />
+            ))}
           </div>
           <span className="hidden sm:inline text-[11px] font-semibold text-slate-500 whitespace-nowrap">Step {activeStepIndex + 1} of {sectionTabs.length}</span>
         </div>
@@ -645,23 +680,38 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
         {/* ═══ BODY SECTION (LEFT TAB SIDEBAR + RIGHT FORM EDITOR) ═══ */}
         <div className="ui-modal-split flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
-          {/* PHONE: one section picker instead of a row of pills */}
-          <div className="md:hidden px-4 pt-3 pb-2 bg-white border-b border-slate-100 flex-shrink-0">
-            <label htmlFor="profile-section" className="block text-[11px] font-semibold text-slate-500 mb-1">Section</label>
-            <select
-              id="profile-section"
-              value={activeSection}
-              onChange={e => goToSection(e.target.value)}
-              className="w-full h-11 px-3 rounded-xl border border-slate-300 bg-white text-base font-semibold text-[var(--navy)]"
-            >
-              {sectionTabs.map((tab, i) => (
-                <option key={tab.id} value={tab.id}>{i + 1}. {tab.label}</option>
-              ))}
-            </select>
+          {/* PHONE: horizontally scrollable chip tabs — tap any step directly, app-style */}
+          <div className="md:hidden px-3 pt-3 pb-2.5 bg-white border-b border-slate-100 flex-shrink-0">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mx-0.5 px-0.5" data-lenis-prevent style={{ WebkitOverflowScrolling: 'touch' }}>
+              {sectionTabs.map((tab, i) => {
+                const isActive = activeSection === tab.id;
+                const isDone = visitedSections.has(tab.id) && !isActive;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => goToSection(tab.id)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 pl-2 pr-3 py-2 rounded-full text-[12.5px] font-bold whitespace-nowrap transition-all ${tapClass} ${
+                      isActive
+                        ? 'bg-[var(--orange)] text-white shadow-md shadow-orange-600/25'
+                        : isDone
+                        ? 'bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/20'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold flex-shrink-0 ${
+                      isActive ? 'bg-white/25' : isDone ? 'bg-[var(--green)]/15' : 'bg-white'
+                    }`}>
+                      {isDone ? <CheckCircle size={11} /> : i + 1}
+                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* DESKTOP: vertical stepper */}
-          <div className="hidden md:flex md:w-72 bg-slate-50 border-r border-slate-200 md:p-4 overflow-x-auto md:flex-col md:overflow-y-auto flex-shrink-0" data-lenis-prevent>
+          {/* DESKTOP: vertical stepper with a one-line description per step */}
+          <div className="hidden md:flex md:w-80 bg-slate-50 border-r border-slate-200 md:p-4 overflow-x-auto md:flex-col md:overflow-y-auto flex-shrink-0 gap-1" data-lenis-prevent>
             {sectionTabs.map((tab, i) => {
               const isActive = activeSection === tab.id;
               const isDone = visitedSections.has(tab.id) && !isActive;
@@ -669,17 +719,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 <button
                   key={tab.id}
                   onClick={() => goToSection(tab.id)}
-                  className={`relative flex items-center gap-3 px-2.5 md:px-3 py-2.5 md:py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all text-left group ${
+                  className={`flex items-start gap-3 px-3 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all text-left group ${tapClass} ${
                     isActive ? 'bg-white shadow-md shadow-slate-900/5 border border-slate-200' : 'hover:bg-slate-100/80 border border-transparent'
                   }`}
                 >
-                  {/* Connecting line (desktop only) */}
-                  {i < sectionTabs.length - 1 && (
-                    <span className="hidden md:block absolute left-[27px] top-[38px] w-px h-[calc(100%-14px)] bg-slate-200" />
-                  )}
-
                   <span
-                    className={`relative z-10 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold transition-colors ${
+                    className={`relative z-10 flex-shrink-0 w-7 h-7 mt-0.5 rounded-full flex items-center justify-center text-[11px] font-extrabold transition-colors ${
                       isActive
                         ? 'bg-[var(--orange)] text-white shadow-sm shadow-orange-600/30'
                         : isDone
@@ -690,9 +735,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                     {isDone ? <CheckCircle size={13} /> : i + 1}
                   </span>
 
-                  <span className={`flex items-center gap-1.5 min-w-0 ${isActive ? 'text-[var(--navy)]' : isDone ? 'text-slate-700' : 'text-slate-500'}`}>
-                    <span className={isActive ? 'text-[var(--orange)]' : 'opacity-60'}>{tab.icon}</span>
-                    <span className="truncate">{tab.label}</span>
+                  <span className="min-w-0 whitespace-normal">
+                    <span className={`flex items-center gap-1.5 ${isActive ? 'text-[var(--navy)]' : isDone ? 'text-slate-700' : 'text-slate-500'}`}>
+                      <span className={isActive ? 'text-[var(--orange)]' : 'opacity-60'}>{tab.icon}</span>
+                      <span className="truncate">{tab.label}</span>
+                    </span>
+                    <span className="block text-[11px] font-medium text-slate-400 mt-0.5 leading-snug">{tab.description}</span>
                   </span>
                 </button>
               );
@@ -700,317 +748,363 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
           </div>
 
           {/* RIGHT SCROLLABLE SECTION EDITOR */}
-          <div className="flex-1 min-h-0 p-4 sm:p-8 overflow-y-auto space-y-6 sm:space-y-8 bg-white" data-lenis-prevent>
-            
-            {/* ═══ SECTION 1: PERSONAL INFORMATION ═══ */}
+          <div className="flex-1 min-h-0 p-4 sm:p-8 overflow-y-auto space-y-6 bg-white" data-lenis-prevent>
+
+            {/* ═══ STEP 1: PERSONAL & LOCATION ═══ */}
             {activeSection === 'personal' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <User className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">1. Personal Information</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
-                    <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                    {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
-                    <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                    {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
-                  </div>
-                </div>
+                <SubCard>
+                  <SubHeading icon={<User size={14} />} title="Personal Information" />
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                    {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number *</label>
-                    <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Alternate Mobile</label>
-                    <input value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="+91-9870000000" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
-                    <input type="date" value={dob} onChange={e => setDob(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
-                    <select value={gender} onChange={e => setGender(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Marital Status</label>
-                    <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nationality</label>
-                    <input value={nationality} onChange={e => setNationality(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="aadhaar-number" className="block text-xs font-semibold text-slate-700 mb-1">Aadhaar Number</label>
-                    <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value)} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono" />
-                  </div>
-                  <div>
-                    <label htmlFor="pan-number" className="block text-xs font-semibold text-slate-700 mb-1">PAN Number</label>
-                    <input id="pan-number" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} autoComplete="off" maxLength={10} placeholder="e.g. ABCDE1234F" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono uppercase" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ═══ SECTION 2: LOCATION ═══ */}
-            {activeSection === 'location' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <MapPin className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">2. Location & Relocation Preferences</h3>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Current City *</label>
-                    <input value={city} onChange={e => setCity(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                    {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">State *</label>
-                    <select value={state} onChange={e => setState(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="">Select State</option>
-                      {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Country</label>
-                    <input value={country} onChange={e => setCountry(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">PIN Code</label>
-                    <input value={pincode} onChange={e => setPincode(e.target.value)} placeholder="302015" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Full Street Address</label>
-                  <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} placeholder="House No., Street, Area, Landmark" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={willingToRelocate} onChange={e => setWillingToRelocate(e.target.checked)} className="w-4 h-4 text-[var(--orange)] rounded" />
-                    <span className="text-sm font-bold text-slate-900">Willing to Relocate to other cities/states</span>
-                  </label>
-
-                  {willingToRelocate && (
-                    <div className="mt-3">
-                      <p className="text-xs text-slate-500 mb-2 font-medium">Select Preferred Relocation Cities / States:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {['Delhi', 'Mumbai', 'Bangalore', 'Pune', 'Hyderabad', 'Chennai', 'Ahmedabad', 'Jaipur', 'Lucknow'].map(loc => (
-                          <button
-                            key={loc}
-                            type="button"
-                            onClick={() => {
-                              if (preferredLocations.includes(loc)) setPreferredLocations(preferredLocations.filter(l => l !== loc));
-                              else setPreferredLocations([...preferredLocations, loc]);
-                            }}
-                            className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
-                              preferredLocations.includes(loc)
-                                ? 'bg-[var(--orange)] text-white border-[var(--orange)]'
-                                : 'bg-white text-slate-700 border-slate-300'
-                            }`}
-                          >
-                            {preferredLocations.includes(loc) ? '✓ ' : '+ '}{loc}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>First Name *</label>
+                      <input value={firstName} onChange={e => setFirstName(e.target.value)} className={fieldClass} />
+                      {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <label className={labelClass}>Last Name *</label>
+                      <input value={lastName} onChange={e => setLastName(e.target.value)} className={fieldClass} />
+                      {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Email Address *</label>
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={fieldClass} />
+                      {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+                    </div>
+                    <div>
+                      <label className={labelClass}>Mobile Number *</label>
+                      <input value={phone} onChange={e => setPhone(e.target.value)} className={fieldClass} />
+                      {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Alternate Mobile</label>
+                      <input value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="+91-9870000000" className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Date of Birth</label>
+                      <input type="date" value={dob} onChange={e => setDob(e.target.value)} className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Gender</label>
+                      <select value={gender} onChange={e => setGender(e.target.value)} className={fieldClass}>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Marital Status</label>
+                      <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className={fieldClass}>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Nationality</label>
+                      <input value={nationality} onChange={e => setNationality(e.target.value)} className={fieldClass} />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="aadhaar-number" className={labelClass}>Aadhaar Number</label>
+                      <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value)} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className={`${fieldClass} font-mono`} />
+                    </div>
+                    <div>
+                      <label htmlFor="pan-number" className={labelClass}>PAN Number</label>
+                      <input id="pan-number" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} autoComplete="off" maxLength={10} placeholder="e.g. ABCDE1234F" className={`${fieldClass} font-mono uppercase`} />
+                    </div>
+                  </div>
+                </SubCard>
+
+                <SubCard>
+                  <SubHeading icon={<MapPin size={14} />} title="Location & Relocation" />
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Current City *</label>
+                      <input value={city} onChange={e => setCity(e.target.value)} className={fieldClass} />
+                      {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+                    </div>
+                    <div>
+                      <label className={labelClass}>State *</label>
+                      <select value={state} onChange={e => setState(e.target.value)} className={fieldClass}>
+                        <option value="">Select State</option>
+                        {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Country</label>
+                      <input value={country} onChange={e => setCountry(e.target.value)} className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>PIN Code</label>
+                      <input value={pincode} onChange={e => setPincode(e.target.value)} placeholder="302015" className={fieldClass} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Full Street Address</label>
+                    <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} placeholder="House No., Street, Area, Landmark" className={fieldClass} />
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={willingToRelocate} onChange={e => setWillingToRelocate(e.target.checked)} className="w-4 h-4 text-[var(--orange)] rounded" />
+                      <span className="text-sm font-bold text-slate-900">Willing to Relocate to other cities/states</span>
+                    </label>
+
+                    {willingToRelocate && (
+                      <div className="mt-3">
+                        <p className="text-xs text-slate-500 mb-2 font-medium">Select Preferred Relocation Cities / States:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['Delhi', 'Mumbai', 'Bangalore', 'Pune', 'Hyderabad', 'Chennai', 'Ahmedabad', 'Jaipur', 'Lucknow'].map(loc => (
+                            <button
+                              key={loc}
+                              type="button"
+                              onClick={() => {
+                                if (preferredLocations.includes(loc)) setPreferredLocations(preferredLocations.filter(l => l !== loc));
+                                else setPreferredLocations([...preferredLocations, loc]);
+                              }}
+                              className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${tapClass} ${
+                                preferredLocations.includes(loc)
+                                  ? 'bg-[var(--orange)] text-white border-[var(--orange)]'
+                                  : 'bg-white text-slate-700 border-slate-300'
+                              }`}
+                            >
+                              {preferredLocations.includes(loc) ? '✓ ' : '+ '}{loc}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </SubCard>
               </div>
             )}
 
-            {/* ═══ SECTION 3: PROFESSIONAL INFO ═══ */}
+            {/* ═══ STEP 2: PROFESSIONAL BACKGROUND ═══ */}
             {activeSection === 'professional' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <Briefcase className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">3. Professional Information</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Current Job Title</label>
-                    <input value={currentJobTitle} onChange={e => setCurrentJobTitle(e.target.value)} placeholder="e.g. Machine Operator" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Current Company</label>
-                    <input value={currentCompany} onChange={e => setCurrentCompany(e.target.value)} placeholder="e.g. Bharat Manufacturing Co." className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Previous Company</label>
-                    <input value={previousCompany} onChange={e => setPreviousCompany(e.target.value)} placeholder="e.g. Local Traders Pvt Ltd" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                </div>
+                <SubCard>
+                  <SubHeading icon={<Briefcase size={14} />} title="Current Role" />
 
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Total Experience (Years)</label>
-                    <input value={totalExperience} onChange={e => setTotalExperience(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Relevant Exp. (Years)</label>
-                    <input value={relevantExperience} onChange={e => setRelevantExperience(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Current Status</label>
-                    <select value={currentStatus} onChange={e => setCurrentStatus(e.target.value as any)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-semibold">
-                      <option value="Open to Work">🟢 Open to Work</option>
-                      <option value="Employed">🏢 Employed</option>
-                      <option value="Freelancer">💻 Freelancer</option>
-                      <option value="Student">🎓 Student</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Industry / Sector</label>
-                    <div className="relative">
-                      <input id="sector-input" value={sectorInput} onChange={(e) => handleSectorInputChange(e.target.value)} onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }} onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)} placeholder="Type or select sector..." className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8" />
-                      <button type="button" onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        <svg className={`w-4 h-4 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                      </button>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Current Job Title</label>
+                      <input value={currentJobTitle} onChange={e => setCurrentJobTitle(e.target.value)} placeholder="e.g. Machine Operator" className={fieldClass} />
                     </div>
-                    {sectorDropdownOpen && filteredSectors.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                        {filteredSectors.map((sector) => (
-                          <button key={sector} type="button" onMouseDown={() => handleSectorSelect(sector)} className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}>{sector}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Department / Sub-Sector</label>
-                    <div className="relative">
-                      <input id="dept-input" value={deptInput} onChange={(e) => handleDeptInputChange(e.target.value)} onFocus={() => { setDeptDropdownOpen(true); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); }} onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)} placeholder={industry || sectorInput ? "Type or select department..." : "Select sector first"} disabled={!industry && !sectorInput} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm pr-8 disabled:bg-slate-50 disabled:text-slate-400" />
-                      <button type="button" onClick={() => { if (industry || sectorInput) { setDeptDropdownOpen(!deptDropdownOpen); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); } }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        <svg className={`w-4 h-4 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                      </button>
+                    <div>
+                      <label className={labelClass}>Current Company</label>
+                      <input value={currentCompany} onChange={e => setCurrentCompany(e.target.value)} placeholder="e.g. Bharat Manufacturing Co." className={fieldClass} />
                     </div>
-                    {deptDropdownOpen && filteredDepts.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                        {filteredDepts.map((dept) => (
-                          <button key={dept} type="button" onMouseDown={() => handleDeptSelect(dept)} className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${dept === deptInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}>{dept}</button>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <label className={labelClass}>Previous Company</label>
+                      <input value={previousCompany} onChange={e => setPreviousCompany(e.target.value)} placeholder="e.g. Local Traders Pvt Ltd" className={fieldClass} />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Total Experience (Years)</label>
+                      <input value={totalExperience} onChange={e => setTotalExperience(e.target.value)} className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Relevant Exp. (Years)</label>
+                      <input value={relevantExperience} onChange={e => setRelevantExperience(e.target.value)} className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Current Status</label>
+                      <select value={currentStatus} onChange={e => setCurrentStatus(e.target.value as any)} className={`${fieldClass} font-semibold`}>
+                        <option value="Open to Work">🟢 Open to Work</option>
+                        <option value="Employed">🏢 Employed</option>
+                        <option value="Freelancer">💻 Freelancer</option>
+                        <option value="Student">🎓 Student</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <label className={labelClass}>Industry / Sector</label>
+                      <div className="relative">
+                        <input id="sector-input" value={sectorInput} onChange={(e) => handleSectorInputChange(e.target.value)} onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }} onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)} placeholder="Type or select sector..." className={`${fieldClass} pr-8`} />
+                        <button type="button" onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <svg className={`w-4 h-4 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                      </div>
+                      {sectorDropdownOpen && filteredSectors.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {filteredSectors.map((sector) => (
+                            <button key={sector} type="button" onMouseDown={() => handleSectorSelect(sector)} className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}>{sector}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <label className={labelClass}>Department / Sub-Sector</label>
+                      <div className="relative">
+                        <input id="dept-input" value={deptInput} onChange={(e) => handleDeptInputChange(e.target.value)} onFocus={() => { setDeptDropdownOpen(true); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); }} onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)} placeholder={industry || sectorInput ? "Type or select department..." : "Select sector first"} disabled={!industry && !sectorInput} className={`${fieldClass} pr-8 disabled:bg-slate-50 disabled:text-slate-400`} />
+                        <button type="button" onClick={() => { if (industry || sectorInput) { setDeptDropdownOpen(!deptDropdownOpen); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); } }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <svg className={`w-4 h-4 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                      </div>
+                      {deptDropdownOpen && filteredDepts.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {filteredDepts.map((dept) => (
+                            <button key={dept} type="button" onMouseDown={() => handleDeptSelect(dept)} className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${dept === deptInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}>{dept}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </SubCard>
+
+                <SubCard>
+                  <SubHeading
+                    icon={<Award size={14} />}
+                    title="Work Experience History"
+                    action={
+                      <Button size="sm" onClick={() => setShowAddExp(true)} className={`gap-1 text-xs ${tapClass}`}>
+                        <Plus size={14} /> Add
+                      </Button>
+                    }
+                  />
+
+                  {showAddExp && (
+                    <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/60 border border-[rgba(241,90,36,0.2)] space-y-3">
+                      <h4 className="font-bold text-sm text-slate-900">Add Past / Current Employment</h4>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <input placeholder="Company Name" value={newExp.company} onChange={e => setNewExp({ ...newExp, company: e.target.value })} className={miniFieldClass} />
+                        <input placeholder="Designation / Job Role" value={newExp.designation} onChange={e => setNewExp({ ...newExp, designation: e.target.value })} className={miniFieldClass} />
+                        <input type="date" value={newExp.startDate} onChange={e => setNewExp({ ...newExp, startDate: e.target.value })} className={miniFieldClass} />
+                        <input type="date" disabled={newExp.currentlyWorking} value={newExp.endDate} onChange={e => setNewExp({ ...newExp, endDate: e.target.value })} className={`${miniFieldClass} disabled:opacity-50`} />
+                      </div>
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                        <input type="checkbox" checked={newExp.currentlyWorking} onChange={e => setNewExp({ ...newExp, currentlyWorking: e.target.checked })} className="rounded text-[var(--orange)]" />
+                        <span>Currently Working Here</span>
+                      </label>
+                      <textarea placeholder="Key Responsibilities & Achievements..." value={newExp.responsibilities} onChange={e => setNewExp({ ...newExp, responsibilities: e.target.value })} rows={2} className={`w-full ${miniFieldClass}`} />
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="ghost" onClick={() => setShowAddExp(false)}>Cancel</Button>
+                        <Button size="sm" onClick={handleAddExpEntry}>Save Experience</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {experienceList.map(exp => (
+                      <div key={exp.id} className="p-4 rounded-2xl border border-slate-200 bg-white flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-base">{exp.designation}</h4>
+                          <p className="text-xs text-[var(--orange)] font-semibold">{exp.company}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{exp.startDate} — {exp.currentlyWorking ? 'Present' : exp.endDate}</p>
+                          <p className="text-xs text-slate-600 mt-2 leading-relaxed">{exp.responsibilities}</p>
+                        </div>
+                        <button onClick={() => setExperienceList(experienceList.filter(e => e.id !== exp.id))} className={`text-red-500 hover:text-red-700 p-2 rounded-lg flex-shrink-0 ${tapClass}`}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </SubCard>
               </div>
             )}
 
-            {/* ═══ SECTION 4: EDUCATION ═══ */}
-            {activeSection === 'education' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="text-[var(--orange)]" size={20} />
-                    <h3 className="text-lg font-bold text-slate-900">4. Education History</h3>
-                  </div>
-                  <Button size="sm" onClick={() => setShowAddEdu(true)} className="gap-1 text-xs">
-                    <Plus size={14} /> Add Education
-                  </Button>
-                </div>
-
-                {/* Add Education Form Box */}
-                {showAddEdu && (
-                  <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/60 border border-[rgba(241,90,36,0.2)] space-y-3">
-                    <h4 className="font-bold text-sm text-slate-900">Add New Qualification</h4>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <input placeholder="Degree (e.g. B.Com / ITI)" value={newEdu.degree} onChange={e => setNewEdu({ ...newEdu, degree: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input placeholder="College / School Name" value={newEdu.college} onChange={e => setNewEdu({ ...newEdu, college: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input placeholder="University / Board" value={newEdu.university} onChange={e => setNewEdu({ ...newEdu, university: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input placeholder="Passing Year (e.g. 2021)" value={newEdu.passingYear} onChange={e => setNewEdu({ ...newEdu, passingYear: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input placeholder="Grade / Percentage (e.g. 78%)" value={newEdu.grade} onChange={e => setNewEdu({ ...newEdu, grade: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                    </div>
-                    <div className="flex gap-2 justify-end pt-1">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddEdu(false)}>Cancel</Button>
-                      <Button size="sm" onClick={handleAddEduEntry}>Save Entry</Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Education List */}
-                <div className="space-y-3">
-                  {educationList.map(edu => (
-                    <div key={edu.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-base">{edu.degree} ({edu.qualification})</h4>
-                        <p className="text-xs text-slate-500 font-medium">{edu.college} • {edu.university}</p>
-                        <p className="text-xs text-[var(--orange)] font-semibold mt-1">Passing Year: {edu.passingYear} | Score: {edu.grade}</p>
-                      </div>
-                      <button onClick={() => setEducationList(educationList.filter(e => e.id !== edu.id))} className="text-red-500 hover:text-red-700 p-2 rounded-lg">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ═══ SECTION 5: SKILLS ═══ */}
-            {activeSection === 'skills' && (
+            {/* ═══ STEP 3: QUALIFICATIONS ═══ */}
+            {activeSection === 'qualifications' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <Sparkles className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">5. Skills Management</h3>
+                  <GraduationCap className="text-[var(--orange)]" size={20} />
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div className="flex gap-2">
-                  <input
-                    value={skillInput}
-                    onChange={e => setSkillInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(skillInput); } }}
-                    placeholder="Type a skill and press Enter..."
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm"
+                <SubCard>
+                  <SubHeading
+                    icon={<GraduationCap size={14} />}
+                    title="Education"
+                    action={
+                      <Button size="sm" onClick={() => setShowAddEdu(true)} className={`gap-1 text-xs ${tapClass}`}>
+                        <Plus size={14} /> Add
+                      </Button>
+                    }
                   />
-                  <Button onClick={() => handleAddSkill(skillInput)} className="gap-1">
-                    <Plus size={16} /> Add Skill
-                  </Button>
-                </div>
 
-                {/* Active Skill Chips */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 mb-2">My Selected Skills ({skills.length}):</p>
+                  {showAddEdu && (
+                    <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/60 border border-[rgba(241,90,36,0.2)] space-y-3">
+                      <h4 className="font-bold text-sm text-slate-900">Add New Qualification</h4>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <input placeholder="Degree (e.g. B.Com / ITI)" value={newEdu.degree} onChange={e => setNewEdu({ ...newEdu, degree: e.target.value })} className={miniFieldClass} />
+                        <input placeholder="College / School Name" value={newEdu.college} onChange={e => setNewEdu({ ...newEdu, college: e.target.value })} className={miniFieldClass} />
+                        <input placeholder="University / Board" value={newEdu.university} onChange={e => setNewEdu({ ...newEdu, university: e.target.value })} className={miniFieldClass} />
+                        <input placeholder="Passing Year (e.g. 2021)" value={newEdu.passingYear} onChange={e => setNewEdu({ ...newEdu, passingYear: e.target.value })} className={miniFieldClass} />
+                        <input placeholder="Grade / Percentage (e.g. 78%)" value={newEdu.grade} onChange={e => setNewEdu({ ...newEdu, grade: e.target.value })} className={miniFieldClass} />
+                      </div>
+                      <div className="flex gap-2 justify-end pt-1">
+                        <Button size="sm" variant="ghost" onClick={() => setShowAddEdu(false)}>Cancel</Button>
+                        <Button size="sm" onClick={handleAddEduEntry}>Save Entry</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {educationList.map(edu => (
+                      <div key={edu.id} className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between gap-4">
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-base">{edu.degree} ({edu.qualification})</h4>
+                          <p className="text-xs text-slate-500 font-medium">{edu.college} • {edu.university}</p>
+                          <p className="text-xs text-[var(--orange)] font-semibold mt-1">Passing Year: {edu.passingYear} | Score: {edu.grade}</p>
+                        </div>
+                        <button onClick={() => setEducationList(educationList.filter(e => e.id !== edu.id))} className={`text-red-500 hover:text-red-700 p-2 rounded-lg flex-shrink-0 ${tapClass}`}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </SubCard>
+
+                <SubCard>
+                  <SubHeading icon={<Sparkles size={14} />} title={`Skills (${skills.length})`} />
+
+                  <div className="flex gap-2">
+                    <input
+                      value={skillInput}
+                      onChange={e => setSkillInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(skillInput); } }}
+                      placeholder="Type a skill and press Enter..."
+                      className={`flex-1 ${fieldClass}`}
+                    />
+                    <Button onClick={() => handleAddSkill(skillInput)} className={`gap-1 ${tapClass}`}>
+                      <Plus size={16} /> Add
+                    </Button>
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
                     {skills.map(s => (
                       <span key={s} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(241,90,36,0.1)] text-[var(--orange)] border border-[rgba(241,90,36,0.2)] rounded-xl text-xs font-bold shadow-2xs">
@@ -1019,353 +1113,271 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       </span>
                     ))}
                   </div>
-                </div>
 
-                {/* Suggested Skills */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                  <p className="text-xs font-bold text-slate-700 mb-2">Suggested High-Demand Skills (Click to Add):</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {suggestedSkillList.filter(s => !skills.includes(s)).map(s => (
-                      <button
-                        key={s}
-                        onClick={() => handleAddSkill(s)}
-                        className="px-2.5 py-1 bg-white text-slate-700 hover:bg-[rgba(241,90,36,0.1)] border border-slate-200 rounded-lg text-xs font-medium transition-colors"
-                      >
-                        + {s}
-                      </button>
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200">
+                    <p className="text-xs font-bold text-slate-700 mb-2">Suggested High-Demand Skills (Tap to Add):</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {suggestedSkillList.filter(s => !skills.includes(s)).map(s => (
+                        <button
+                          key={s}
+                          onClick={() => handleAddSkill(s)}
+                          className={`px-2.5 py-1 bg-slate-50 text-slate-700 hover:bg-[rgba(241,90,36,0.1)] border border-slate-200 rounded-lg text-xs font-medium transition-colors ${tapClass}`}
+                        >
+                          + {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </SubCard>
+
+                <SubCard>
+                  <SubHeading icon={<Globe size={14} />} title="Languages Known" />
+
+                  <div className="flex flex-wrap gap-2">
+                    <select value={newLang.language} onChange={e => setNewLang({ ...newLang, language: e.target.value })} className={miniFieldClass}>
+                      {languageSuggestions.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                    <select value={newLang.proficiency} onChange={e => setNewLang({ ...newLang, proficiency: e.target.value as any })} className={miniFieldClass}>
+                      <option value="Basic">Basic</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Fluent">Fluent</option>
+                      <option value="Native">Native</option>
+                    </select>
+                    <Button size="sm" onClick={handleAddLangEntry} className={`gap-1 ${tapClass}`}>
+                      <Plus size={14} /> Add
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {languageList.map(lng => (
+                      <div key={lng.id} className="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-900">{lng.language}</span>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="info">{lng.proficiency}</Badge>
+                          <button onClick={() => setLanguageList(languageList.filter(l => l.id !== lng.id))} className={`text-red-500 p-1 ${tapClass}`}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            )}
+                </SubCard>
 
-            {/* ═══ SECTION 6: RESUME ═══ */}
-            {activeSection === 'resume' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <FileText className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">Resume</h3>
-                </div>
-                <div className="p-8 rounded-2xl border border-dashed border-[var(--orange)]/40 bg-[var(--orange)]/5 text-center">
-                  <span className="w-12 h-12 mx-auto rounded-xl bg-white border border-[#E7E2D9] flex items-center justify-center text-[var(--orange)]">
-                    <Upload size={20} />
-                  </span>
-                  <p className="mt-3 text-sm font-bold text-[var(--navy)]">Upload Resume</p>
-                  <p className="mt-1 text-xs text-[var(--charcoal)]">This feature is coming soon</p>
-                </div>
-              </div>
-            )}
+                <SubCard>
+                  <SubHeading icon={<Award size={14} />} title="Certifications & Licenses" />
 
-            {activeSection === 'experience' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Award className="text-[var(--orange)]" size={20} />
-                    <h3 className="text-lg font-bold text-slate-900">7. Work Experience History</h3>
-                  </div>
-                  <Button size="sm" onClick={() => setShowAddExp(true)} className="gap-1 text-xs">
-                    <Plus size={14} /> Add Work Experience
-                  </Button>
-                </div>
-
-                {/* Add Experience Form */}
-                {showAddExp && (
-                  <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/60 border border-[rgba(241,90,36,0.2)] space-y-3">
-                    <h4 className="font-bold text-sm text-slate-900">Add Past / Current Employment</h4>
+                  <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/50 border border-[rgba(241,90,36,0.2)] space-y-3">
+                    <h4 className="font-bold text-sm text-slate-900">Add Professional Certification</h4>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      <input placeholder="Company Name" value={newExp.company} onChange={e => setNewExp({ ...newExp, company: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input placeholder="Designation / Job Role" value={newExp.designation} onChange={e => setNewExp({ ...newExp, designation: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input type="date" value={newExp.startDate} onChange={e => setNewExp({ ...newExp, startDate: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                      <input type="date" disabled={newExp.currentlyWorking} value={newExp.endDate} onChange={e => setNewExp({ ...newExp, endDate: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm disabled:opacity-50" />
+                      <input placeholder="Certification Name" value={newCert.name} onChange={e => setNewCert({ ...newCert, name: e.target.value })} className={miniFieldClass} />
+                      <input placeholder="Issuing Organization" value={newCert.organization} onChange={e => setNewCert({ ...newCert, organization: e.target.value })} className={miniFieldClass} />
+                      <input placeholder="Completion Year" value={newCert.year} onChange={e => setNewCert({ ...newCert, year: e.target.value })} className={miniFieldClass} />
+                      <input placeholder="Credential ID (Optional)" value={newCert.credentialId} onChange={e => setNewCert({ ...newCert, credentialId: e.target.value })} className={miniFieldClass} />
                     </div>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
-                      <input type="checkbox" checked={newExp.currentlyWorking} onChange={e => setNewExp({ ...newExp, currentlyWorking: e.target.checked })} className="rounded text-[var(--orange)]" />
-                      <span>Currently Working Here</span>
-                    </label>
-                    <textarea placeholder="Key Responsibilities & Achievements..." value={newExp.responsibilities} onChange={e => setNewExp({ ...newExp, responsibilities: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border bg-white text-sm" />
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="ghost" onClick={() => setShowAddExp(false)}>Cancel</Button>
-                      <Button size="sm" onClick={handleAddExpEntry}>Save Experience</Button>
-                    </div>
+                    <Button size="sm" onClick={handleAddCertEntry} className={`gap-1 ${tapClass}`}>
+                      <Plus size={14} /> Save Certification
+                    </Button>
                   </div>
-                )}
 
-                {/* Experience List */}
-                <div className="space-y-3">
-                  {experienceList.map(exp => (
-                    <div key={exp.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-start justify-between gap-4">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-base">{exp.designation}</h4>
-                        <p className="text-xs text-[var(--orange)] font-semibold">{exp.company}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{exp.startDate} — {exp.currentlyWorking ? 'Present' : exp.endDate}</p>
-                        <p className="text-xs text-slate-600 mt-2 leading-relaxed">{exp.responsibilities}</p>
+                  <div className="space-y-2">
+                    {certificationList.map(crt => (
+                      <div key={crt.id} className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-900">{crt.name}</h4>
+                          <p className="text-xs text-slate-500">{crt.organization} • {crt.year} (ID: {crt.credentialId})</p>
+                        </div>
+                        <button onClick={() => setCertificationList(certificationList.filter(c => c.id !== crt.id))} className={`text-red-500 p-1 ${tapClass}`}>
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <button onClick={() => setExperienceList(experienceList.filter(e => e.id !== exp.id))} className="text-red-500 hover:text-red-700 p-2 rounded-lg">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </SubCard>
               </div>
             )}
 
-            {/* ═══ SECTION 8: EXPECTED JOB PREFERENCES ═══ */}
-            {activeSection === 'preferences' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <Briefcase className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">8. Expected Job & Salary Preferences</h3>
-                </div>
-
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Monthly Salary (₹) *</label>
-                    <input value={expectedSalary} onChange={e => setExpectedSalary(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-bold" />
-                    {errors.expectedSalary && <p className="text-xs text-red-500 mt-1">{errors.expectedSalary}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Preferred Job Role</label>
-                    <input value={preferredJobRole} onChange={e => setPreferredJobRole(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Preferred Industry</label>
-                    <input value={preferredIndustry} onChange={e => setPreferredIndustry(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                  </div>
-                </div>
-
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Preferred Employment Type</label>
-                    <select value={preferredJobType} onChange={e => setPreferredJobType(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="Full-time">Full-time</option>
-                      <option value="Part-time">Part-time</option>
-                      <option value="Contract">Contract</option>
-                      <option value="Internship">Internship</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Preferred Shift</label>
-                    <select value={preferredShift} onChange={e => setPreferredShift(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="Day Shift">Day Shift</option>
-                      <option value="Night Shift">Night Shift</option>
-                      <option value="Rotational Shift">Rotational Shift</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Notice Period</label>
-                    <select value={noticePeriod} onChange={e => setNoticePeriod(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm">
-                      <option value="Immediate">Immediate Joining</option>
-                      <option value="15 Days">15 Days</option>
-                      <option value="1 Month">1 Month</option>
-                      <option value="2 Months">2 Months</option>
-                    </select>
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                  <input type="checkbox" checked={immediateJoining} onChange={e => setImmediateJoining(e.target.checked)} className="w-4 h-4 text-[var(--orange)] rounded" />
-                  <span className="text-sm font-bold text-slate-900">Immediate Joining Available (Ready to join within 48 hours)</span>
-                </label>
-              </div>
-            )}
-
-            {/* ═══ SECTION 9: DOCUMENTS VAULT ═══ */}
+            {/* ═══ STEP 4: RESUME & DOCUMENTS ═══ */}
             {activeSection === 'documents' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <Shield className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">9. Documents Vault</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {[
-                    { key: 'resume', title: 'Resume Document', accept: '.pdf,.doc,.docx', url: docUrls.resume },
-                    { key: 'photo', title: 'Profile Photo', accept: 'image/*', url: docUrls.photo },
-                    { key: 'aadhaar', title: 'Aadhaar Card Copy', accept: '.pdf,image/*', url: docUrls.aadhaar },
-                    { key: 'pan', title: 'PAN Card Copy', accept: '.pdf,image/*', url: docUrls.pan },
-                    { key: 'certificate', title: 'Educational Degree Certificates', accept: '.pdf,image/*', url: docUrls.certificate },
-                    { key: 'experience_letter', title: 'Work Experience Letter', accept: '.pdf,image/*', url: docUrls.experience_letter },
-                  ].map((doc) => (
-                    <div key={doc.key} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-xs text-slate-900">{doc.title}</p>
-                        {doc.url ? (
-                          <p className="text-[11px] text-green-600 font-semibold mt-0.5 truncate">✓ Uploaded</p>
-                        ) : (
-                          <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Not uploaded</p>
-                        )}
+                <SubCard>
+                  <SubHeading icon={<Upload size={14} />} title="Upload Your Documents" />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {[
+                      { key: 'resume', title: 'Resume Document', accept: '.pdf,.doc,.docx', url: docUrls.resume },
+                      { key: 'photo', title: 'Profile Photo', accept: 'image/*', url: docUrls.photo },
+                      { key: 'aadhaar', title: 'Aadhaar Card Copy', accept: '.pdf,image/*', url: docUrls.aadhaar },
+                      { key: 'pan', title: 'PAN Card Copy', accept: '.pdf,image/*', url: docUrls.pan },
+                      { key: 'certificate', title: 'Educational Degree Certificates', accept: '.pdf,image/*', url: docUrls.certificate },
+                      { key: 'experience_letter', title: 'Work Experience Letter', accept: '.pdf,image/*', url: docUrls.experience_letter },
+                    ].map((doc) => (
+                      <div key={doc.key} className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-xs text-slate-900">{doc.title}</p>
+                          {doc.url ? (
+                            <p className="text-[11px] text-green-600 font-semibold mt-0.5 truncate">✓ Uploaded</p>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Not uploaded</p>
+                          )}
+                        </div>
+                        <label className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex-shrink-0 ${tapClass} ${uploadingDoc === doc.key ? 'bg-slate-200 text-slate-500' : 'bg-[var(--orange)] text-white hover:bg-orange-600'}`}>
+                          <Upload size={12} />
+                          {uploadingDoc === doc.key ? 'Uploading...' : doc.url ? 'Replace' : 'Upload'}
+                          <input
+                            type="file"
+                            accept={doc.accept}
+                            className="hidden"
+                            onChange={(e) => handleDocumentUpload(doc.key, e)}
+                          />
+                        </label>
                       </div>
-                      <label className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${uploadingDoc === doc.key ? 'bg-slate-200 text-slate-500' : 'bg-[var(--orange)] text-white hover:bg-orange-600'}`}>
-                        <Upload size={12} />
-                        {uploadingDoc === doc.key ? 'Uploading...' : doc.url ? 'Replace' : 'Upload'}
-                        <input
-                          type="file"
-                          accept={doc.accept}
-                          className="hidden"
-                          onChange={(e) => handleDocumentUpload(doc.key, e)}
-                        />
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500">Supported formats: PDF, DOC, DOCX, JPG, PNG. Max file size: 10MB.</p>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500">Supported formats: PDF, DOC, DOCX, JPG, PNG. Max file size: 10MB.</p>
+                </SubCard>
               </div>
             )}
 
-            {/* ═══ SECTION 10: SOCIAL LINKS ═══ */}
-            {activeSection === 'social' && (
+            {/* ═══ STEP 5: JOB PREFERENCES ═══ */}
+            {activeSection === 'preferences' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <Globe className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">10. Social & Portfolio Web Links</h3>
+                  <Target className="text-[var(--orange)]" size={20} />
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">LinkedIn Profile</label>
-                    <div className="flex gap-2">
-                      <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/yourprofile" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                      {linkedin && (
-                        <a href={linkedin} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
-                          <Eye size={16} />
-                        </a>
-                      )}
+                <SubCard>
+                  <SubHeading icon={<Target size={14} />} title="Expected Job & Salary" />
+
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Expected Monthly Salary (₹) *</label>
+                      <input value={expectedSalary} onChange={e => setExpectedSalary(e.target.value)} className={`${fieldClass} font-bold`} />
+                      {errors.expectedSalary && <p className="text-xs text-red-500 mt-1">{errors.expectedSalary}</p>}
+                    </div>
+                    <div>
+                      <label className={labelClass}>Preferred Job Role</label>
+                      <input value={preferredJobRole} onChange={e => setPreferredJobRole(e.target.value)} className={fieldClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Preferred Industry</label>
+                      <input value={preferredIndustry} onChange={e => setPreferredIndustry(e.target.value)} className={fieldClass} />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">GitHub Profile</label>
-                    <div className="flex gap-2">
-                      <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/yourusername" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                      {github && (
-                        <a href={github} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
-                          <Eye size={16} />
-                        </a>
-                      )}
+
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>Preferred Employment Type</label>
+                      <select value={preferredJobType} onChange={e => setPreferredJobType(e.target.value)} className={fieldClass}>
+                        <option value="Full-time">Full-time</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Internship">Internship</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Preferred Shift</label>
+                      <select value={preferredShift} onChange={e => setPreferredShift(e.target.value)} className={fieldClass}>
+                        <option value="Day Shift">Day Shift</option>
+                        <option value="Night Shift">Night Shift</option>
+                        <option value="Rotational Shift">Rotational Shift</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Notice Period</label>
+                      <select value={noticePeriod} onChange={e => setNoticePeriod(e.target.value)} className={fieldClass}>
+                        <option value="Immediate">Immediate Joining</option>
+                        <option value="15 Days">15 Days</option>
+                        <option value="1 Month">1 Month</option>
+                        <option value="2 Months">2 Months</option>
+                      </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Portfolio Website</label>
-                    <div className="flex gap-2">
-                      <input value={portfolio} onChange={e => setPortfolio(e.target.value)} placeholder="https://yourportfolio.com" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                      {portfolio && (
-                        <a href={portfolio} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
-                          <Eye size={16} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Personal Website / Blog</label>
-                    <div className="flex gap-2">
-                      <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm" />
-                      {website && (
-                        <a href={website} target="_blank" rel="noopener noreferrer" className="px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors">
-                          <Eye size={16} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-500">Add your social profiles and portfolio links. Click the eye icon to preview.</p>
+
+                  <label className="flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-white border border-slate-200">
+                    <input type="checkbox" checked={immediateJoining} onChange={e => setImmediateJoining(e.target.checked)} className="w-4 h-4 text-[var(--orange)] rounded" />
+                    <span className="text-sm font-bold text-slate-900">Immediate Joining Available (Ready to join within 48 hours)</span>
+                  </label>
+                </SubCard>
               </div>
             )}
 
-            {/* ═══ SECTION 11: ABOUT ME ═══ */}
-            {activeSection === 'bio' && (
+            {/* ═══ STEP 6: ABOUT & LINKS ═══ */}
+            {activeSection === 'about' && (
               <div className="space-y-5 animate-fade-in">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                   <BookOpen className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">11. About Me & Professional Summary</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700">Career Objective & Bio Highlights</label>
-                    <span className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-slate-400'}`}>{bio.length}/600</span>
+                <SubCard>
+                  <SubHeading icon={<BookOpen size={14} />} title="About Me & Professional Summary" />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className={labelClass}>Career Objective & Bio Highlights</label>
+                      <span className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-slate-400'}`}>{bio.length}/600</span>
+                    </div>
+                    <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 600))} rows={6} placeholder="Write a brief professional summary highlighting your skills, experience, and career goals..." className={`${fieldClass} leading-relaxed resize-none`} />
+                    <p className="text-xs text-slate-400 mt-1">Tip: Keep it concise (2-3 sentences). Mention your key skills and what you're looking for.</p>
                   </div>
-                  <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 600))} rows={6} placeholder="Write a brief professional summary highlighting your skills, experience, and career goals..." className="w-full px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-900 text-sm leading-relaxed resize-none" />
-                  <p className="text-xs text-slate-400 mt-1">Tip: Keep it concise (2-3 sentences). Mention your key skills and what you're looking for.</p>
-                </div>
-              </div>
-            )}
+                </SubCard>
 
-            {/* ═══ SECTION 12: LANGUAGES ═══ */}
-            {activeSection === 'languages' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Globe className="text-[var(--orange)]" size={20} />
-                    <h3 className="text-lg font-bold text-slate-900">12. Languages Known</h3>
-                  </div>
-                </div>
+                <SubCard>
+                  <SubHeading icon={<Globe size={14} />} title="Social & Portfolio Links" />
 
-                <div className="flex gap-2">
-                  <select value={newLang.language} onChange={e => setNewLang({ ...newLang, language: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm">
-                    {languageSuggestions.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                  <select value={newLang.proficiency} onChange={e => setNewLang({ ...newLang, proficiency: e.target.value as any })} className="px-3 py-2 rounded-xl border bg-white text-sm">
-                    <option value="Basic">Basic</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Fluent">Fluent</option>
-                    <option value="Native">Native</option>
-                  </select>
-                  <Button size="sm" onClick={handleAddLangEntry} className="gap-1">
-                    <Plus size={14} /> Add Language
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {languageList.map(lng => (
-                    <div key={lng.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                      <span className="font-bold text-sm text-slate-900">{lng.language}</span>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="info">{lng.proficiency}</Badge>
-                        <button onClick={() => setLanguageList(languageList.filter(l => l.id !== lng.id))} className="text-red-500 p-1">
-                          <Trash2 size={14} />
-                        </button>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>LinkedIn Profile</label>
+                      <div className="flex gap-2">
+                        <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/yourprofile" className={`flex-1 ${fieldClass}`} />
+                        {linkedin && (
+                          <a href={linkedin} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
+                            <Eye size={16} />
+                          </a>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ═══ SECTION 13: CERTIFICATIONS ═══ */}
-            {activeSection === 'certifications' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Award className="text-[var(--orange)]" size={20} />
-                    <h3 className="text-lg font-bold text-slate-900">13. Certifications & Licenses</h3>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/50 border border-[rgba(241,90,36,0.2)] space-y-3">
-                  <h4 className="font-bold text-sm text-slate-900">Add Professional Certification</h4>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <input placeholder="Certification Name" value={newCert.name} onChange={e => setNewCert({ ...newCert, name: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                    <input placeholder="Issuing Organization" value={newCert.organization} onChange={e => setNewCert({ ...newCert, organization: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                    <input placeholder="Completion Year" value={newCert.year} onChange={e => setNewCert({ ...newCert, year: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                    <input placeholder="Credential ID (Optional)" value={newCert.credentialId} onChange={e => setNewCert({ ...newCert, credentialId: e.target.value })} className="px-3 py-2 rounded-xl border bg-white text-sm" />
-                  </div>
-                  <Button size="sm" onClick={handleAddCertEntry} className="gap-1">
-                    <Plus size={14} /> Save Certification
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {certificationList.map(crt => (
-                    <div key={crt.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900">{crt.name}</h4>
-                        <p className="text-xs text-slate-500">{crt.organization} • {crt.year} (ID: {crt.credentialId})</p>
+                    <div>
+                      <label className={labelClass}>GitHub Profile</label>
+                      <div className="flex gap-2">
+                        <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/yourusername" className={`flex-1 ${fieldClass}`} />
+                        {github && (
+                          <a href={github} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
+                            <Eye size={16} />
+                          </a>
+                        )}
                       </div>
-                      <button onClick={() => setCertificationList(certificationList.filter(c => c.id !== crt.id))} className="text-red-500 p-1">
-                        <Trash2 size={14} />
-                      </button>
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <label className={labelClass}>Portfolio Website</label>
+                      <div className="flex gap-2">
+                        <input value={portfolio} onChange={e => setPortfolio(e.target.value)} placeholder="https://yourportfolio.com" className={`flex-1 ${fieldClass}`} />
+                        {portfolio && (
+                          <a href={portfolio} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
+                            <Eye size={16} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Personal Website / Blog</label>
+                      <div className="flex gap-2">
+                        <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className={`flex-1 ${fieldClass}`} />
+                        {website && (
+                          <a href={website} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
+                            <Eye size={16} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500">Add your social profiles and portfolio links. Click the eye icon to preview.</p>
+                </SubCard>
               </div>
             )}
           </div>
@@ -1375,11 +1387,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
         <div className="px-4 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:py-3 bg-white border-t border-slate-200 flex-shrink-0">
           <p className="sm:hidden text-[11px] text-slate-500 text-center mb-2 truncate">{autoSaveText}</p>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="md" onClick={() => goStep(-1)} disabled={isFirstStep} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
+            <Button variant="outline" size="md" onClick={() => goStep(-1)} disabled={isFirstStep} className={`gap-1.5 flex-1 sm:flex-none sm:min-w-[120px] ${tapClass}`}>
               <ChevronLeft size={16} /> Previous
             </Button>
             <span className="hidden sm:block flex-1 text-xs text-slate-500 truncate text-center">{sectionTabs[activeStepIndex]?.label}</span>
-            <Button size="md" onClick={isLastStep ? handleSaveChanges : () => goStep(1)} disabled={closing} className="gap-1.5 flex-1 sm:flex-none sm:min-w-[120px]">
+            <Button size="md" onClick={isLastStep ? handleSaveChanges : () => goStep(1)} disabled={closing} className={`gap-1.5 flex-1 sm:flex-none sm:min-w-[120px] ${tapClass}`}>
               {isLastStep ? (
                 <><CheckCircle size={16} /> Save profile</>
               ) : (
@@ -1424,5 +1436,3 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     </div>
   );
 }
-
-
