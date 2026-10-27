@@ -8,6 +8,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Download } from 'lucide-react';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useAuth } from '../context/AuthContext';
+import { useMountTransition } from '../hooks/useMountTransition';
 import { Modal } from '../components/ui';
 import {
   onPwaInstallAvailabilityChange, promptPwaInstall, isPwaInstalled, getManualInstallInstructions,
@@ -42,6 +43,7 @@ function Landing() {
   const { t, i18n } = useAppTranslation();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { mounted: menuMounted, state: menuState } = useMountTransition(menuOpen, 200);
   const [atTop, setAtTop] = useState(true);
   const [activeCard, setActiveCard] = useState(1);
   const [showRoleChooser, setShowRoleChooser] = useState(false);
@@ -125,8 +127,8 @@ function Landing() {
            </div>
         </div>
 
-        {menuOpen && (
-          <nav className="mobile-nav" aria-label="Mobile">
+        {menuMounted && (
+          <nav className="mobile-nav" aria-label="Mobile" data-state={menuState}>
             <Link to="/job-seeker-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.forJobSeekers')}</Link>
             <Link to="/employer-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.forEmployers')}</Link>
             <Link to="/recruiter-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.recruiters')}</Link>

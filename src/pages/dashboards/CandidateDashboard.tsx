@@ -5,7 +5,7 @@ import {
   Bell, Search, Bookmark, ShieldCheck, Sparkles, UserCheck,
   Calendar, ChevronRight,
   CheckSquare, Upload, Video,
-  Check
+  Check, Home, User
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -21,6 +21,8 @@ import EmptyState from '../../components/EmptyState';
 import { timeGreeting } from '../../lib/greeting';
 import { EditProfileModal } from '../../components/EditProfileModal';
 import { DashboardSkeleton } from '../../components/Skeleton';
+import { MobileBottomNav, type BottomNavItem } from '../../components/MobileBottomNav';
+import { useScrollSpy } from '../../hooks/useScrollSpy';
 
 function downloadInterviewIcs(interview: { role: string; company: string; date: string }) {
   const start = new Date(interview.date);
@@ -144,6 +146,8 @@ function CandidateDashboard() {
     }
   });
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  // Which section is being read, for the phone tab bar's highlighted tab
+  const activeSection = useScrollSpy(['my-applications', 'saved-jobs']);
 
   const toggleSaveJob = (jobId: string) => {
     let updated: string[];
@@ -239,7 +243,8 @@ function CandidateDashboard() {
           date: m.created_at || 'TBD',
           time: 'TBD',
           mode: 'TBD',
-          link: '#',
+          // No meeting link is stored for interviews yet, so none is shown until one exists.
+          link: null as string | null,
           countdown: 'Scheduled',
         };
       });
@@ -327,7 +332,7 @@ function CandidateDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-warm)] text-[var(--navy)] transition-colors duration-300 pb-16" style={{ fontFamily: 'var(--font)' }}>
+    <div className="has-bottom-nav min-h-screen bg-[var(--bg-warm)] text-[var(--navy)] transition-colors duration-300 pb-16" style={{ fontFamily: 'var(--font)' }}>
       <header className="dash-topbar sticky top-0 z-40 bg-[var(--white)]/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="dash-topbar__row max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
@@ -569,7 +574,7 @@ function CandidateDashboard() {
 
           <div className="relative py-4">
             <div className="hidden md:block absolute top-1/2 left-4 right-4 h-px bg-[#E7E2D9] -translate-y-1/2 z-0" />
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 relative z-10">
+            <div className="pipeline-steps grid grid-cols-1 md:grid-cols-7 gap-4 relative z-10">
               {timelineStages.map((stg) => (
                 <div key={stg.stage} className="flex md:flex-col items-center md:items-center gap-3 md:gap-2 text-left md:text-center">
                   <div
@@ -749,13 +754,15 @@ function CandidateDashboard() {
                       </div>
 
                       <div className="flex gap-2 pt-2 border-t border-slate-200">
-                        <a href={int.link} target="_blank" rel="noreferrer" className="flex-1">
-                          <Button size="sm" variant="success" fullWidth className="text-xs font-semibold gap-1">
-                            <Video size={12} /> Join Interview
-                          </Button>
-                        </a>
-                        <Button size="sm" variant="outline" className="text-xs px-2.5" onClick={() => downloadInterviewIcs(int)}>
-                          <Calendar size={14} />
+                        {int.link && (
+                          <a href={int.link} target="_blank" rel="noreferrer" className="flex-1">
+                            <Button size="sm" variant="success" fullWidth className="text-xs font-semibold gap-1">
+                              <Video size={12} /> Join Interview
+                            </Button>
+                          </a>
+                        )}
+                        <Button size="sm" variant="outline" className={`text-xs px-2.5 gap-1 ${int.link ? '' : 'flex-1'}`} onClick={() => downloadInterviewIcs(int)}>
+                          <Calendar size={14} /> {int.link ? '' : 'Add to calendar'}
                         </Button>
                       </div>
                     </div>
@@ -1005,6 +1012,17 @@ function CandidateDashboard() {
           </div>
         </div>
       </Modal>
+
+      <MobileBottomNav
+        activeKey={activeSection}
+        items={[
+          { key: 'home', label: 'Home', icon: <Home size={22} />, onSelect: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          { key: 'jobs', label: 'Jobs', icon: <Search size={22} />, onSelect: () => navigate('/jobs') },
+          { key: 'my-applications', label: 'Applied', icon: <FileText size={22} />, onSelect: () => scrollToSection('my-applications', applicationRows.length === 0 ? 'You have not applied to any jobs yet.' : null) },
+          { key: 'saved-jobs', label: 'Saved', icon: <Bookmark size={22} />, badge: savedJobs.length, onSelect: () => scrollToSection('saved-jobs', savedJobs.length === 0 ? 'No saved jobs yet. Tap the bookmark on any job to save it.' : null) },
+          { key: 'profile', label: 'Profile', icon: <User size={22} />, onSelect: () => setShowEditProfileModal(true) },
+        ] satisfies BottomNavItem[]}
+      />
 
       {toastMessage && (
         <Toast message={toastMessage} type="success" onClose={() => setToastMessage(null)} />

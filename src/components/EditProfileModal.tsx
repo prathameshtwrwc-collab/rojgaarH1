@@ -8,6 +8,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button, Badge, Toast } from './ui';
 import { useModalBackButton } from '../hooks/useModalBackButton';
+import { useMountTransition } from '../hooks/useMountTransition';
 import {
   JobSeeker, EducationEntry, ExperienceEntry, LanguageEntry, CertificationEntry
 } from '../context/DataContext';
@@ -95,7 +96,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [currentCompany, setCurrentCompany] = useState(candidate.currentCompany || candidate.previousCompany || '');
   const [previousCompany, setPreviousCompany] = useState(candidate.previousCompany || '');
   const [totalExperience, setTotalExperience] = useState(candidate.totalExperience || '2');
-  const [relevantExperience, setRelevantExperience] = useState(candidate.relevantExperience || '2');
+  const [relevantExperience, setRelevantExperience] = useState(candidate.relevantExperience || '0');
   const [industry, setIndustry] = useState(candidate.industry || '');
   const [department, setDepartment] = useState(candidate.department || '');
   const [currentStatus, setCurrentStatus] = useState<'Open to Work' | 'Employed' | 'Freelancer' | 'Student'>(candidate.currentStatus || 'Open to Work');
@@ -216,9 +217,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   };
 
   // SECTION: Education
-  const [educationList, setEducationList] = useState<EducationEntry[]>(candidate.educationList || [
-    { id: 'edu-1', degree: candidate.qualification || 'B.Com', qualification: candidate.qualification || 'Graduate', college: 'Government College', university: 'State University', passingYear: '2020', grade: '78%' }
-  ]);
+  const [educationList, setEducationList] = useState<EducationEntry[]>(candidate.educationList || []);
   const [newEdu, setNewEdu] = useState<Partial<EducationEntry>>({ degree: '', qualification: 'B.Com', college: '', university: '', passingYear: '2021', grade: '' });
   const [showAddEdu, setShowAddEdu] = useState(false);
 
@@ -227,42 +226,34 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [skillInput, setSkillInput] = useState('');
 
   // SECTION: Experience Entries
-  const [experienceList, setExperienceList] = useState<ExperienceEntry[]>(candidate.experienceList || [
-    { id: 'exp-1', company: candidate.previousCompany || 'Bharat Manufacturing Co.', designation: candidate.currentJobTitle || 'Machine Operator', startDate: '2021-06-01', endDate: '2023-12-31', currentlyWorking: false, responsibilities: 'Operate CNC machinery, ensure safety guidelines, and manage daily quality inspection logs.' }
-  ]);
+  const [experienceList, setExperienceList] = useState<ExperienceEntry[]>(candidate.experienceList || []);
   const [newExp, setNewExp] = useState<Partial<ExperienceEntry>>({ company: '', designation: '', startDate: '2022-01-01', endDate: '', currentlyWorking: true, responsibilities: '' });
   const [showAddExp, setShowAddExp] = useState(false);
 
   // SECTION: Expected Job Preferences
   const [expectedSalary, setExpectedSalary] = useState(candidate.expectedSalary || '20000');
-  const [preferredJobRole, setPreferredJobRole] = useState(candidate.preferredJobRole || candidate.qualification || 'Machine Operator');
-  const [preferredIndustry, setPreferredIndustry] = useState(candidate.preferredIndustry || 'Manufacturing');
+  const [preferredJobRole, setPreferredJobRole] = useState(candidate.preferredJobRole || '');
+  const [preferredIndustry, setPreferredIndustry] = useState(candidate.preferredIndustry || '');
   const [preferredJobType, setPreferredJobType] = useState(candidate.preferredJobType || 'Full-time');
   const [preferredShift, setPreferredShift] = useState(candidate.preferredShift || 'Day Shift');
   const [noticePeriod, setNoticePeriod] = useState(candidate.noticePeriod || 'Immediate');
   const [immediateJoining, setImmediateJoining] = useState(candidate.immediateJoining ?? true);
 
   // SECTION: Social Links
-  const [linkedin, setLinkedin] = useState(candidate.linkedin || 'https://linkedin.com/in/rajeshkumar');
-  const [github, setGithub] = useState(candidate.github || 'https://github.com/rajeshkumar');
-  const [portfolio, setPortfolio] = useState(candidate.portfolio || 'https://rajeshkumar.dev');
-  const [website, setWebsite] = useState(candidate.website || 'https://rajeshkumar.me');
+  const [linkedin, setLinkedin] = useState(candidate.linkedin || '');
+  const [github, setGithub] = useState(candidate.github || '');
+  const [portfolio, setPortfolio] = useState(candidate.portfolio || '');
+  const [website, setWebsite] = useState(candidate.website || '');
 
   // SECTION: About Me
-  const [bio, setBio] = useState(candidate.bio || 'Dedicated and results-driven professional with strong technical experience, eager to leverage skills in a dynamic environment to contribute to organizational success.');
+  const [bio, setBio] = useState(candidate.bio || '');
 
   // SECTION: Languages
-  const [languageList, setLanguageList] = useState<LanguageEntry[]>(candidate.languageList || [
-    { id: 'lang-1', language: 'Hindi', proficiency: 'Native' },
-    { id: 'lang-2', language: 'English', proficiency: 'Fluent' },
-    { id: 'lang-3', language: 'Marathi', proficiency: 'Intermediate' }
-  ]);
+  const [languageList, setLanguageList] = useState<LanguageEntry[]>(candidate.languageList || []);
   const [newLang, setNewLang] = useState({ language: 'Hindi', proficiency: 'Fluent' as LanguageEntry['proficiency'] });
 
   // SECTION: Certifications
-  const [certificationList, setCertificationList] = useState<CertificationEntry[]>(candidate.certificationList || [
-    { id: 'cert-1', name: 'Certified CNC Machine Operator', organization: 'MSME Training Center', year: '2021', credentialId: 'MSME-CNC-9842' }
-  ]);
+  const [certificationList, setCertificationList] = useState<CertificationEntry[]>(candidate.certificationList || []);
   const [newCert, setNewCert] = useState({ name: '', organization: '', year: '2022', credentialId: '' });
 
   // SECTION: Validation Errors
@@ -596,14 +587,16 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     ? `Saved at ${lastSavedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
     : 'Changes save automatically every 5 seconds';
 
-  if (!isOpen) return null;
+  // Stays mounted briefly after closing so the sheet can slide back down instead of vanishing.
+  const { mounted, state: transitionState } = useMountTransition(isOpen, 260);
+  if (!mounted) return null;
 
   return (
-    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
-      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => { if (!closing) handleRequestClose(); }} />
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6" data-state={transitionState}>
+      <div className="ui-modal-backdrop fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => { if (!closing) handleRequestClose(); }} />
 
       {/* Modal Container */}
-      <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
+      <div className="ui-modal-panel ui-modal-panel--full relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-6xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10">
 
         {/* ═══ HEADER BAR ═══ */}
         <div

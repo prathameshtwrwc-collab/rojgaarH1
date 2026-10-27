@@ -1,6 +1,8 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Building2, GitMerge, MessageSquare, Award, LogOut, Menu, X, Briefcase, UserSearch, FileText, Bell, ShieldCheck } from 'lucide-react';
+import { MobileBottomNav, type BottomNavItem } from './MobileBottomNav';
+import { useMountTransition } from '../hooks/useMountTransition';
 import { useAdminNotifications } from '../lib/adminNotifications';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +36,18 @@ function AdminLayout({ children }: { children: ReactNode }) {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Phone tab bar: the four busiest pages, plus "More" which opens the full menu.
+  const { mounted: scrimMounted, state: scrimState } = useMountTransition(sidebarOpen, 220);
+  const tabItems: BottomNavItem[] = [
+    { key: '/admin', label: 'Home', icon: <LayoutDashboard size={22} />, onSelect: () => navigate('/admin') },
+    { key: '/admin/jobs', label: 'Jobs', icon: <Briefcase size={22} />, onSelect: () => navigate('/admin/jobs') },
+    { key: '/admin/candidates', label: 'Candidates', icon: <Users size={22} />, onSelect: () => navigate('/admin/candidates') },
+    { key: '/admin/employers', label: 'Employers', icon: <Building2 size={22} />, onSelect: () => navigate('/admin/employers') },
+    { key: 'more', label: 'More', icon: <Menu size={22} />, badge: unreadCount, onSelect: () => setSidebarOpen(true) },
+  ];
+  const tabKeys = tabItems.slice(0, 4).map(i => i.key);
+  const activeTab = tabKeys.includes(location.pathname) ? location.pathname : 'more';
+
   const handleLogout = async () => {
     try {
       await authLogout();
@@ -46,9 +60,9 @@ function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex text-[var(--navy)]" style={{ fontFamily: "var(--font)" }}>
+    <div className="has-bottom-nav-space min-h-screen flex text-[var(--navy)]" style={{ fontFamily: "var(--font)" }}>
       {/* Mobile overlay */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {scrimMounted && <div className="m-backdrop fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" data-state={scrimState} onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[var(--navy)] text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
@@ -123,7 +137,7 @@ function AdminLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto" data-lenis-prevent>
+        <main className="flex-1 p-4 sm:p-6 pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom,0px)+20px)] md:pb-6 overflow-y-auto" data-lenis-prevent>
           <AnimatePresence mode="wait">
             {dataLoading ? (
               <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -137,6 +151,7 @@ function AdminLayout({ children }: { children: ReactNode }) {
           </AnimatePresence>
         </main>
       </div>
+      <MobileBottomNav items={tabItems} activeKey={activeTab} />
     </div>
   );
 }

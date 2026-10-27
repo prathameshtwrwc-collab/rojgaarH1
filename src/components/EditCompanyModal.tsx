@@ -5,6 +5,7 @@ import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from './ui';
 import { getSectorsList, getSubsectorsForSector } from '../constants/sectors';
 import { useModalBackButton } from '../hooks/useModalBackButton';
+import { useMountTransition } from '../hooks/useMountTransition';
 
 export interface CompanyForm {
   companyName: string;
@@ -72,7 +73,9 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   // On a phone, back closes this editor instead of leaving the dashboard behind it.
   useModalBackButton(isOpen, onClose);
 
-  if (!isOpen) return null;
+  // Stays mounted briefly after closing so the sheet can slide back down instead of vanishing.
+  const { mounted, state } = useMountTransition(isOpen, 260);
+  if (!mounted) return null;
 
   const steps = [
     { label: 'Company Basics', icon: <Building2 size={16} /> },
@@ -154,10 +157,10 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   };
 
   return (
-    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6">
-      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 sm:py-6" data-state={state}>
+      <div className="ui-modal-backdrop fixed inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
 
-      <div className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-3xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10 animate-fade-in">
+      <div className="ui-modal-panel ui-modal-panel--full relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 w-full max-w-3xl max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden z-10">
 
         {/* HEADER */}
         <div

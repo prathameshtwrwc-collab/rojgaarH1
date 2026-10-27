@@ -1,9 +1,12 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import { X, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { cn } from '../utils/cn';
 import { useModalBackButton } from '../hooks/useModalBackButton';
+import { useMountTransition } from '../hooks/useMountTransition';
+import { useSheetDrag } from '../hooks/useSheetDrag';
+import { haptic } from '../lib/haptics';
 
 // Button
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -172,15 +175,21 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
 }
 
 // Modal
+// A centred dialog on tablets/desktops and a bottom sheet on phones: it slides up, can be
+// swiped down to dismiss, and animates out instead of vanishing. See mobile-app.css.
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  /** Pinned under the scrolling body (e.g. a primary action). */
+  footer?: ReactNode;
+  /** `full` keeps the sheet edge-to-edge and full height on phones, for long multi-step content. */
+  variant?: 'sheet' | 'full';
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', footer, variant = 'sheet' }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
     const prev = document.body.style.overflow;
@@ -191,35 +200,52 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   // On a phone, the back button closes this modal instead of leaving the page behind it.
   useModalBackButton(isOpen, onClose);
 
-  if (!isOpen) return null;
+  const { mounted, state } = useMountTransition(isOpen, 260);
+  const { wrapRef, backdropRef, handlers } = useSheetDrag(onClose, isOpen);
+
+  if (!mounted) return null;
   const sizes: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
   return (
     // Overlay: positions + backdrop only
-    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" data-state={state}>
+      <div ref={backdropRef} className="ui-modal-backdrop fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel: owns the rounded boundary, clips content, never exceeds viewport */}
-      <div className={`ui-modal-panel relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}>
-        {/* Header: non-scrolling */}
-        <div className="ui-modal-header flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-[var(--navy)]">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-[var(--navy)] hover:bg-slate-100 transition-colors"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={19} />
-          </button>
+      {/* Wrapper: carries the swipe-to-dismiss transform on phones; invisible to layout on desktop */}
+      <div ref={wrapRef} className="ui-sheet-wrap">
+        {/* Panel: owns the rounded boundary, clips content, never exceeds viewport */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className={`ui-modal-panel ${variant === 'full' ? 'ui-modal-panel--full' : ''} relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}
+        >
+          {/* Phone-only grabber: drag it (or the header) down to dismiss */}
+          <div className="ui-sheet-grabber" aria-hidden="true" {...handlers} />
+
+          {/* Header: non-scrolling */}
+          <div className="ui-modal-header ui-sheet-drag flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200" {...handlers}>
+            <h3 className="text-lg font-bold text-[var(--navy)]">{title}</h3>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-[var(--navy)] hover:bg-slate-100 transition-colors"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={19} />
+            </button>
+          </div>
+
+          {/* Body: the ONLY scrollable region */}
+          <div className="ui-modal-body flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
+
+          {footer && <div className="ui-sheet-footer flex-shrink-0 px-6 py-4 border-t border-slate-200 bg-white">{footer}</div>}
         </div>
-
-        {/* Body: the ONLY scrollable region */}
-        <div className="ui-modal-body flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
       </div>
     </div>
   );
 }
 
 // Toast
+// Top-right on desktop; a floating pill above the bottom navigation on phones.
 interface ToastProps {
   message: string;
   type?: 'success' | 'error' | 'info';
@@ -227,10 +253,19 @@ interface ToastProps {
 }
 
 export function Toast({ message, type = 'success', onClose }: ToastProps) {
+  const [leaving, setLeaving] = useState(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Restarts whenever the message changes, so a fresh toast always gets its full time on screen.
   useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
+    setLeaving(false);
+    if (type === 'success') haptic('success');
+    else if (type === 'error') haptic('warn');
+    const leave = setTimeout(() => setLeaving(true), 3650);
+    const done = setTimeout(() => onCloseRef.current(), 4000);
+    return () => { clearTimeout(leave); clearTimeout(done); };
+  }, [message, type]);
 
   const icons = { success: <CheckCircle size={20} />, error: <AlertCircle size={20} />, info: <AlertCircle size={20} /> };
   const styles = {
@@ -240,10 +275,15 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
   };
 
   return (
-    <div className={`fixed top-4 right-4 z-[60] flex items-center gap-3 px-5 py-3 rounded-xl border shadow-xl ${styles[type]} animate-slide-in`}>
-      {icons[type]}
-      <p className="text-sm font-medium">{message}</p>
-      <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100"><X size={16} /></button>
+    <div
+      role="status"
+      aria-live="polite"
+      data-leaving={leaving ? 'true' : 'false'}
+      className={`ui-toast fixed z-[60] flex items-center gap-3 px-5 py-3 rounded-xl border shadow-xl ${styles[type]}`}
+    >
+      <span className="flex-shrink-0">{icons[type]}</span>
+      <p className="text-sm font-medium min-w-0 flex-1">{message}</p>
+      <button onClick={() => onCloseRef.current()} aria-label="Dismiss" className="ml-1 opacity-70 hover:opacity-100 flex-shrink-0"><X size={16} /></button>
     </div>
   );
 }

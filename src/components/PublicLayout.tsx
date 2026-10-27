@@ -1,9 +1,12 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Users, Building2, ChevronDown, UserSearch, Download } from 'lucide-react';
+import { Menu, X, Users, Building2, ChevronDown, ChevronRight, UserSearch, Download } from 'lucide-react';
+import { useMountTransition } from '../hooks/useMountTransition';
+import { haptic } from '../lib/haptics';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import RoleChooserModal from './RoleChooserModal';
+import PublicMobileTabs, { hidesPublicTabs } from './PublicMobileTabs';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
@@ -17,6 +20,10 @@ function PublicLayout({ children }: { children: ReactNode }) {
   const { t } = useAppTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const { mounted: menuMounted, state: menuState } = useMountTransition(mobileOpen, 200);
+
+  // The menu always closes when you land on a new page
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const {
     isCandidateLoggedIn, loggedCandidate, candidateLogout,
@@ -97,7 +104,7 @@ function PublicLayout({ children }: { children: ReactNode }) {
   const isSignedIn = Boolean(displayUser && userRole);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-warm)]" style={{ fontFamily: "var(--font)" }}>
+    <div className={`${hidesPublicTabs(location.pathname) ? '' : 'has-bottom-nav '}min-h-screen flex flex-col bg-[var(--bg-warm)]`} style={{ fontFamily: "var(--font)" }}>
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 ${isHeaderTransparent ? 'header-transparent' : 'header-solid'}`}
@@ -220,28 +227,39 @@ function PublicLayout({ children }: { children: ReactNode }) {
 
             {/* Mobile menu toggle */}
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden w-[40px] h-[40px] flex items-center justify-center bg-transparent border-0 cursor-pointer"
+              onClick={() => { haptic('tap'); setMobileOpen(!mobileOpen); }}
+              className="md:hidden w-[44px] h-[44px] flex items-center justify-center bg-transparent border-0 cursor-pointer rounded-full active:bg-slate-100"
               aria-label="Toggle menu"
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X size={24} className="text-[var(--navy)]" /> : <Menu size={24} className="text-[var(--navy)]" />}
             </button>
           </div>
 
           {/* Mobile Nav */}
-          {mobileOpen && (
-            <div className="md:hidden bg-white border-t border-slate-100 px-4 py-3">
+          {menuMounted && (
+            <>
+            <div
+              // The header has a backdrop-filter, which makes it the containing block for "fixed" children,
+              // so this scrim is absolutely positioned from the header and simply made taller than the screen.
+              className="m-backdrop md:hidden absolute inset-x-0 top-[76px] h-[100dvh] bg-slate-950/45"
+              data-state={menuState}
+              onClick={() => setMobileOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="m-menu md:hidden relative bg-white border-t border-slate-100 px-4 pt-1 pb-4 rounded-b-3xl shadow-[0_24px_40px_-16px_rgba(16,26,54,0.3)]" data-state={menuState}>
               {navLinks.map(link => (
                 <Link
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-[15px] font-semibold text-[var(--navy)] no-underline"
+                  className={`m-menu__item flex items-center justify-between min-h-[52px] border-b border-slate-100 text-[16px] font-semibold no-underline active:bg-slate-50 ${location.pathname === link.to ? 'text-[var(--orange)]' : 'text-[var(--navy)]'}`}
                 >
                   {link.label}
+                  <ChevronRight size={18} className="text-slate-300" />
                 </Link>
               ))}
-              <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+              <div className="m-menu__item mt-3 pt-3 space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <LanguageSwitcher />
@@ -264,6 +282,7 @@ function PublicLayout({ children }: { children: ReactNode }) {
                 )}
               </div>
             </div>
+            </>
           )}
         </div>
       </header>
@@ -272,6 +291,8 @@ function PublicLayout({ children }: { children: ReactNode }) {
       <main className="flex-1 pt-[76px]">
         {children}
       </main>
+
+      <PublicMobileTabs menuOpen={mobileOpen} onMenu={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMobileOpen(o => !o); }} onGetStarted={() => setShowRoleChooser(true)} />
 
       <RoleChooserModal isOpen={showRoleChooser} onClose={() => setShowRoleChooser(false)} mode="signup" />
 

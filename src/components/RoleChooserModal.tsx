@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Building2, ArrowRight, UserSearch } from 'lucide-react';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { haptic } from '../lib/haptics';
 
 interface RoleChooserModalProps {
   isOpen: boolean;
@@ -16,8 +18,10 @@ const paths = {
 
 export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserModalProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const go = (role: 'candidate' | 'employer' | 'recruiter') => {
+    haptic('select');
     onClose();
     navigate(paths[role][mode]);
   };
@@ -35,11 +39,11 @@ export default function RoleChooserModal({ isOpen, onClose, mode }: RoleChooserM
           <div className="absolute inset-0 bg-[var(--navy)]/60 backdrop-blur-sm" onClick={onClose} />
 
           <motion.div
-            className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8"
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="ui-modal-panel relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]"
+            initial={isMobile ? { y: '100%' } : { opacity: 0, y: 24, scale: 0.96 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, y: 16, scale: 0.96 }}
+            transition={isMobile ? { type: 'spring', stiffness: 380, damping: 38, mass: 0.9 } : { duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
             <button
               onClick={onClose}

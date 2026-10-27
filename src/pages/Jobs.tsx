@@ -474,7 +474,7 @@ export default function Jobs() {
                 <Button onClick={resetFilters} variant="outline" className="mt-5">Reset Filters</Button>
               </div>
             ) : view === 'list' ? (
-              <div id="jobs-results" key={currentPage} className="dash-surface divide-y divide-[#EFEAE1] animate-fade-in scroll-mt-24">
+              <div id="jobs-results" key={currentPage} className="jobs-list dash-surface divide-y divide-[#EFEAE1] animate-fade-in scroll-mt-24">
                 {pagedJobs.map(job => (
                   <JobCard
                     key={job.id}
@@ -512,28 +512,22 @@ export default function Jobs() {
         </div>
       </div>
 
-      {/* ═══ MOBILE FILTERS DRAWER ═══ */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 z-[70] lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileFilters(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-[min(88vw,360px)] bg-[var(--bg-warm)] shadow-2xl flex flex-col animate-slide-in">
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-[#E7E2D9] bg-white">
-              <h3 className="font-extrabold text-[var(--navy)]">Filter Jobs</h3>
-              <button onClick={() => setShowMobileFilters(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-5" data-lenis-prevent>
-              <JobFiltersPanel {...filterPanelProps} />
-            </div>
-            <div className="flex-shrink-0 p-4 border-t border-[#E7E2D9] bg-white">
-              <Button fullWidth onClick={() => setShowMobileFilters(false)}>
-                Show {visibleJobs.length} Jobs
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ═══ MOBILE FILTERS SHEET ═══ */}
+      <div className="lg:hidden">
+        <Modal
+          isOpen={showMobileFilters}
+          onClose={() => setShowMobileFilters(false)}
+          title="Filter Jobs"
+          size="lg"
+          footer={
+            <Button fullWidth onClick={() => setShowMobileFilters(false)}>
+              Show {visibleJobs.length} {visibleJobs.length === 1 ? 'Job' : 'Jobs'}
+            </Button>
+          }
+        >
+          <JobFiltersPanel {...filterPanelProps} />
+        </Modal>
+      </div>
 
       {/* ═══ APPLY CONFIRMATION MODAL ═══ */}
       <Modal isOpen={showApplyModal} onClose={() => setShowApplyModal(false)} title="Confirm Your Application" size="md">

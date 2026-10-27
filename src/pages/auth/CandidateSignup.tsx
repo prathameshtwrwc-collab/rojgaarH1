@@ -189,9 +189,9 @@ export default function CandidateSignup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-12">
+    <div className="auth-shell min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-12">
       <div className="w-full max-w-[460px]">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="auth-card bg-white rounded-2xl shadow-lg p-8">
           <Link to="/" className="inline-flex items-center text-sm text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
             <ArrowLeft size={16} className="mr-2" />
             Back to home

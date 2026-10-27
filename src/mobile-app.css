@@ -1,0 +1,421 @@
+/* ==========================================================================
+   MOBILE APP LAYER
+   Makes the phone experience feel like an installed app: bottom sheets with
+   swipe-to-dismiss, a floating tab bar, calm enter/exit motion, thumb-friendly
+   cards and press feedback.
+
+   Loaded after design-system.css. Everything phone-specific lives inside
+   `@media (max-width: 767px)` so tablet and desktop keep their current look.
+   Users who prefer reduced motion get no movement (see the end of this file).
+   ========================================================================== */
+
+:root {
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Space reserved for the bottom tab bar. Dashboards that show it override this on phones. */
+  --bottom-nav-h: 0px;
+}
+
+/* --------------------------------------------------------------------------
+   Shared keyframes
+   -------------------------------------------------------------------------- */
+@keyframes ui-backdrop-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ui-pop-in  { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes ui-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes ui-sheet-in  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ui-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes ui-toast-in-desktop  { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes ui-toast-out-desktop { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(24px); } }
+@keyframes ui-toast-in-mobile  { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes ui-toast-out-mobile { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(12px) scale(0.97); } }
+@keyframes m-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes m-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes m-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes m-menu-in  { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes m-menu-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-8px); } }
+@keyframes m-nav-pop { 0% { transform: scale(0.8); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+
+/* --------------------------------------------------------------------------
+   Modals: centred dialog on desktop, bottom sheet on phones
+   -------------------------------------------------------------------------- */
+.ui-sheet-wrap { display: contents; }
+.ui-sheet-grabber { display: none; }
+
+.ui-modal-overlay[data-state="open"] .ui-modal-backdrop { animation: ui-backdrop-in 240ms ease-out backwards; }
+.ui-modal-overlay[data-state="closed"] .ui-modal-backdrop { animation: ui-backdrop-out 200ms ease-in forwards; }
+.ui-modal-overlay[data-state="open"] .ui-modal-panel { animation: ui-pop-in 300ms var(--ease-out-expo) backwards; }
+.ui-modal-overlay[data-state="closed"] .ui-modal-panel { animation: ui-pop-out 190ms ease-in forwards; }
+.ui-modal-overlay[data-state="closed"] { pointer-events: none; }
+
+/* --------------------------------------------------------------------------
+   Toast
+   -------------------------------------------------------------------------- */
+.ui-toast {
+  top: 16px;
+  right: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  animation: ui-toast-in-desktop 320ms var(--ease-out-expo) backwards;
+}
+.ui-toast[data-leaving="true"] { animation: ui-toast-out-desktop 300ms ease-in forwards; }
+
+/* --------------------------------------------------------------------------
+   Bottom tab bar (markup in MobileBottomNav.tsx). Phones only.
+   -------------------------------------------------------------------------- */
+.m-nav { display: none; }
+
+/* --------------------------------------------------------------------------
+   Animated menus / drawers (public site menu, admin drawer)
+   -------------------------------------------------------------------------- */
+.m-backdrop[data-state="open"] { animation: m-fade 240ms ease-out backwards; }
+.m-backdrop[data-state="closed"] { animation: m-fade-out 200ms ease-in forwards; pointer-events: none; }
+.m-menu[data-state="open"] { animation: m-menu-in 280ms var(--ease-out-expo) backwards; }
+.m-menu[data-state="closed"] { animation: m-menu-out 180ms ease-in forwards; pointer-events: none; }
+.m-menu[data-state="open"] .m-menu__item { animation: m-rise 420ms var(--ease-out-expo) backwards; }
+.m-menu__item:nth-child(1) { animation-delay: 40ms; }
+.m-menu__item:nth-child(2) { animation-delay: 80ms; }
+.m-menu__item:nth-child(3) { animation-delay: 120ms; }
+.m-menu__item:nth-child(4) { animation-delay: 160ms; }
+.m-menu__item:nth-child(5) { animation-delay: 200ms; }
+.m-menu__item:nth-child(6) { animation-delay: 240ms; }
+.m-menu__item:nth-child(n + 7) { animation-delay: 280ms; }
+
+/* The landing page's own slide-down menu uses the same motion */
+.mobile-nav[data-state="open"] { animation: m-menu-in 280ms var(--ease-out-expo) backwards; }
+.mobile-nav[data-state="closed"] { animation: m-menu-out 180ms ease-in forwards; pointer-events: none; }
+.mobile-nav[data-state="open"] > * { animation: m-rise 420ms var(--ease-out-expo) backwards; }
+.mobile-nav > *:nth-child(1) { animation-delay: 40ms; }
+.mobile-nav > *:nth-child(2) { animation-delay: 80ms; }
+.mobile-nav > *:nth-child(3) { animation-delay: 120ms; }
+.mobile-nav > *:nth-child(4) { animation-delay: 160ms; }
+.mobile-nav > *:nth-child(5) { animation-delay: 200ms; }
+.mobile-nav > *:nth-child(n + 6) { animation-delay: 240ms; }
+
+/* ==========================================================================
+   PHONES (<= 767px)
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* ---- Bottom sheet ---- */
+  .ui-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+  }
+  .ui-sheet-wrap {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+  }
+  .ui-modal-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto;
+    max-height: min(92dvh, calc(100dvh - 24px)) !important;
+    border-radius: 28px 28px 0 0 !important;
+    border: 0 !important;
+    box-shadow: 0 -18px 48px rgba(16, 26, 54, 0.3) !important;
+  }
+  /* Long multi-step editors keep the whole screen, but still slide up like a sheet */
+  .ui-modal-panel--full {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+  .ui-modal-panel--full .ui-sheet-grabber { display: none; }
+
+  .ui-modal-overlay[data-state="open"] .ui-modal-panel { animation: ui-sheet-in 400ms var(--ease-ios) backwards; }
+  .ui-modal-overlay[data-state="closed"] .ui-modal-panel { animation: ui-sheet-out 250ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+
+  .ui-sheet-grabber {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+  }
+  .ui-sheet-grabber::before {
+    content: "";
+    width: 42px;
+    height: 5px;
+    border-radius: 999px;
+    background: #d8d2c6;
+  }
+  .ui-sheet-drag { touch-action: none; }
+
+  /* Sheet header sits just under the grabber (the full-screen editors keep the safe-area padding) */
+  .ui-modal-panel:not(.ui-modal-panel--full) .ui-modal-header {
+    padding: 2px 18px 12px !important;
+    border-bottom-color: transparent;
+  }
+  .ui-modal-panel:not(.ui-modal-panel--full) .ui-modal-header h3 {
+    font-size: 19px !important;
+    letter-spacing: -0.01em;
+  }
+  .ui-modal-panel:not(.ui-modal-panel--full) .ui-modal-body {
+    padding: 4px 18px 18px !important;
+  }
+  .ui-modal-panel:not(.ui-modal-panel--full):not(:has(.ui-sheet-footer)) .ui-modal-body {
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .ui-sheet-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    box-shadow: 0 -8px 24px -12px rgba(16, 26, 54, 0.18);
+  }
+  .ui-sheet-footer > * { width: 100%; }
+
+  /* ---- Toast: floating pill above the tab bar ---- */
+  .ui-toast {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--bottom-nav-h) + 14px);
+    max-width: none;
+    border-radius: 18px;
+    animation: ui-toast-in-mobile 360ms var(--ease-ios) backwards;
+  }
+  .ui-toast[data-leaving="true"] { animation: ui-toast-out-mobile 280ms ease-in forwards; }
+
+  /* ---- Floating tab bar ---- */
+  /* `has-bottom-nav-space` only reserves the variable; `has-bottom-nav` also pads the page. */
+  .has-bottom-nav,
+  .has-bottom-nav-space {
+    --bottom-nav-h: 84px;
+  }
+  .has-bottom-nav {
+    padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .m-nav {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 35;
+    padding: 0 10px calc(env(safe-area-inset-bottom, 0px) + 8px);
+    pointer-events: none;
+    transition: transform 280ms var(--ease-ios), opacity 200ms ease;
+  }
+  html.kb-open .m-nav { transform: translateY(130%); opacity: 0; }
+  .m-nav__inner {
+    pointer-events: auto;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    align-items: stretch;
+    height: 64px;
+    padding: 6px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    backdrop-filter: saturate(180%) blur(18px);
+    border: 1px solid rgba(231, 226, 217, 0.95);
+    box-shadow: 0 14px 34px -10px rgba(16, 26, 54, 0.3), 0 2px 8px rgba(16, 26, 54, 0.06);
+  }
+  .m-nav__pill {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: calc((100% - 12px) / var(--n));
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(241, 90, 36, 0.16), rgba(241, 90, 36, 0.08));
+    transition: transform 420ms var(--ease-ios);
+  }
+  .m-nav__item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    border: 0;
+    background: none;
+    color: #7a8196;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 200ms ease;
+  }
+  .m-nav__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+  .m-nav__icon { position: relative; display: flex; transition: transform 220ms var(--ease-ios); }
+  .m-nav__item:active .m-nav__icon { transform: scale(0.84); }
+  .m-nav__item.is-active { color: var(--orange); }
+  .m-nav__item.is-active .m-nav__icon { animation: m-nav-pop 420ms var(--ease-ios); }
+  .m-nav__item.is-accent { color: var(--navy); }
+  .m-nav__item.is-accent .m-nav__icon {
+    width: 48px;
+    height: 48px;
+    margin-top: -22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, var(--orange), #d94d1a);
+    box-shadow: 0 10px 20px -4px rgba(241, 90, 36, 0.55), 0 0 0 5px rgba(255, 255, 255, 0.9);
+  }
+  .m-nav__item.is-accent:active .m-nav__icon { transform: scale(0.9); }
+  .m-nav__badge {
+    position: absolute;
+    top: -6px;
+    right: -9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    background: var(--orange);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  /* ---- Metric tiles become a swipeable row of cards ---- */
+  .dash-metrics {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -12px;
+    padding: 2px 12px 8px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+  .dash-metrics::-webkit-scrollbar { display: none; }
+  .dash-metric {
+    flex: 0 0 auto !important;
+    min-width: 118px;
+    padding: 14px 16px !important;
+    background: var(--white);
+    border: 1px solid #e7e2d9 !important;
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16, 26, 54, 0.04);
+    scroll-snap-align: start;
+  }
+
+  /* ---- Candidate pipeline: one swipeable row of stages instead of a tall list ---- */
+  .pipeline-steps {
+    display: flex !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 4px 16px 6px;
+  }
+  .pipeline-steps::-webkit-scrollbar { display: none; }
+  .pipeline-steps > * {
+    flex: 0 0 auto;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    gap: 6px !important;
+    width: 88px;
+    text-align: center !important;
+    scroll-snap-align: center;
+  }
+
+  /* ---- Touch feedback: surfaces dip a little when pressed ---- */
+  .dash-surface,
+  .dash-btn,
+  .dash-btn-tertiary,
+  .admin-table > table > tbody > tr {
+    transition: transform 180ms var(--ease-ios), box-shadow 220ms ease, background-color 160ms ease, border-color 200ms ease;
+  }
+  .dash-surface--lift:active,
+  .admin-table > table > tbody > tr:active { transform: scale(0.988); }
+  .dash-btn:active, .dash-btn-tertiary:active { transform: scale(0.96); }
+  .divide-y > a:active,
+  .divide-y > div:active { background-color: rgba(241, 90, 36, 0.05); }
+
+  /* ---- Job lists: each job is its own card instead of a divided table ---- */
+  .jobs-list {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .jobs-list > * {
+    background: var(--white);
+    border: 1px solid #e7e2d9 !important;
+    border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(16, 26, 54, 0.05);
+    animation: m-rise 480ms var(--ease-out-expo) backwards;
+    transition: transform 180ms var(--ease-ios), box-shadow 220ms ease;
+  }
+  .jobs-list > *:active { transform: scale(0.985); }
+  .jobs-list > *:nth-child(1) { animation-delay: 0ms; }
+  .jobs-list > *:nth-child(2) { animation-delay: 50ms; }
+  .jobs-list > *:nth-child(3) { animation-delay: 100ms; }
+  .jobs-list > *:nth-child(4) { animation-delay: 150ms; }
+  .jobs-list > *:nth-child(n + 5) { animation-delay: 200ms; }
+
+  /* ---- Sign-in / sign-up: edge-to-edge screens instead of a card on a backdrop ---- */
+  .auth-shell {
+    align-items: flex-start !important;
+    padding: 0 !important;
+    background: #fff !important;
+    min-height: 100dvh;
+  }
+  .auth-shell > div { max-width: none !important; }
+  .auth-card {
+    min-height: 100dvh;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: max(env(safe-area-inset-top, 0px), 18px) 20px calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .auth-card > * { animation: m-rise 520ms var(--ease-out-expo) backwards; }
+  .auth-card > *:nth-child(1) { animation-delay: 0ms; }
+  .auth-card > *:nth-child(2) { animation-delay: 50ms; }
+  .auth-card > *:nth-child(3) { animation-delay: 100ms; }
+  .auth-card > *:nth-child(4) { animation-delay: 150ms; }
+  .auth-card > *:nth-child(5) { animation-delay: 200ms; }
+  .auth-card > *:nth-child(n + 6) { animation-delay: 240ms; }
+
+  /* ---- General app feel ---- */
+  html { scroll-padding-top: 72px; }
+  button, [role="button"], .dash-btn, .m-nav__item { -webkit-user-select: none; user-select: none; }
+  img { -webkit-user-drag: none; }
+}
+
+/* Installed as an app: no pull-to-refresh chaining or rubber-banding behind the UI */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion: no movement at all
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-overlay[data-state] .ui-modal-panel,
+  .ui-modal-overlay[data-state] .ui-modal-backdrop,
+  .ui-toast,
+  .m-backdrop,
+  .m-menu,
+  .m-menu__item,
+  .mobile-nav,
+  .mobile-nav > *,
+  .jobs-list > *,
+  .auth-card > *,
+  .m-nav__icon {
+    animation: none !important;
+  }
+  .m-nav__pill, .m-nav, .ui-sheet-wrap { transition: none !important; }
+}

@@ -4,7 +4,7 @@ import {
   Building2, Briefcase, Users, MapPin, FileText, LogOut, IndianRupee,
   Plus, ShieldCheck, ChevronDown, ChevronUp, Search,
   Download, Share2, PauseCircle, Trash2,
-  CheckCircle, Clock
+  CheckCircle, Clock, Home
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Activity03Icon } from '@hugeicons/core-free-icons';
@@ -22,6 +22,8 @@ import { updateJobPosting, updateApplicationStatus, createCommunication, updateE
 import { supabase } from '../../lib/supabase/client';
 import { DashboardSkeleton } from '../../components/Skeleton';
 import EditCompanyModal from '../../components/EditCompanyModal';
+import { MobileBottomNav, type BottomNavItem } from '../../components/MobileBottomNav';
+import { useScrollSpy } from '../../hooks/useScrollSpy';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 function formatExperience(min: number | null, max: number | null): string {
@@ -141,6 +143,8 @@ function EmployerDashboard() {
   const [companyForm, setCompanyForm] = useState<any>(null);
   const [savingCompany, setSavingCompany] = useState(false);
   const [showCvJobSelectModal, setShowCvJobSelectModal] = useState(false);
+  // Which section is being read, for the phone tab bar's highlighted tab
+  const activeSection = useScrollSpy(['employer-jobs']);
   const [showCvRequestModal, setShowCvRequestModal] = useState(false);
   const [showCvPlanSelectionModal, setShowCvPlanSelectionModal] = useState(false);
   const [selectedCvPlan, setSelectedCvPlan] = useState<any | null>(null);
@@ -619,7 +623,7 @@ function EmployerDashboard() {
   };
 
   return (
-    <div className="dash-shell text-[var(--navy)] pb-16" style={{ fontFamily: 'var(--font)' }}>
+    <div className="dash-shell has-bottom-nav text-[var(--navy)] pb-16" style={{ fontFamily: 'var(--font)' }}>
 
       {/* ═══════════════════════════════════════════════════════
           NAVBAR — quiet, functional
@@ -895,7 +899,7 @@ function EmployerDashboard() {
         </div>
 
          {/* ═══ MY JOB POSTINGS ═══ */}
-         <div>
+         <div id="employer-jobs" className="scroll-mt-20">
            <div className="dash-section-title mb-4">Active Jobs ({activeJobsList.length})</div>
 
            {activeJobsList.length === 0 ? (
@@ -1829,6 +1833,17 @@ function EmployerDashboard() {
       )}
 
       {/* Toast Notification */}
+      <MobileBottomNav
+        activeKey={activeSection}
+        items={[
+          { key: 'home', label: 'Home', icon: <Home size={22} />, onSelect: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+          { key: 'employer-jobs', label: 'Jobs', icon: <Briefcase size={22} />, onSelect: () => document.getElementById('employer-jobs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) },
+          { key: 'post', label: 'Post', icon: <Plus size={24} />, accent: true, onSelect: () => navigate('/dashboard/employer/post-job') },
+          { key: 'cv', label: 'Request CV', icon: <FileText size={22} />, onSelect: handleRequestCvClick },
+          { key: 'company', label: 'Company', icon: <Building2 size={22} />, onSelect: openEditCompany },
+        ] satisfies BottomNavItem[]}
+      />
+
       {toastMessage && (
         <Toast message={toastMessage} type="success" onClose={() => setToastMessage(null)} />
       )}

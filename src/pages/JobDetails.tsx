@@ -257,7 +257,7 @@ export default function JobDetails() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bg-warm)] pb-24 lg:pb-10 transition-colors duration-300" style={{ fontFamily: "var(--font)" }}>
+    <div className="min-h-screen bg-[var(--bg-warm)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pb-10 transition-colors duration-300" style={{ fontFamily: "var(--font)" }}>
       <div className="dash-container py-6 dash-enter">
 
         {/* Breadcrumb */}
@@ -565,7 +565,7 @@ export default function JobDetails() {
       </div>
 
       {/* ═══ MOBILE STICKY APPLY BAR ═══ */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E7E2D9] p-3 flex items-center gap-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E7E2D9] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex items-center gap-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
         <button
           onClick={toggleBookmark}
           className={`w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl border ${isSaved ? 'bg-[var(--orange)]/10 border-[var(--orange)]/30 text-[var(--orange)]' : 'border-[#E7E2D9] text-slate-500'}`}

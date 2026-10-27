@@ -91,9 +91,9 @@ export default function CandidateLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-8">
+    <div className="auth-shell min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-8">
       <div className="w-full max-w-[460px]">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="auth-card bg-white rounded-2xl shadow-lg p-8">
           <AuthSwitcher active="login" role="candidate" />
           <div className="text-center mb-6">
               <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>

@@ -8,6 +8,7 @@ import "./features.css";
 import "./stats.css";
 import "./testimonials.css";
 import "./final-section.css";
+import "./mobile-app.css";
 import "./lib/pwaInstall";
 import App from "./App";
 
