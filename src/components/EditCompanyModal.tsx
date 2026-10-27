@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { lockBodyScroll } from '../lib/scrollLock';
 import { Building2, MapPin, User, CheckCircle } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -65,9 +66,7 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
 
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return lockBodyScroll();
   }, [isOpen]);
 
   // On a phone, back closes this editor instead of leaving the dashboard behind it.

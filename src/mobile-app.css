@@ -397,7 +397,7 @@
 
 /* Installed as an app: no pull-to-refresh chaining or rubber-banding behind the UI */
 @media (display-mode: standalone) {
-  html, body { overscroll-behavior-y: none; }
+  html { overscroll-behavior-y: none; }
 }
 
 /* --------------------------------------------------------------------------

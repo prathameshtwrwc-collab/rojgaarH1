@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { lockBodyScroll } from '../lib/scrollLock';
 import {
   X, User, MapPin, Briefcase, GraduationCap, Sparkles,
   Upload, Shield, Globe, BookOpen, Award, CheckCircle, Target,
@@ -572,9 +573,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return lockBodyScroll();
   }, [isOpen]);
 
   const isFirstStep = activeStepIndex === 0;

@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect, useRef } from 'react';
+import { lockBodyScroll } from '../lib/scrollLock';
 import { X, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -192,9 +193,7 @@ interface ModalProps {
 export function Modal({ isOpen, onClose, title, children, size = 'md', footer, variant = 'sheet' }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return lockBodyScroll();
   }, [isOpen]);
 
   // On a phone, the back button closes this modal instead of leaving the page behind it.
