@@ -16,6 +16,11 @@ const typeVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> = 
   'email': 'info', 'call': 'success', 'sms': 'warning', 'in_person': 'default',
 };
 
+// The database stores these as enums ('Email', 'In-Person', 'Candidate', ...), so the form's keys are mapped on save
+const DB_TYPE: Record<string, string> = { email: 'Email', call: 'Call', sms: 'SMS', in_person: 'In-Person' };
+const DB_CONTACT: Record<string, string> = { candidate: 'Candidate', employer: 'Employer' };
+const typeKey = (v: string) => (v || '').toLowerCase().replace('-', '_');
+
 export default function Communications() {
   const { communications, refresh } = useDatabase();
   const { user } = useAuth();
@@ -38,24 +43,26 @@ export default function Communications() {
   }).sort((a: any, b: any) => new Date(b.communication_date).getTime() - new Date(a.communication_date).getTime());
 
   const handleAdd = async () => {
-    if (!newComm.contactName || !newComm.subject || !newComm.notes) return;
+    if (!newComm.contactName.trim() || !newComm.subject.trim() || !newComm.notes.trim()) return;
     setSaving(true);
     try {
       await createCommunication({
         communication_date: new Date().toISOString(),
-        type: newComm.type as any,
-        contact_type: newComm.contactType as any,
-        contact_name: newComm.contactName,
-        subject: newComm.subject,
-        notes: newComm.notes,
-        outcome: newComm.outcome || null,
-        agent_id: user?.id,
+        type: DB_TYPE[newComm.type] as any,
+        contact_type: DB_CONTACT[newComm.contactType] as any,
+        contact_name: newComm.contactName.trim(),
+        subject: newComm.subject.trim(),
+        notes: newComm.notes.trim(),
+        outcome: newComm.outcome.trim() || null,
+        agent_id: user?.id ?? null,
       } as any);
       await refresh();
       setShowModal(false);
       setNewComm({ type: 'email', contactType: 'candidate', contactName: '', subject: '', notes: '', outcome: '' });
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save communication');
+      // Supabase errors are plain objects, not Error instances
+      const message = (err as { message?: string } | null)?.message;
+      alert(message ? `Failed to save communication: ${message}` : 'Failed to save communication');
     } finally {
       setSaving(false);
     }
@@ -88,14 +95,14 @@ export default function Communications() {
         {filtered.map((comm: any) => (
           <Card key={comm.id} className="hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
-              <div className={`p-2.5 rounded-xl text-sm ${comm.type === 'email' ? 'bg-[#F15A24]/5 text-[var(--orange)]' : comm.type === 'call' ? 'bg-[#0D604A]/5 text-[var(--green)]' : 'bg-[#F15A24]/5 text-[var(--orange)]'}`}>
-                {typeIcon[comm.type] || <MessageSquare size={14} />}
+              <div className={`p-2.5 rounded-xl text-sm ${typeKey(comm.type) === 'email' ? 'bg-[#F15A24]/5 text-[var(--orange)]' : typeKey(comm.type) === 'call' ? 'bg-[#0D604A]/5 text-[var(--green)]' : 'bg-[#F15A24]/5 text-[var(--orange)]'}`}>
+                {typeIcon[typeKey(comm.type)] || <MessageSquare size={14} />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-bold text-[var(--navy)]">{comm.subject}</h4>
-                  <Badge variant={typeVariant[comm.type] || 'default'}>{comm.type}</Badge>
-                  <Badge variant={comm.contact_type === 'candidate' ? 'info' : 'success'}>{comm.contact_type}</Badge>
+                  <Badge variant={typeVariant[typeKey(comm.type)] || 'default'}>{comm.type}</Badge>
+                  <Badge variant={(comm.contact_type || '').toLowerCase() === 'candidate' ? 'info' : 'success'}>{comm.contact_type}</Badge>
                 </div>
                 <p className="text-sm text-[var(--charcoal)] mt-0.5 font-medium">With {comm.contact_name} • {new Date(comm.communication_date).toLocaleDateString()}</p>
                 <p className="text-sm text-[var(--charcoal)] mt-2 line-clamp-2 leading-relaxed">{comm.notes}</p>
