@@ -32,6 +32,7 @@ import {
   getPermanentRequestsByEmployer,
   getAllPermanentRequests,
 } from '../lib/supabase/data';
+import { getAllCvSubmissions, getCvSubmissionsForEmployer, type CvSubmission } from '../lib/supabase/cvSubmissions';
 
 export interface DashboardStats {
   employers: number;
@@ -61,6 +62,8 @@ interface DatabaseContextValue {
   jobSkills: Record<string, string[]>;
   cvRequests: any[];
   permanentRequests: any[];
+  /** CVs the admin has sent to employers (all of them for admin, own for an employer) */
+  cvSubmissions: CvSubmission[];
   refresh: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
@@ -86,6 +89,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   const [jobSkills, setJobSkills] = useState<Record<string, string[]>>({});
   const [cvRequests, setCvRequests] = useState<any[]>([]);
   const [permanentRequests, setPermanentRequests] = useState<any[]>([]);
+  const [cvSubmissions, setCvSubmissions] = useState<CvSubmission[]>([]);
 
   const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!user) {
@@ -103,6 +107,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       setPlacements([]);
       setJobSkills({});
       setCvRequests([]);
+      setCvSubmissions([]);
       setStats(null);
       setLoading(false);
       return;
@@ -126,7 +131,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getJobsByEmployer(user.id),
         ]);
         const employerJobIds = (employerJobs || []).map((j: any) => j.id);
-        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap, employerCvRequests, employerPermanentRequests] = await Promise.all([
+        const [employerApplications, employerMatches, employerPlacements, allCandidates, candidateSkillsMap, jobSkillsMap, employerCvRequests, employerPermanentRequests, employerSubmissions] = await Promise.all([
           getApplicationsForJobs(employerJobIds),
           getMatchesForJobs(employerJobIds),
           getPlacements({ employerId: user.id }),
@@ -135,6 +140,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getAllJobSkills(employerJobIds),
           getCvRequestsByEmployer(user.id),
           getPermanentRequestsByEmployer(user.id),
+          getCvSubmissionsForEmployer(user.id),
         ]);
         setEmployer(employerData);
         setJobs(employerJobs || []);
@@ -148,6 +154,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setJobSkills(jobSkillsMap || {});
         setCvRequests(employerCvRequests || []);
         setPermanentRequests(employerPermanentRequests || []);
+        setCvSubmissions(employerSubmissions || []);
       } else if (user.role === 'candidate') {
         const [candidateData, candidateApplications, candidateMatches, approvedJobs, skills, education, experience, languages, certifications, allEmployers] = await Promise.all([
           getCandidateByUserId(user.id),
@@ -177,7 +184,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setRecruiter(recruiterData);
         setCandidates(referredCandidates || []);
       } else if (user.role === 'superadmin') {
-        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters, allCvRequests, allPermanentRequests] = await Promise.all([
+        const [allEmployers, allCandidates, allJobs, allMatches, allPlacements, allCommunications, candidateSkillsMap, allRecruiters, allCvRequests, allPermanentRequests, allSubmissions] = await Promise.all([
           getAllEmployers(),
           getAllCandidates(),
           getAllJobs(),
@@ -188,6 +195,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           getAllRecruiters(),
           getAllCvRequests(),
           getAllPermanentRequests(),
+          getAllCvSubmissions(),
         ]);
         const jobIds = (allJobs || []).map((j: any) => j.id);
         const jobSkillsMap = await getAllJobSkills(jobIds);
@@ -201,6 +209,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         setRecruiters(allRecruiters || []);
         setCvRequests(allCvRequests || []);
         setPermanentRequests(allPermanentRequests || []);
+        setCvSubmissions(allSubmissions || []);
       }
     } catch (err) {
       console.error('Error loading database data:', err);
@@ -262,6 +271,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     jobSkills,
     cvRequests,
     permanentRequests,
+    cvSubmissions,
     refresh: loadData,
   };
 

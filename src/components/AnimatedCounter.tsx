@@ -31,7 +31,7 @@ export default function AnimatedCounter({ value, suffix = '', duration = 1.6, cl
       transition={{ duration: 0.4 }}
       className={className}
     >
-      {display.toLocaleString()}{suffix}
+      {display.toLocaleString('en-IN')}{suffix}
     </motion.span>
   );
 }

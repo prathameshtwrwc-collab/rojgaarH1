@@ -92,7 +92,7 @@ function Landing() {
       <header className={`header ${atTop ? "header--at-top" : ""}`}>
         <div className="header-inner">
           <Link to="/" className="brand">
-            <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="brand-icon h-[72px] w-auto object-contain" loading="lazy" decoding="async" />
+            <img src="/assets/logo/RogjaarHaiLogo.png" alt="Rojgaar Hai" className="brand-icon h-[72px] w-auto object-contain" decoding="async" fetchPriority="high" />
           </Link>
 
            <div className="header-right">
@@ -106,15 +106,25 @@ function Landing() {
 
               <LanguageSwitcher />
 
-              <button onClick={handleGetAppClick} className="btn-header-cta btn-header-cta--get-app">
-                <span>Get App</span>
-                <Download size={16} />
-              </button>
+              {/* Inside the installed app the install button has nothing left to do */}
+              {!isPwaInstalled() && (
+                <button type="button" onClick={handleGetAppClick} className="btn-header-cta btn-header-cta--get-app">
+                  <span>Get App</span>
+                  <Download size={16} />
+                </button>
+              )}
 
-              <button onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
-                <span>{t('landing.getStarted')}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </button>
+              {user ? (
+                <Link to={dashboardPathForRole(user.role)} className="btn-header-cta">
+                  <span>My Dashboard</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </Link>
+              ) : (
+                <button type="button" onClick={() => setShowRoleChooser(true)} className="btn-header-cta">
+                  <span>{t('landing.getStarted')}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+              )}
 
              <button
                className="menu-toggle"
@@ -134,10 +144,16 @@ function Landing() {
             <Link to="/recruiter-info" onClick={() => setMenuOpen(false)}>{t('landing.nav.recruiters')}</Link>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>{t('landing.nav.contact')}</Link>
             <Link to="/jobs" onClick={() => setMenuOpen(false)}>{t('landing.nav.applyForJobs')}</Link>
-              <button onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">{t('landing.getStarted')}</button>
-              <button onClick={() => { setMenuOpen(false); handleGetAppClick(); }} className="mobile-nav-cta" style={{ background: '#101A36' }}>
-                Get App
-              </button>
+              {user ? (
+                <Link to={dashboardPathForRole(user.role)} onClick={() => setMenuOpen(false)} className="mobile-nav-cta">My Dashboard</Link>
+              ) : (
+                <button type="button" onClick={() => { setMenuOpen(false); setShowRoleChooser(true); }} className="mobile-nav-cta">{t('landing.getStarted')}</button>
+              )}
+              {!isPwaInstalled() && (
+                <button type="button" onClick={() => { setMenuOpen(false); handleGetAppClick(); }} className="mobile-nav-cta" style={{ background: '#101A36' }}>
+                  Get App
+                </button>
+              )}
           </nav>
         )}
       </header>

@@ -40,17 +40,18 @@ export default function Pagination({ page, pageSize, total, onPageChange, label 
   const from = (current - 1) * pageSize + 1;
   const to = Math.min(total, current * pageSize);
 
-  const arrow = 'inline-flex items-center justify-center w-9 h-9 rounded-xl border border-[#E7E2D9] bg-white text-[var(--navy)] transition-colors hover:border-[var(--orange)] hover:text-[var(--orange)] disabled:opacity-40 disabled:pointer-events-none';
+  // Phones get roomy 44px thumb targets with a word beside the arrow; desktop keeps compact squares
+  const arrow = 'inline-flex items-center justify-center gap-1 h-11 sm:h-9 px-4 sm:px-0 sm:w-9 rounded-xl border border-[#E7E2D9] bg-white text-[var(--navy)] text-sm font-bold transition-[color,border-color,transform] hover:border-[var(--orange)] hover:text-[var(--orange)] active:scale-95 disabled:opacity-40 disabled:pointer-events-none';
 
   return (
-    <nav aria-label="Pagination" className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <p className="text-xs text-[var(--charcoal)]">
+    <nav aria-label="Pagination" className="mt-8 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 sm:gap-4">
+      <p className="text-xs text-[var(--charcoal)] tabular-nums" aria-live="polite">
         Showing <span className="font-bold text-[var(--navy)]">{from}–{to}</span> of <span className="font-bold text-[var(--navy)]">{total}</span> {label}
       </p>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
         <button type="button" className={arrow} onClick={() => onPageChange(current - 1)} disabled={current === 1} aria-label="Previous page">
-          <ChevronLeft size={16} />
+          <ChevronLeft size={16} /><span className="sm:hidden">Prev</span>
         </button>
 
         <div className="hidden sm:flex items-center gap-1">
@@ -75,10 +76,10 @@ export default function Pagination({ page, pageSize, total, onPageChange, label 
           )}
         </div>
 
-        <span className="sm:hidden px-3 text-sm font-bold text-[var(--navy)]">Page {current} of {pageCount}</span>
+        <span className="sm:hidden px-3 text-sm font-bold text-[var(--navy)] tabular-nums">{current} <span className="text-slate-400 font-semibold">/ {pageCount}</span></span>
 
         <button type="button" className={arrow} onClick={() => onPageChange(current + 1)} disabled={current === pageCount} aria-label="Next page">
-          <ChevronRight size={16} />
+          <span className="sm:hidden">Next</span><ChevronRight size={16} />
         </button>
       </div>
     </nav>

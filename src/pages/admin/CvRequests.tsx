@@ -6,8 +6,11 @@ import { Inbox, Trash2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   FileText, Eye, CheckCircle, XCircle, MapPin, Briefcase, ExternalLink,
-  Download, Copy, AlertTriangle, Clock, IndianRupee, Check,
+  Download, Copy, AlertTriangle, Clock, IndianRupee, Check, Send,
 } from 'lucide-react';
+import SendCvsModal from '../../components/SendCvsModal';
+import SentCvsList from '../../components/SentCvsList';
+import { useAuth } from '../../context/AuthContext';
 import { Card, Button, Modal, Select, Toast } from '../../components/ui';
 import { TableSkeleton } from '../../components/Skeleton';
 import { AdminSearchInput } from '../../components/AdminToolbar';
@@ -116,7 +119,11 @@ function StatusTimeline({ status, createdAt, deliveredAt }: { status: string; cr
 }
 
 export default function CvRequests() {
-  const { cvRequests, employers, jobs, loading, refresh } = useDatabase();
+  const { cvRequests, employers, jobs, candidates, jobSkills, cvSubmissions, loading, refresh } = useDatabase();
+  const { user } = useAuth();
+  // The request whose CVs are being picked and sent
+  const [fulfilling, setFulfilling] = useState<any | null>(null);
+  const sentCount = (reqId: string) => cvSubmissions.filter(s => s.cv_request_id === reqId).length;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -190,7 +197,7 @@ export default function CvRequests() {
       const updates: Record<string, any> = { status: newStatus };
       if (newStatus === 'delivered') updates.delivered_at = new Date().toISOString();
       const updated = await updateCvRequest(requestId, updates);
-      await refresh();
+      await refresh({ silent: true });
       setToast({ message: `Request marked as ${statusMeta(newStatus).label}.`, type: 'success' });
       if (viewingRequest?.id === requestId) {
         setViewingRequest((prev: any) => ({ ...prev, ...updated }));
@@ -289,7 +296,7 @@ export default function CvRequests() {
           <div className="dash-metric__label">Delivered</div>
         </div>
         <div className="dash-metric">
-          <div className="dash-metric__value">₹{stats.revenue.toLocaleString()}</div>
+          <div className="dash-metric__value">₹{stats.revenue.toLocaleString('en-IN')}</div>
           <div className="dash-metric__label">Total Revenue (incl. GST)</div>
         </div>
       </div>
@@ -369,7 +376,9 @@ export default function CvRequests() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-semibold text-[var(--navy)]">{req.plan_label}</p>
-                          <p className="text-xs text-[var(--charcoal)]">{req.cv_count} CVs</p>
+                          <p className="text-xs text-[var(--charcoal)] tabular-nums">
+                            {sentCount(req.id) > 0 ? <><span className="font-bold text-[var(--navy)]">{sentCount(req.id)}</span>/{req.cv_count} CVs sent</> : `${req.cv_count} CVs`}
+                          </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -386,8 +395,8 @@ export default function CvRequests() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-bold text-[var(--navy)]">₹{req.totalAmount.toLocaleString()}</p>
-                        <p className="text-[10px] text-[var(--charcoal)]">₹{req.baseAmount.toLocaleString()} + 18% GST</p>
+                        <p className="font-bold text-[var(--navy)]">₹{req.totalAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-[10px] text-[var(--charcoal)]">₹{req.baseAmount.toLocaleString('en-IN')} + 18% GST</p>
                       </td>
                       <td className="px-4 py-3">
                         <div>
@@ -443,6 +452,16 @@ export default function CvRequests() {
                                 <XCircle size={14} />
                               </button>
                             </>
+                          )}
+                          {req.status !== 'cancelled' && req.status !== 'delivered' && (
+                            <button
+                              onClick={() => setFulfilling(req)}
+                              className="p-1.5 text-[var(--orange)] hover:bg-orange-50 rounded-lg"
+                              title="Pick and send CVs"
+                              aria-label="Pick and send CVs"
+                            >
+                              <Send size={14} />
+                            </button>
                           )}
                           {req.status === 'processing' && (
                             <button
@@ -553,15 +572,15 @@ export default function CvRequests() {
               <div className="rounded-xl border border-[#E7E2D9] overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-warm)]">
                   <span className="text-[var(--charcoal)]">Base Amount</span>
-                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.baseAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.baseAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#EFEAE1]">
                   <span className="text-[var(--charcoal)]">GST (18%)</span>
-                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.gstAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.gstAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 border-t border-[#EFEAE1] bg-[var(--orange)]/5">
                   <span className="font-bold text-[var(--navy)]">Total Paid</span>
-                  <span className="font-extrabold text-[var(--orange)] text-lg flex items-center"><IndianRupee size={16} />{viewingRequest.totalAmount.toLocaleString()}</span>
+                  <span className="font-extrabold text-[var(--orange)] text-lg flex items-center"><IndianRupee size={16} />{viewingRequest.totalAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -579,6 +598,31 @@ export default function CvRequests() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* CVs sent against this request, and how the employer answered */}
+            <div className="dash-surface dash-surface--pad">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-xs font-bold text-[var(--navy)] uppercase tracking-wider">
+                  CVs sent <span className="tabular-nums">({sentCount(viewingRequest.id)}/{viewingRequest.cv_count})</span>
+                </p>
+                {viewingRequest.status !== 'cancelled' && (
+                  <button type="button" onClick={() => setFulfilling(viewingRequest)} className="text-xs font-bold text-[var(--orange)] hover:underline inline-flex items-center gap-1">
+                    <Send size={12} /> {sentCount(viewingRequest.id) > 0 ? 'Send more' : 'Pick & send CVs'}
+                  </button>
+                )}
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-3">
+                <div
+                  className="h-full rounded-full bg-[var(--green)] transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{ width: `${Math.min(100, (sentCount(viewingRequest.id) / Math.max(1, Number(viewingRequest.cv_count || 0))) * 100)}%` }}
+                />
+              </div>
+              <SentCvsList
+                submissions={cvSubmissions.filter(s => s.cv_request_id === viewingRequest.id)}
+                onChanged={() => refresh({ silent: true })}
+                onToast={m => setToast({ message: m, type: /could not|fail/i.test(m) ? 'error' : 'success' })}
+              />
             </div>
 
             {viewingRequest.status !== 'delivered' && viewingRequest.status !== 'cancelled' && (
@@ -610,7 +654,7 @@ export default function CvRequests() {
         title="Delete this CV request?"
         description="This permanently deletes the request and its payment record from the system. Use Cancel instead if you only want to stop it. This cannot be undone."
         confirmLabel="Delete request"
-        onConfirm={async () => { await adminDeleteCvRequest(deleteCvTarget.id); await refresh(); }}
+        onConfirm={async () => { await adminDeleteCvRequest(deleteCvTarget.id); await refresh({ silent: true }); }}
       />
 
       {/* Cancel Confirmation Modal */}
@@ -636,6 +680,22 @@ export default function CvRequests() {
           </div>
         </div>
       </Modal>
+
+      <SendCvsModal
+        isOpen={Boolean(fulfilling)}
+        onClose={() => setFulfilling(null)}
+        job={fulfilling?.job_id ? jobs.find((j: any) => j.id === fulfilling.job_id) || null : null}
+        employer={fulfilling ? employers.find((e: any) => e.id === fulfilling.employer_id) || null : null}
+        candidates={candidates}
+        jobSkills={fulfilling?.job_id ? jobSkills[fulfilling.job_id] || [] : []}
+        submissions={cvSubmissions}
+        cvRequest={fulfilling}
+        adminId={user?.id || null}
+        onSent={async () => {
+          await refresh({ silent: true });
+          setShowDetailModal(false);
+        }}
+      />
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

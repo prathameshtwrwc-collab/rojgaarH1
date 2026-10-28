@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { Toggle } from './ui';
 
 export interface JobFilterState {
@@ -80,33 +80,43 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
+// The whole row is the hit area (a comfortable 40px on phones), and screen readers hear a real checkbox or radio
 function CheckRow({ checked, label, count, onClick }: { checked: boolean; label: string; count?: number; onClick: () => void }) {
   return (
-    <label className="flex items-center justify-between gap-2 py-1.5 cursor-pointer group">
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onClick={onClick}
+      className="w-full flex items-center justify-between gap-2 py-1.5 min-h-[40px] lg:min-h-0 text-left cursor-pointer group rounded-lg"
+    >
       <span className="flex items-center gap-2.5 min-w-0">
         <span
-          onClick={onClick}
-          className={`w-[17px] h-[17px] rounded-[5px] border flex items-center justify-center flex-shrink-0 transition-colors ${
-            checked ? 'bg-[var(--orange)] border-[var(--orange)]' : 'border-[#D8D2C6] group-hover:border-[var(--orange)]'
+          className={`w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center flex-shrink-0 transition-[background-color,border-color,transform] duration-200 ${
+            checked ? 'bg-[var(--orange)] border-[var(--orange)] scale-100' : 'border-[#D8D2C6] group-hover:border-[var(--orange)]'
           }`}
         >
-          {checked && <span className="w-1.5 h-1.5 bg-white rounded-[1px]" />}
+          {checked && <Check size={12} strokeWidth={3.5} className="text-white" />}
         </span>
-        <span onClick={onClick} className="text-[13px] font-medium text-[var(--navy)] truncate">{label}</span>
+        <span className="text-[13.5px] lg:text-[13px] font-medium text-[var(--navy)] truncate">{label}</span>
       </span>
-      {count != null && <span className="text-[11px] text-slate-400 flex-shrink-0">{count}</span>}
-    </label>
+      {count != null && <span className="text-[11px] text-slate-400 flex-shrink-0 tabular-nums">{count}</span>}
+    </button>
   );
 }
 
 function RadioRow({ checked, label, onClick }: { checked: boolean; label: string; onClick: () => void }) {
   return (
-    <label onClick={onClick} className="flex items-center gap-2.5 py-1.5 cursor-pointer group">
-      <span className={`w-[17px] h-[17px] rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'border-[var(--orange)]' : 'border-[#D8D2C6] group-hover:border-[var(--orange)]'}`}>
-        {checked && <span className="w-2 h-2 bg-[var(--orange)] rounded-full" />}
-      </span>
-      <span className="text-[13px] font-medium text-[var(--navy)]">{label}</span>
-    </label>
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 py-1.5 min-h-[40px] lg:min-h-0 text-left cursor-pointer group rounded-lg"
+    >
+      <span className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'border-[var(--orange)] border-[5px]' : 'border-[#D8D2C6] group-hover:border-[var(--orange)]'}`} />
+      <span className={`text-[13.5px] lg:text-[13px] text-[var(--navy)] ${checked ? 'font-bold' : 'font-medium'}`}>{label}</span>
+    </button>
   );
 }
 
@@ -137,9 +147,11 @@ export function JobFiltersPanel({ filters, onChange, industries, skillOptions, o
       </FilterSection>
 
       <FilterSection title="Date Posted">
+        <div role="radiogroup" aria-label="Date posted">
         {DATE_POSTED_OPTIONS.map(opt => (
           <RadioRow key={opt.value} checked={filters.datePosted === opt.value} label={opt.label} onClick={() => onChange({ datePosted: opt.value })} />
         ))}
+        </div>
       </FilterSection>
 
       <FilterSection title="Job Type">
@@ -149,16 +161,21 @@ export function JobFiltersPanel({ filters, onChange, industries, skillOptions, o
       </FilterSection>
 
       <FilterSection title="Experience Level">
+        <div role="radiogroup" aria-label="Experience level">
         {EXPERIENCE_OPTIONS.map(opt => (
           <RadioRow key={opt.value} checked={filters.experience === opt.value} label={opt.label} onClick={() => onChange({ experience: opt.value })} />
         ))}
+        </div>
       </FilterSection>
 
       <FilterSection title="Salary Range (₹/month)">
         <div className="flex items-center gap-2 mb-3">
           <input
             type="number"
+            inputMode="numeric"
+            min={0}
             placeholder="Min"
+            aria-label="Minimum monthly salary"
             value={filters.salaryMin}
             onChange={e => onChange({ salaryMin: e.target.value })}
             className="w-full px-2.5 py-2 rounded-[10px] border border-[#D8D2C6] text-[13px] font-medium text-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
@@ -166,7 +183,10 @@ export function JobFiltersPanel({ filters, onChange, industries, skillOptions, o
           <span className="text-slate-400 text-xs flex-shrink-0">to</span>
           <input
             type="number"
+            inputMode="numeric"
+            min={0}
             placeholder="Max"
+            aria-label="Maximum monthly salary"
             value={filters.salaryMax}
             onChange={e => onChange({ salaryMax: e.target.value })}
             className="w-full px-2.5 py-2 rounded-[10px] border border-[#D8D2C6] text-[13px] font-medium text-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
@@ -179,7 +199,8 @@ export function JobFiltersPanel({ filters, onChange, industries, skillOptions, o
               <button
                 key={p.label}
                 onClick={() => onChange(isActive ? { salaryMin: '', salaryMax: '' } : { salaryMin: p.min, salaryMax: p.max })}
-                className={`px-2.5 py-1 rounded-full text-[11.5px] font-semibold border transition-colors ${
+                aria-pressed={isActive}
+                className={`px-3 py-1.5 lg:px-2.5 lg:py-1 rounded-full text-[12px] lg:text-[11.5px] font-semibold border transition-colors ${
                   isActive ? 'bg-[var(--navy)] border-[var(--navy)] text-white' : 'border-[#D8D2C6] text-[var(--charcoal)] hover:border-[var(--navy)]'
                 }`}
               >
@@ -215,7 +236,8 @@ export function JobFiltersPanel({ filters, onChange, industries, skillOptions, o
                 <button
                   key={skill}
                   onClick={() => onChange({ skills: toggleInArray(filters.skills, skill) })}
-                  className={`px-2.5 py-1 rounded-full text-[11.5px] font-semibold border transition-colors ${
+                  aria-pressed={isActive}
+                  className={`px-3 py-1.5 lg:px-2.5 lg:py-1 rounded-full text-[12px] lg:text-[11.5px] font-semibold border transition-colors ${
                     isActive ? 'bg-[var(--orange)]/10 border-[var(--orange)]/40 text-[var(--orange)]' : 'border-[#D8D2C6] text-[var(--charcoal)] hover:border-[var(--orange)]'
                   }`}
                 >
@@ -246,7 +268,11 @@ export function buildFilterChips(filters: JobFilterState, onChange: (patch: Part
   if (filters.salaryMin || filters.salaryMax) {
     chips.push({
       key: 'sal',
-      label: `₹${filters.salaryMin || '0'} – ${filters.salaryMax ? '₹' + filters.salaryMax : 'Any'}`,
+      label: filters.salaryMin && filters.salaryMax
+        ? `₹${Number(filters.salaryMin).toLocaleString('en-IN')} – ₹${Number(filters.salaryMax).toLocaleString('en-IN')}`
+        : filters.salaryMin
+          ? `₹${Number(filters.salaryMin).toLocaleString('en-IN')}+`
+          : `Up to ₹${Number(filters.salaryMax).toLocaleString('en-IN')}`,
       onRemove: () => onChange({ salaryMin: '', salaryMax: '' }),
     });
   }

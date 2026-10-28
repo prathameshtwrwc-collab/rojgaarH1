@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { haptic } from '../lib/haptics';
 import { ChevronDown, ChevronUp, Eye, Star, XCircle } from 'lucide-react';
 import { Badge, Button } from './ui';
 
@@ -21,6 +22,13 @@ interface ApplicantRowProps {
  */
 export default function ApplicantRow({ applicant, matchScore, onView, onShortlist, onReject }: ApplicantRowProps) {
   const [open, setOpen] = useState(false);
+  // Rejecting takes two taps: the first arms the button for a few seconds
+  const [confirmReject, setConfirmReject] = useState(false);
+  useEffect(() => {
+    if (!confirmReject) return;
+    const t = window.setTimeout(() => setConfirmReject(false), 3500);
+    return () => window.clearTimeout(t);
+  }, [confirmReject]);
   const isShortlisted = applicant.applicationStatus === 'shortlisted';
   const isRejected = applicant.applicationStatus === 'rejected';
   const name = `${applicant.firstName} ${applicant.lastName}`.trim() || 'Applicant';
@@ -46,12 +54,15 @@ export default function ApplicantRow({ applicant, matchScore, onView, onShortlis
             )}
           </div>
           <p className="text-xs text-[var(--charcoal)] truncate">
-            {applicant.totalExperience} • {applicant.location || 'Location not set'}
+            {[applicant.totalExperience, applicant.location || 'Location not set'].filter(Boolean).join(' · ')}
           </p>
+          {(isShortlisted || isRejected) && (
+            <p className={`sm:hidden mt-0.5 text-[10.5px] font-bold ${isShortlisted ? 'text-amber-700' : 'text-red-600'}`}>{isShortlisted ? '★ Shortlisted' : 'Rejected'}</p>
+          )}
         </div>
 
-        <div className="text-center px-2.5 py-1 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] flex-shrink-0">
-          <p className="text-base font-extrabold leading-tight">{matchScore}%</p>
+        <div className={`text-center px-2.5 py-1 rounded-lg flex-shrink-0 ${matchScore >= 70 ? 'bg-[var(--green)]/10 text-[var(--green)]' : 'bg-[var(--orange)]/10 text-[var(--orange)]'}`} title="How well this applicant matches the job">
+          <p className="text-base font-extrabold leading-tight tabular-nums">{matchScore}%</p>
           <p className="text-[9px] font-bold uppercase tracking-wider">Match</p>
         </div>
       </div>
@@ -61,7 +72,7 @@ export default function ApplicantRow({ applicant, matchScore, onView, onShortlis
           type="button"
           onClick={() => setOpen(v => !v)}
           aria-expanded={open}
-          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--orange)] hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-bold text-[var(--orange)] hover:underline min-h-[36px]"
         >
           {open ? <>Hide details <ChevronUp size={14} /></> : <>Show details <ChevronDown size={14} /></>}
         </button>
@@ -70,12 +81,30 @@ export default function ApplicantRow({ applicant, matchScore, onView, onShortlis
           <Button size="sm" variant="outline" onClick={onView} className="text-xs">
             <Eye size={12} className="mr-1" /> View
           </Button>
-          <Button size="sm" variant="secondary" onClick={onShortlist} className="text-xs">
-            <Star size={12} className="mr-1" /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
+          <Button size="sm" variant="secondary" onClick={e => { haptic('select'); onShortlist(e); }} disabled={isShortlisted} className="text-xs">
+            <Star size={12} className={isShortlisted ? 'fill-current' : ''} /> {isShortlisted ? 'Shortlisted' : 'Shortlist'}
           </Button>
-          <button type="button" onClick={onReject} title="Reject" aria-label="Reject applicant" className="p-2 text-slate-400 hover:text-red-600 rounded-lg">
-            <XCircle size={16} />
-          </button>
+          {!isRejected && (
+            confirmReject ? (
+              <button
+                type="button"
+                onClick={e => { haptic('warn'); setConfirmReject(false); onReject(e); }}
+                className="h-9 px-3 rounded-lg bg-red-600 text-white text-xs font-bold animate-[ap-scale-in_220ms_ease-out] whitespace-nowrap"
+              >
+                Reject?
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); haptic('tap'); setConfirmReject(true); }}
+                title="Reject"
+                aria-label={`Reject ${name}`}
+                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <XCircle size={17} />
+              </button>
+            )
+          )}
         </div>
       </div>
 
@@ -92,7 +121,7 @@ export default function ApplicantRow({ applicant, matchScore, onView, onShortlis
           )}
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             <p><span className="text-slate-400">Qualification:</span> <span className="font-semibold text-[var(--navy)]">{applicant.qualification || '—'}</span></p>
-            <p><span className="text-slate-400">Expected:</span> <span className="font-semibold text-[var(--navy)]">{Number(applicant.expectedSalary) ? `₹${Number(applicant.expectedSalary).toLocaleString()}/mo` : '—'}</span></p>
+            <p><span className="text-slate-400">Expected:</span> <span className="font-semibold text-[var(--navy)]">{Number(applicant.expectedSalary) ? `₹${Number(applicant.expectedSalary).toLocaleString('en-IN')}/mo` : '—'}</span></p>
             <p className="col-span-2"><span className="text-slate-400">Status:</span> <span className="font-semibold text-[var(--navy)] capitalize">{String(applicant.applicationStatus || 'applied').replace(/_/g, ' ')}</span></p>
           </div>
         </div>

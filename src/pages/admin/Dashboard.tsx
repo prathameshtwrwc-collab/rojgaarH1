@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { timeGreeting } from '../../lib/greeting';
-import { Users, MapPin, Zap } from 'lucide-react';
+import { Users, MapPin, Zap, Search, X } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { UserAdd01Icon, Target02Icon, Award01Icon, Briefcase01Icon, Building02Icon } from '@hugeicons/core-free-icons';
@@ -13,6 +14,8 @@ export default function Dashboard() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('All');
+  // Charts are shorter on phones so a whole chart fits on screen with its title
+  const isMobile = useIsMobile();
 
   const employersList = useMemo(() => employers.map(e => ({
     id: e.id,
@@ -66,7 +69,9 @@ export default function Dashboard() {
   const totalRevenue = placements.reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
   const unpaidCommission = placements.filter((p: any) => p.commission_status === 'Unpaid' || p.commission_status === 'Partial').reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
   const paidCommission = placements.filter((p: any) => p.commission_status === 'Paid').reduce((sum: number, p: any) => sum + (Number(p.commission) || 0), 0);
-  const newThisWeek = jobSeekers.filter((j: any) => j.status === 'New').length;
+  // Candidates nobody has contacted yet
+  const newCandidates = jobSeekers.filter((j: any) => j.status === 'New').length;
+  const pendingMatches = matches.filter(m => m.status === 'Pending').length;
 
   const filterByDate = (dateStr: string) => {
     if (dateFilter === 'All') return true;
@@ -129,7 +134,7 @@ export default function Dashboard() {
     const events: { icon: any; text: string; time: string; at: string }[] = [];
     jobSeekers.slice(0, 5).forEach(c => events.push({ icon: UserAdd01Icon, text: `New candidate registered: ${c.firstName} ${c.lastName}`.trim(), time: c.createdAt, at: c.createdAt }));
     recentMatches.slice(0, 5).forEach((m: any) => events.push({ icon: Target02Icon, text: `Match created: ${m.candidateName} → ${m.jobTitle} (${m.matchScore}%)`, time: m.createdAt, at: m.createdAt }));
-    placements.slice(0, 5).forEach((p: any) => events.push({ icon: Award01Icon, text: `Placement recorded (₹${Number(p.commission || 0).toLocaleString()} commission)`, time: p.created_at, at: p.created_at }));
+    placements.slice(0, 5).forEach((p: any) => events.push({ icon: Award01Icon, text: `Placement recorded (₹${Number(p.commission || 0).toLocaleString('en-IN')} commission)`, time: p.created_at, at: p.created_at }));
     jobPostingsList.slice(0, 5).forEach((j: any) => events.push({ icon: Briefcase01Icon, text: `New job posted: ${j.jobTitle} at ${j.companyName}`, time: j.createdAt, at: j.createdAt }));
     employersList.slice(0, 5).forEach((e: any) => events.push({ icon: Building02Icon, text: `New employer registered: ${e.companyName}`, time: e.createdAt, at: e.createdAt }));
     return events
@@ -161,18 +166,24 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-[13px] font-medium text-[var(--charcoal)]">{today}</p>
-          <h2 className="dash-header__title !text-[26px] mt-0.5">{timeGreeting()}, Admin</h2>
+          <h2 className="dash-header__title !text-[24px] sm:!text-[26px] mt-0.5">{timeGreeting()}, Admin</h2>
           <p className="text-[14px] text-[var(--charcoal)] mt-1.5 max-w-lg">
-            <span className="font-bold text-[var(--navy)]">{newThisWeek} new candidates</span> and{' '}
-            <span className="font-bold text-[var(--navy)]">{matches.filter(m => m.status === 'Pending').length} pending matches</span> need review today.
+            {newCandidates === 0 && pendingMatches === 0 ? (
+              <>You are all caught up. Nothing is waiting for review.</>
+            ) : (
+              <>
+                <span className="font-bold text-[var(--navy)] tabular-nums">{newCandidates} new {newCandidates === 1 ? 'candidate' : 'candidates'}</span> and{' '}
+                <span className="font-bold text-[var(--navy)] tabular-nums">{pendingMatches} pending {pendingMatches === 1 ? 'match' : 'matches'}</span> need review.
+              </>
+            )}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/admin/matching">
-            <button className="dash-btn dash-btn-primary dash-btn--compact"><Zap size={14} /> Review Matches</button>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <Link to="/admin/matching" className="contents">
+            <button className="dash-btn dash-btn-primary dash-btn--compact w-full sm:w-auto"><Zap size={14} /> Review Matches</button>
           </Link>
-          <Link to="/admin/candidates">
-            <button className="dash-btn dash-btn-secondary dash-btn--compact"><Users size={14} /> View Candidates</button>
+          <Link to="/admin/candidates" className="contents">
+            <button className="dash-btn dash-btn-secondary dash-btn--compact w-full sm:w-auto"><Users size={14} /> View Candidates</button>
           </Link>
         </div>
       </div>
@@ -181,19 +192,27 @@ export default function Dashboard() {
       <div className="dash-surface dash-surface--pad">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
-              type="text"
+              type="search"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search candidates, jobs, matches..."
-              className="w-full pl-4 pr-4 h-10 rounded-lg border border-[#D8D2C6] bg-[var(--white)] text-[var(--navy)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)]/25 focus:border-[var(--orange)]"
+              placeholder="Search recent candidates, jobs and matches"
+              aria-label="Search recent activity"
+              className="w-full pl-10 pr-10 h-11 sm:h-10 rounded-xl sm:rounded-lg border border-[#D8D2C6] bg-[var(--white)] text-[var(--navy)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)]/25 focus:border-[var(--orange)] [&::-webkit-search-cancel-button]:hidden"
             />
+            {searchTerm && (
+              <button type="button" onClick={() => setSearchTerm('')} aria-label="Clear search" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100">
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <select
               value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
-              className="h-10 px-3 rounded-lg border border-[#D8D2C6] bg-[var(--white)] text-[var(--navy)] text-xs font-bold"
+              aria-label="Date range"
+              className="h-11 sm:h-10 w-full sm:w-auto px-3 rounded-xl sm:rounded-lg border border-[#D8D2C6] bg-[var(--white)] text-[var(--navy)] text-xs font-bold"
             >
               <option value="All">All Dates</option>
               <option value="Last 7 days">Last 7 Days</option>
@@ -219,9 +238,9 @@ export default function Dashboard() {
           <div className="dash-metric__label">Placements</div>
         </div>
         <div className="dash-metric">
-          <div className="dash-metric__value">₹{totalRevenue.toLocaleString()}</div>
+          <div className="dash-metric__value">₹{totalRevenue.toLocaleString('en-IN')}</div>
           <div className="dash-metric__label">Total Revenue</div>
-          <div className="dash-metric__trend">₹{unpaidCommission.toLocaleString()} pending</div>
+          <div className="dash-metric__trend">₹{unpaidCommission.toLocaleString('en-IN')} pending</div>
         </div>
         <div className="dash-metric">
           <div className="dash-metric__value">{employers.length}</div>
@@ -252,7 +271,7 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5 text-[var(--charcoal)]"><span className="w-2.5 h-2.5 rounded-full bg-[#0D604A]" /> Placements</span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={isMobile ? 210 : 280}>
             <AreaChart data={monthlyData}>
               <defs>
                 <linearGradient id="colorCandidates" x1="0" y1="0" x2="0" y2="1">
@@ -361,7 +380,7 @@ export default function Dashboard() {
             <h3 className="font-bold text-[var(--navy)]">Jobs by Industry</h3>
             <Link to="/admin/employers" className="text-xs text-[var(--orange)] font-semibold hover:underline">View Employers →</Link>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={isMobile ? 210 : 250}>
             <BarChart data={jobsByIndustry} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" />
@@ -378,7 +397,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-baseline justify-between">
               <span className="text-[13px] font-semibold text-[var(--charcoal)]">Paid</span>
-              <span className="text-lg font-extrabold text-[var(--green)]">₹{paidCommission.toLocaleString()}</span>
+              <span className="text-lg font-extrabold text-[var(--green)]">₹{paidCommission.toLocaleString('en-IN')}</span>
             </div>
             <div className="dash-progress mt-1.5">
               <div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${totalRevenue > 0 ? (paidCommission / totalRevenue) * 100 : 0}%` }} />
@@ -387,7 +406,7 @@ export default function Dashboard() {
           <div className="mt-4 pt-4 border-t border-[#EFEAE1]">
             <div className="flex items-baseline justify-between">
               <span className="text-[13px] font-semibold text-[var(--charcoal)]">Unpaid / Partial</span>
-              <span className="text-lg font-extrabold text-[var(--orange)]">₹{unpaidCommission.toLocaleString()}</span>
+              <span className="text-lg font-extrabold text-[var(--orange)]">₹{unpaidCommission.toLocaleString('en-IN')}</span>
             </div>
             <div className="dash-progress mt-1.5">
               <div className="dash-progress__fill" style={{ width: `${totalRevenue > 0 ? (unpaidCommission / totalRevenue) * 100 : 0}%` }} />
@@ -398,7 +417,7 @@ export default function Dashboard() {
               <span className="text-[13px] font-semibold text-[var(--charcoal)] block">Total Revenue</span>
               <span className="text-[11px] text-[var(--charcoal)]">{placements.length} placements</span>
             </div>
-            <span className="text-lg font-extrabold text-[var(--navy)]">₹{totalRevenue.toLocaleString()}</span>
+            <span className="text-lg font-extrabold text-[var(--navy)]">₹{totalRevenue.toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
@@ -422,7 +441,7 @@ export default function Dashboard() {
                 <MapPin size={12} />{job.city}, {job.state}
               </div>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--green)]">₹{parseInt(job.salaryMin).toLocaleString()} - ₹{parseInt(job.salaryMax).toLocaleString()}</span>
+                <span className="text-xs font-bold text-[var(--green)]">₹{parseInt(job.salaryMin).toLocaleString('en-IN')} - ₹{parseInt(job.salaryMax).toLocaleString('en-IN')}</span>
                 <span className="text-[10px] text-[var(--charcoal)] font-medium">{job.employmentType}</span>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">

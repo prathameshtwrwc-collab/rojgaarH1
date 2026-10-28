@@ -7,7 +7,7 @@ import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Briefcase, Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, MapPin, IndianRupee, Download } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Input, Toast } from '../../components/ui';
 import { SkillTagInput } from '../../components/SkillTagInput';
 import { deadlineDateRange, isValidDeadline } from '../../lib/dateRange';
@@ -111,7 +111,7 @@ export default function JobApprovals() {
       await updateJobPosting(job.id, {
         status: 'Open', is_verified: true, approved_by: user?.id || null, approved_at: now,
       } as any);
-      await refresh();
+      await refresh({ silent: true });
       setToast({ type: 'success', message: `"${job.job_title}" is now live.` });
     } catch (err) {
       setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to approve job.' });
@@ -124,7 +124,7 @@ export default function JobApprovals() {
     setBusyJobId(job.id);
     try {
       await updateJobPosting(job.id, { status: 'Closed', is_verified: false } as any);
-      await refresh();
+      await refresh({ silent: true });
       setToast({ type: 'success', message: `"${job.job_title}" has been ${job.status === 'Pending' ? 'rejected' : 'closed'}.` });
     } catch (err) {
       setToast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update job.' });
@@ -134,7 +134,26 @@ export default function JobApprovals() {
   };
 
   const handlePostJob = async () => {
-    if (!form.employerId || !form.jobTitle || !form.jobDescription || !form.city || !form.state || !user) return;
+    if (!user) return;
+    const missing = [
+      !form.employerId && 'employer',
+      !form.jobTitle.trim() && 'job title',
+      !form.city.trim() && 'city',
+      !form.state && 'state',
+      !form.jobDescription.trim() && 'description',
+    ].filter(Boolean) as string[];
+    if (missing.length) {
+      setToast({ type: 'error', message: `Please fill in: ${missing.join(', ')}.` });
+      return;
+    }
+    if (form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin)) {
+      setToast({ type: 'error', message: 'Maximum salary cannot be lower than the minimum.' });
+      return;
+    }
+    if (form.experienceMin && form.experienceMax && Number(form.experienceMax) < Number(form.experienceMin)) {
+      setToast({ type: 'error', message: 'Maximum experience cannot be lower than the minimum.' });
+      return;
+    }
     if (!isValidDeadline(form.deadline)) {
       setToast({ type: 'error', message: 'Application deadline must be between today and 1.5 months from today.' });
       return;
@@ -146,8 +165,8 @@ export default function JobApprovals() {
         : form.employerId;
       const job: any = await createJobPosting({
         employer_id: employerId,
-        job_title: form.jobTitle,
-        city: form.city,
+        job_title: form.jobTitle.trim(),
+        city: form.city.trim(),
         state: form.state,
         number_of_openings: Number(form.numberOfOpenings) || 1,
         salary_min: form.salaryMin ? Number(form.salaryMin) : null,
@@ -169,15 +188,22 @@ export default function JobApprovals() {
         approved_at: new Date().toISOString(),
       } as any);
       if (form.skills.length > 0) await setJobSkills(job.id, form.skills);
-      await refresh();
+      await refresh({ silent: true });
       setShowPostModal(false);
       setForm(emptyForm);
+      setToast({ type: 'success', message: `"${form.jobTitle.trim()}" is now live.` });
+    } catch (err) {
+      setToast({ type: 'error', message: (err as { message?: string })?.message || 'Could not post this job. Please try again.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const paging = usePagination(filteredJobs, 10);
+  // Pending first (they need you), then newest
+  const sortedJobs = [...filteredJobs].sort((a: any, b: any) =>
+    Number(b.status === 'Pending') - Number(a.status === 'Pending') ||
+    String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const paging = usePagination(sortedJobs, 10);
 
   return (
     <div className="space-y-6">
@@ -187,15 +213,15 @@ export default function JobApprovals() {
         title="Delete this job?"
         description="This permanently deletes the job with its applications and matches. It cannot be undone. Jobs with placement records cannot be deleted; close those instead."
         confirmLabel="Delete job"
-        onConfirm={async () => { await adminDeleteJob(deleteJobTarget.id); await refresh(); }}
+        onConfirm={async () => { await adminDeleteJob(deleteJobTarget.id); await refresh({ silent: true }); }}
       />
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--navy)]">Job Postings</h2>
+          <h2 className="admin-page-title text-2xl font-bold text-[var(--navy)]">Job Postings</h2>
           <p className="text-sm text-[var(--charcoal)] mt-1">Review, approve and manage every job listed on the platform.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 h-11"><Download size={15} /> Export CSV</Button>
+          <Button variant="outline" onClick={handleExportCsv} disabled={filteredJobs.length === 0} className="gap-1.5 h-11"><Download size={15} /> Export CSV</Button>
           <Button onClick={() => setShowPostModal(true)} className="gap-1.5 h-11"><Plus size={16} /> Post Job</Button>
         </div>
       </div>
@@ -225,7 +251,8 @@ export default function JobApprovals() {
         <div className="flex items-center gap-2 flex-wrap">
           <Select
             fullWidth={false}
-            className="h-11 w-auto min-w-[200px]"
+            className="h-11 w-full sm:w-auto sm:min-w-[200px]"
+            aria-label="Filter by employer"
             options={[{ value: '', label: 'All Employers' }, ...jobEmployerOptions]}
             value={employerFilter}
             onChange={e => setEmployerFilter(e.target.value)}
@@ -265,29 +292,39 @@ export default function JobApprovals() {
             </thead>
             <tbody>
               {paging.pageItems.map((job: any) => (
-                <tr key={job.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
+                <tr key={job.id} className={`border-b border-slate-100/60 hover:bg-slate-50 transition-colors ${job.status === 'Pending' ? 'bg-amber-50/40' : ''}`}>
                   <td className="px-4 py-3">
                     <Link to={`/admin/jobs/${job.id}`} className="text-sm font-bold text-[var(--navy)] hover:text-[var(--orange)] hover:underline">{job.job_title}</Link>
+                    {job.created_at && (
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Posted {new Date(job.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {job.status === 'Pending' && job.payment_status === 'paid' && <span className="ml-1.5 text-amber-700 font-semibold">· Payment submitted</span>}
+                      </p>
+                    )}
                     <div className="mt-1 flex flex-wrap gap-1">
                       {(jobSkills[job.id] || []).slice(0, 3).map((s: string) => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)]">{employerName(job.employer_id)}</td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden sm:table-cell">
-                    <span className="flex items-center gap-1"><MapPin size={12} /> {job.city}, {job.state}</span>
+                    <span className="flex items-center gap-1"><MapPin size={12} /> {[job.city, job.state].filter(Boolean).join(', ') || '—'}</span>
                   </td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden md:table-cell">
-                    <span className="flex items-center gap-1"><IndianRupee size={12} /> {Number(job.salary_min || 0).toLocaleString()}-{Number(job.salary_max || 0).toLocaleString()}</span>
+                    {Number(job.salary_min) || Number(job.salary_max) ? (
+                      <span className="flex items-center gap-1 tabular-nums whitespace-nowrap"><IndianRupee size={12} /> {Number(job.salary_min || 0).toLocaleString('en-IN')} – {Number(job.salary_max || 0).toLocaleString('en-IN')}</span>
+                    ) : (
+                      <span className="text-slate-400">Not disclosed</span>
+                    )}
                   </td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[job.status]}>{job.status}</Badge></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <Link to={`/admin/jobs/${job.id}`}>
-                        <Button size="sm" variant="outline" className="text-xs">View</Button>
+                      <Link to={`/admin/jobs/${job.id}`} className="inline-flex items-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-bold text-[var(--navy)] hover:bg-slate-50 transition-colors">
+                        View
                       </Link>
                       {job.status !== 'Open' && (
-                        <Button size="sm" variant="success" disabled={busyJobId === job.id} onClick={() => handleApprove(job)} className="gap-1 text-xs">
-                          <CheckCircle size={12} /> Approve
+                        <Button size="sm" variant="success" disabled={busyJobId === job.id} loading={busyJobId === job.id} onClick={() => handleApprove(job)} className="gap-1 text-xs">
+                          {busyJobId !== job.id && <CheckCircle size={12} />} Approve
                         </Button>
                       )}
                       {job.status !== 'Closed' && (
@@ -295,7 +332,7 @@ export default function JobApprovals() {
                           <XCircle size={12} /> {job.status === 'Pending' ? 'Reject' : 'Close'}
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" disabled={busyJobId === job.id} onClick={() => setDeleteJobTarget(job)} title="Delete job" className="text-red-600 hover:text-red-700 text-xs">
+                      <Button size="sm" variant="ghost" disabled={busyJobId === job.id} onClick={() => setDeleteJobTarget(job)} title="Delete job" aria-label={`Delete ${job.job_title}`} className="text-red-600 hover:text-red-700 text-xs">
                         <Trash2 size={12} />
                       </Button>
                     </div>
@@ -305,13 +342,17 @@ export default function JobApprovals() {
             </tbody>
           </table>
                 {paging.total === 0 ? (
-                  <EmptyState icon={<Inbox size={20} />} title="No jobs to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                  <div className="p-4">
+                    <EmptyState
+                      icon={<Inbox size={20} />}
+                      title={jobs.length === 0 ? 'No jobs yet' : statusFilter === 'Pending' && !term && !employerFilter ? 'Nothing waiting for approval' : 'No jobs match'}
+                      body={jobs.length === 0 ? 'Jobs appear here when employers post them.' : statusFilter === 'Pending' && !term && !employerFilter ? 'You are all caught up.' : 'Try a different search, employer or status.'}
+                      action={term || employerFilter || statusFilter !== 'All' ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setEmployerFilter(''); setStatusFilter('All'); }}>Clear filters</Button> : undefined}
+                    />
+                  </div>
                 ) : (
                   <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="jobs" />
                 )}
-          {filteredJobs.length === 0 && (
-            <div className="text-center py-12 text-[var(--charcoal)]"><Briefcase size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No jobs found</p></div>
-          )}
         </div>
       </Card>
 

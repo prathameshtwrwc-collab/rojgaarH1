@@ -5,6 +5,7 @@ const patterns = {
   select: 12,
   success: [10, 40, 14],
   warn: [18, 30, 18],
+  error: [30, 50, 30],
 } as const;
 
 export function haptic(kind: keyof typeof patterns = 'tap') {

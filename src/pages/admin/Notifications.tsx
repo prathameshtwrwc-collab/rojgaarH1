@@ -16,7 +16,9 @@ const KIND_META = {
 } as const;
 
 function timeAgo(dateStr: string) {
-  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  const t = new Date(dateStr).getTime();
+  if (Number.isNaN(t)) return '';
+  const mins = Math.floor((Date.now() - t) / 60000);
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
@@ -26,14 +28,16 @@ function timeAgo(dateStr: string) {
 }
 
 export default function Notifications() {
-  const { jobs, employers, cvRequests, loading } = useDatabase();
+  const { jobs, employers, cvRequests, cvSubmissions, loading } = useDatabase();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
-  const source = useMemo(() => ({ jobs, employers, cvRequests }), [jobs, employers, cvRequests]);
+  const source = useMemo(() => ({ jobs, employers, cvRequests, cvSubmissions }), [jobs, employers, cvRequests, cvSubmissions]);
   const { items, isRead, markRead, markUnread, markAllRead, unreadCount } = useAdminNotifications(user?.id, source);
+
+  const [expandedEarlier, setExpandedEarlier] = useState(false);
 
   const filtered = items.filter(n => {
     if (filter === 'unread' && isRead(n.id)) return false;
@@ -70,13 +74,18 @@ export default function Notifications() {
     return (
       <div
         key={n.id}
-        className={`group flex items-start gap-3.5 px-4 sm:px-5 py-4 transition-colors ${read ? 'bg-white' : 'bg-[var(--orange)]/[0.04]'} hover:bg-[var(--bg-warm)]`}
+        role="link"
+        tabIndex={0}
+        onClick={e => { if (!(e.target as HTMLElement).closest('button')) openDetail(n); }}
+        onKeyDown={e => { if (e.key === 'Enter') openDetail(n); }}
+        aria-label={`${read ? '' : 'Unread. '}${n.title}`}
+        className={`dash-row group flex items-start gap-3.5 px-4 sm:px-5 py-4 cursor-pointer transition-colors ${read ? 'bg-white' : 'bg-[var(--orange)]/[0.04]'} hover:bg-[var(--bg-warm)]`}
       >
         <div className="relative flex-shrink-0 mt-0.5">
           <div className="w-10 h-10 rounded-xl bg-[var(--bg-warm)] border border-[#E7E2D9] flex items-center justify-center text-[var(--navy)]">
             <Icon size={18} />
           </div>
-          {!read && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[var(--orange)] ring-2 ring-white" />}
+          {!read && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[var(--orange)] ring-2 ring-white animate-[ap-scale-in_300ms_ease-out]" />}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -84,7 +93,7 @@ export default function Notifications() {
             <p className={`text-sm truncate ${read ? 'font-semibold text-[var(--charcoal)]' : 'font-bold text-[var(--navy)]'}`}>{n.title}</p>
             <span className="text-[11px] text-slate-400 whitespace-nowrap flex-shrink-0">{timeAgo(n.createdAt)}</span>
           </div>
-          <p className="text-xs text-[var(--charcoal)] mt-0.5 truncate">{n.body}</p>
+          <p className="text-xs text-[var(--charcoal)] mt-0.5 line-clamp-2 sm:truncate">{n.body}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className={`dash-status ${meta.cls}`}>{meta.label}</span>
             {!read && <span className="dash-status dash-status--accent">Unread</span>}
@@ -96,20 +105,23 @@ export default function Notifications() {
             type="button"
             onClick={() => (read ? markUnread(n.id) : markRead(n.id))}
             title={read ? 'Mark as unread' : 'Mark as read'}
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100"
+            aria-label={read ? 'Mark as unread' : 'Mark as read'}
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100"
           >
             {read ? <Circle size={15} /> : <CheckCircle2 size={15} />}
           </button>
-          <Button size="sm" variant="outline" onClick={() => openDetail(n)} className="h-8 gap-1 text-xs">
+          <Button size="sm" variant="outline" onClick={() => openDetail(n)} className="h-8 gap-1 text-xs hidden sm:inline-flex">
             <Eye size={13} /> View more
           </Button>
+          <ChevronRight size={16} className="sm:hidden text-slate-300 mt-1" aria-hidden />
         </div>
       </div>
     );
   };
 
-  const renderSection = (title: string, subtitle: string, list: AdminNotification[]) => {
+  const renderSection = (title: string, subtitle: string, list: AdminNotification[], limit?: number) => {
     if (list.length === 0) return null;
+    const shown = limit && list.length > limit ? list.slice(0, limit) : list;
     return (
       <section>
         <div className="flex items-center justify-between px-1 mb-2">
@@ -119,7 +131,12 @@ export default function Notifications() {
           </div>
           <span className="text-[11px] font-bold text-[var(--charcoal)]">{list.length}</span>
         </div>
-        <div className="dash-surface overflow-hidden divide-y divide-[#EFEAE1]">{list.map(renderItem)}</div>
+        <div className="dash-surface overflow-hidden divide-y divide-[#EFEAE1]">{shown.map(renderItem)}</div>
+        {shown.length < list.length && (
+          <button type="button" onClick={() => setExpandedEarlier(true)} className="mt-2 w-full h-11 rounded-xl border border-dashed border-[#D8D2C6] text-sm font-bold text-[var(--navy)] hover:bg-white transition-colors">
+            Show {list.length - shown.length} more
+          </button>
+        )}
       </section>
     );
   };
@@ -143,9 +160,11 @@ export default function Notifications() {
       <AdminToolbar>
         <div className="relative w-full lg:max-w-md">
           <input
+            type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search notifications…"
+            aria-label="Search notifications"
             className="w-full h-11 px-4 rounded-xl border border-[#D8D2C6] bg-white text-sm text-[var(--navy)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--orange)]/40 focus:border-[var(--orange)]"
           />
         </div>
@@ -163,7 +182,17 @@ export default function Notifications() {
       </AdminToolbar>
 
       {loading ? (
-        <div className="dash-surface p-10 text-center text-sm text-[var(--charcoal)]">Loading notifications…</div>
+        <div className="dash-surface overflow-hidden divide-y divide-[#EFEAE1]" role="status" aria-label="Loading notifications">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="flex items-start gap-3.5 px-5 py-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse" />
+              <div className="flex-1 space-y-2 pt-1">
+                <div className="h-3.5 w-2/3 rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-slate-100 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="dash-surface p-12 text-center">
           <Bell size={40} className="mx-auto mb-3 text-slate-300" />
@@ -175,7 +204,7 @@ export default function Notifications() {
       ) : (
         <div className="space-y-6">
           {renderSection('New', 'Last 24 hours', newItems)}
-          {renderSection('Earlier', 'Older than 24 hours', earlier)}
+          {renderSection('Earlier', 'Older than 24 hours', earlier, expandedEarlier || query || filter !== 'all' ? undefined : 20)}
         </div>
       )}
 

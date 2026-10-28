@@ -1,18 +1,20 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import {
   Briefcase, FileText, LogOut, CheckCircle,
   Bell, Search, Bookmark, ShieldCheck, Sparkles, UserCheck,
   Calendar, ChevronRight,
   CheckSquare, Upload, Video,
-  Check, Home, User
+  Check, Home, User, Activity, ArrowRight, Phone, Mail
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   CheckmarkCircle02Icon, CircleIcon, File01Icon, ViewIcon, Download04Icon,
   Activity03Icon,
 } from '@hugeicons/core-free-icons';
-import { Card, Badge, Button, Modal, Toast } from '../../components/ui';
+import { Card, Badge, Button, Modal, Toast, ProgressRing } from '../../components/ui';
+import { payRange } from '../../components/JobCard';
+import { haptic } from '../../lib/haptics';
 import { useDatabase } from '../../context/DatabaseContext';
 import { useAuth } from '../../context/AuthContext';
 import { createApplication, updateCandidateProfile, updateCandidateStatus } from '../../lib/supabase/data';
@@ -74,9 +76,10 @@ function CandidateDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const fullName = profile?.full_name || 'Candidate';
-  const [firstName, ...lastNameParts] = fullName.split(' ');
+  const fullName = (profile?.full_name || '').trim() || 'Candidate';
+  const [firstName, ...lastNameParts] = fullName.split(/\s+/);
   const lastName = lastNameParts.join(' ');
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'C';
   const candidateEmail = user?.email || '';
   const candidatePhone = profile?.phone || '';
 
@@ -137,6 +140,11 @@ function CandidateDashboard() {
   const [showApplyModal, setShowApplyModal] = useState<any | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+  // Keeps the job on screen while the confirm sheet slides away after closing
+  const lastApplyJobRef = useRef<any>(null);
+  if (showApplyModal) lastApplyJobRef.current = showApplyModal;
+  const applyJob = showApplyModal ?? lastApplyJobRef.current;
 
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
     try {
@@ -158,8 +166,9 @@ function CandidateDashboard() {
       updated = [...savedJobIds, jobId];
       setToastMessage('Job saved to your bookmarks!');
     }
+    haptic('select');
     setSavedJobIds(updated);
-    localStorage.setItem('rojgaarhai_saved_jobs', JSON.stringify(updated));
+    try { localStorage.setItem('rojgaarhai_saved_jobs', JSON.stringify(updated)); } catch { /* storage full or blocked */ }
   };
 
   const savedJobs = useMemo(() => {
@@ -240,9 +249,12 @@ function CandidateDashboard() {
           id: m.id,
           company: getEmployerName(job?.employer_id || ''),
           role: job?.job_title || 'Unknown',
-          date: m.created_at || 'TBD',
-          time: 'TBD',
-          mode: 'TBD',
+          date: m.created_at || '',
+          dateLabel: m.created_at
+            ? new Date(m.created_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+            : 'Date to be confirmed',
+          time: 'Time to be confirmed',
+          mode: 'Details from recruiter',
           // No meeting link is stored for interviews yet, so none is shown until one exists.
           link: null as string | null,
           countdown: 'Scheduled',
@@ -256,7 +268,7 @@ function CandidateDashboard() {
       return {
         id: app.id,
         text: `Applied for ${job?.job_title || 'Unknown'} role`,
-        date: new Date(app.applied_at).toLocaleString(),
+        date: new Date(app.applied_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
         type: 'applied',
         icon: <CheckCircle size={14} className="text-emerald-500" />,
       };
@@ -291,16 +303,23 @@ function CandidateDashboard() {
   }, [candidate, jobs, jobSkills, displayJobs, appliedJobIds]);
 
   const handleApplyConfirm = async () => {
-    if (showApplyModal && candidate) {
+    if (!showApplyModal || !candidate || applying) return;
+    setApplying(true);
+    try {
       await createApplication({
         candidate_id: candidate.id,
         job_id: showApplyModal.id,
         status: 'applied',
         applied_at: new Date().toISOString(),
       });
+      setToastMessage(`Applied to ${showApplyModal.job_title}. It now shows under My Applications.`);
       setShowApplyModal(null);
-      setToastMessage(`Application for ${showApplyModal.job_title} submitted successfully!`);
-      refresh();
+      refresh({ silent: true });
+    } catch (err) {
+      const message = (err as { message?: string } | null)?.message;
+      setToastMessage(message ? `Could not submit your application: ${message}` : 'Could not submit your application. Please try again.');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -309,7 +328,7 @@ function CandidateDashboard() {
     navigate('/');
   };
 
-  if (!user) { navigate('/login/candidate'); return null; }
+  if (!user) return <Navigate to="/login/candidate" replace />;
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -322,12 +341,12 @@ function CandidateDashboard() {
   }
 
   const timelineStages = [
-    { stage: 1, label: 'Registered', isDone: true, date: candidate.created_at ? new Date(candidate.created_at).toLocaleDateString() : 'N/A' },
+    { stage: 1, label: 'Registered', isDone: true, date: candidate.created_at ? new Date(candidate.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A' },
     { stage: 2, label: 'Profile Completed', isDone: profileCompletion >= 70, date: profileCompletion >= 70 ? 'Verified' : 'In Progress' },
     { stage: 3, label: 'Applied', isDone: appliedJobs.length > 0, date: `${appliedJobs.length} Jobs` },
     { stage: 4, label: 'Shortlisted', isDone: myMatches.some(m => ['Shortlisted', 'Interview Scheduled', 'Offered', 'Hired'].includes(m.status)), date: `${myMatches.length} Matches` },
     { stage: 5, label: 'Interview Scheduled', isDone: myMatches.some(m => ['Interview Scheduled', 'Offered', 'Hired'].includes(m.status)), date: `${upcomingInterviews.length} Scheduled` },
-    { stage: 6, label: 'Offer Received', isDone: myMatches.some(m => ['Offered', 'Hired'].includes(m.status)), date: '1 Offer' },
+    { stage: 6, label: 'Offer Received', isDone: myMatches.some(m => ['Offered', 'Hired'].includes(m.status)), date: (() => { const n = myMatches.filter(m => ['Offered', 'Hired'].includes(m.status)).length; return n === 0 ? 'None yet' : `${n} ${n === 1 ? 'Offer' : 'Offers'}`; })() },
     { stage: 7, label: 'Placed', isDone: candidate.status === 'Placed', date: candidate.status === 'Placed' ? 'Hired!' : 'Pending' },
   ];
 
@@ -402,9 +421,15 @@ function CandidateDashboard() {
           </div>
 
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div className="dash-avatar w-8 h-8 text-[11px] !rounded-full">
-              {firstName[0]}{lastName[0]}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowEditProfileModal(true)}
+              aria-label="Open my profile"
+              title="My profile"
+              className="dash-avatar w-8 h-8 text-[11px] !rounded-full ring-2 ring-transparent hover:ring-[var(--orange)]/30 active:scale-90 transition-[transform,box-shadow]"
+            >
+              {initials}
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1 text-xs font-semibold text-[var(--charcoal)] hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100"
@@ -421,25 +446,36 @@ function CandidateDashboard() {
           <div>
             <h1 className="dash-header__title">{timeGreeting()}, {firstName}</h1>
             <p className="dash-header__subtitle">
-              {candidate.location || 'Unknown'}, {candidate.state || 'Unknown'} · {candidate.total_experience_years ?? 0} yrs exp · Expected ₹{(candidate.expected_salary_min ?? 0).toLocaleString()}/mo
+              {[
+                [candidate.location, candidate.state].filter(Boolean).join(', ') || null,
+                `${candidate.total_experience_years ?? 0} ${(candidate.total_experience_years ?? 0) === 1 ? 'yr' : 'yrs'} experience`,
+                candidate.expected_salary_min ? `Expects ₹${Number(candidate.expected_salary_min).toLocaleString('en-IN')}/mo` : null,
+              ].filter(Boolean).join(' · ')}
             </p>
           </div>
-          <div className="self-start">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--charcoal)] block mb-1.5">Availability</label>
+          <div className="self-start w-full sm:w-auto">
+            <label htmlFor="candidate-availability" className="text-[11px] font-bold uppercase tracking-wider text-[var(--charcoal)] mb-1.5 flex items-center gap-1.5">
+              {candidateStatus !== 'Placed' && <span className="ap-live-dot" aria-hidden="true" />} Availability
+            </label>
             <div className="flex items-center gap-2">
               <select
+                id="candidate-availability"
                 value={candidateStatus}
                 onChange={async e => {
                   const value = e.target.value;
+                  const previous = candidateStatus;
                   setCandidateStatus(value as any);
+                  haptic('select');
                   try {
                     await updateCandidateStatus(candidate.id, value);
-                    setToastMessage(`Status updated to "${value}"`);
-                  } catch (err) {
-                    setToastMessage('Failed to update status.');
+                    setToastMessage(`Availability set to "${value}". Recruiters see this on your profile.`);
+                  } catch {
+                    // Put the old value back so the screen never shows something that was not saved
+                    setCandidateStatus(previous);
+                    setToastMessage('Could not update your availability. Please try again.');
                   }
                 }}
-                className="h-10 px-3 rounded-[10px] border border-[#D8D2C6] bg-white text-[var(--navy)] font-bold text-[13px] cursor-pointer"
+                className="h-11 sm:h-10 flex-1 sm:flex-none min-w-0 px-3 rounded-xl sm:rounded-[10px] border border-[#D8D2C6] bg-white text-[var(--navy)] font-bold text-[13px] cursor-pointer"
               >
                 <option value="Open to Work">Open to Work</option>
                 <option value="Interviewing">Interviewing</option>
@@ -448,7 +484,7 @@ function CandidateDashboard() {
               </select>
               <Link
                 to="/jobs"
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[var(--orange)] hover:bg-[#d94d1a] text-white font-bold text-[13px] whitespace-nowrap no-underline shadow-md shadow-orange-600/25 transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 h-11 sm:h-10 px-4 rounded-xl sm:rounded-[10px] bg-[var(--orange)] hover:bg-[#d94d1a] active:scale-[0.97] text-white font-bold text-[13px] whitespace-nowrap no-underline shadow-md shadow-orange-600/25 transition-[background-color,transform]"
               >
                 <Search size={15} /> Search Jobs
               </Link>
@@ -460,7 +496,7 @@ function CandidateDashboard() {
           const nextStep = profileCompletion < 80
             ? {
                 eyebrow: 'Your next step',
-                title: `Finish your profile (${profileCompletion}% complete)`,
+                title: 'Finish your profile',
                 body: 'Profiles above 80% get about three times more recruiter contacts. Add your skills, experience and expected salary for sharper matches.',
                 cta: 'Complete profile',
                 onClick: () => setShowEditProfileModal(true),
@@ -473,19 +509,23 @@ function CandidateDashboard() {
                 onClick: () => navigate('/jobs'),
               };
           return (
-            <div className="dash-enter relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#101A36] to-[#1C2B52] text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-[#101A36]/15">
+            <div className="dash-enter relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#101A36] via-[#16224A] to-[#1C2B52] text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-[#101A36]/20">
               <div className="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-[var(--orange)]/20 blur-3xl" />
-              <div className="relative min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">{nextStep.eyebrow}</p>
-                <p className="mt-1 text-lg sm:text-xl font-extrabold tracking-tight break-words">{nextStep.title}</p>
-                <p className="mt-1 text-sm text-white/70 leading-relaxed">{nextStep.body}</p>
+              <div className="pointer-events-none absolute -bottom-20 -left-10 w-48 h-48 rounded-full bg-[#7655D9]/15 blur-3xl" />
+              <div className="relative flex items-start gap-4 min-w-0">
+                <ProgressRing value={profileCompletion} size={60} stroke={6} label={`Profile ${profileCompletion}% complete`} className="text-white" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--orange)]">{nextStep.eyebrow}</p>
+                  <p className="mt-1 text-lg sm:text-xl font-extrabold tracking-tight break-words">{nextStep.title}</p>
+                  <p className="mt-1 text-[13px] sm:text-sm text-white/70 leading-relaxed">{nextStep.body}</p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={nextStep.onClick}
-                className="relative self-start sm:self-auto inline-flex items-center h-11 px-5 rounded-xl bg-[var(--orange)] hover:bg-[#d94d1a] text-white text-sm font-bold whitespace-nowrap shadow-md transition-colors"
+                onClick={() => { haptic('tap'); nextStep.onClick(); }}
+                className="relative w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-12 sm:h-11 px-5 rounded-xl bg-[var(--orange)] hover:bg-[#d94d1a] active:scale-[0.97] text-white text-sm font-bold whitespace-nowrap shadow-md shadow-black/20 transition-[background-color,transform]"
               >
-                {nextStep.cta}
+                {nextStep.cta} <ArrowRight size={15} />
               </button>
             </div>
           );
@@ -505,8 +545,8 @@ function CandidateDashboard() {
             <div className="dash-metric__label">Interviews</div>
           </div>
           <div className="dash-metric">
-            <div className="dash-metric__value">{appliedJobs.length}</div>
-            <div className="dash-metric__label">Applications Sent</div>
+            <div className="dash-metric__value">{savedJobs.length}</div>
+            <div className="dash-metric__label">Saved Jobs</div>
           </div>
           <div className="dash-metric">
             <div className="dash-metric__value">{profileCompletion}%</div>
@@ -514,22 +554,20 @@ function CandidateDashboard() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-x-8 gap-y-2 -mt-4 text-[13px] font-semibold text-[var(--charcoal)]">
-          <span>{savedJobs.length} Saved Jobs</span>
-          <span>{myMatches.filter(m => m.status === 'Shortlisted').length} Shortlisted</span>
-          <span>{myMatches.filter(m => m.status === 'Offered').length} Offers Received</span>
-          <span>{appliedAvgMatch === null ? '—' : `${appliedAvgMatch}%`} Avg Match Score</span>
+        <div className="flex flex-wrap gap-x-6 gap-y-1.5 -mt-4 text-[12.5px] sm:text-[13px] font-semibold text-[var(--charcoal)]">
+          <span><strong className="text-[var(--navy)] tabular-nums">{myMatches.filter(m => m.status === 'Shortlisted').length}</strong> Shortlisted</span>
+          <span><strong className="text-[var(--navy)] tabular-nums">{myMatches.filter(m => ['Offered', 'Hired'].includes(m.status)).length}</strong> Offers</span>
+          <span><strong className="text-[var(--navy)] tabular-nums">{appliedAvgMatch === null ? '—' : `${appliedAvgMatch}%`}</strong> Avg match on applied jobs</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <div className="dash-chip-row sm:flex sm:flex-wrap gap-2" aria-label="Quick actions">
           {[
-            { label: 'Complete Profile', icon: <CheckSquare size={15} />, action: () => setShowEditProfileModal(true) },
+            { label: profileCompletion < 100 ? 'Complete Profile' : 'Edit Profile', icon: profileCompletion < 100 ? <CheckSquare size={15} /> : <UserCheck size={15} />, action: () => setShowEditProfileModal(true) },
             { label: 'Browse Jobs', icon: <Search size={15} />, action: () => navigate('/jobs') },
-            { label: 'Saved Jobs', icon: <Bookmark size={15} />, action: () => scrollToSection('saved-jobs', savedJobs.length === 0 ? 'No saved jobs yet. Tap the bookmark on any job to save it.' : null) },
-            { label: 'My Applications', icon: <FileText size={15} />, action: () => scrollToSection('my-applications', applicationRows.length === 0 ? 'You have not applied to any jobs yet.' : null) },
-            { label: 'Edit Profile', icon: <UserCheck size={15} />, action: () => setShowEditProfileModal(true) },
-          ].map((item, idx) => (
-            <button key={idx} onClick={item.action} className="dash-btn dash-btn-secondary dash-btn--compact w-full sm:w-auto min-w-0 whitespace-normal text-center">
+            { label: `Saved Jobs${savedJobs.length ? ` (${savedJobs.length})` : ''}`, icon: <Bookmark size={15} />, action: () => scrollToSection('saved-jobs', savedJobs.length === 0 ? 'No saved jobs yet. Tap the bookmark on any job to save it.' : null) },
+            { label: `My Applications${applicationRows.length ? ` (${applicationRows.length})` : ''}`, icon: <FileText size={15} />, action: () => scrollToSection('my-applications', applicationRows.length === 0 ? 'You have not applied to any jobs yet.' : null) },
+          ].map(item => (
+            <button key={item.label} onClick={() => { haptic('tap'); item.action(); }} className="dash-btn dash-btn-secondary dash-btn--compact flex-shrink-0 whitespace-nowrap !rounded-full">
               {item.icon} {item.label}
             </button>
           ))}
@@ -564,24 +602,34 @@ function CandidateDashboard() {
         </div>
 
         <div className="dash-surface dash-surface--pad">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="dash-section-title">Recruitment Pipeline Progress</div>
-              <p className="dash-section-sub">Track your end-to-end progress from registration to placement</p>
+          <div className="flex items-start justify-between gap-3 mb-4 sm:mb-6">
+            <div className="min-w-0">
+              <div className="dash-section-title">Your journey</div>
+              <p className="dash-section-sub">From sign-up to your first day at work</p>
             </div>
-            <span className="dash-status dash-status--accent">{candidate.status}</span>
+            <span className="dash-status dash-status--accent flex-shrink-0">{candidate.status}</span>
           </div>
 
-          <div className="relative py-4">
-            <div className="hidden md:block absolute top-1/2 left-4 right-4 h-px bg-[#E7E2D9] -translate-y-1/2 z-0" />
+          <div className="relative py-2 sm:py-4">
+            <div className="hidden md:block absolute top-[34px] left-[7%] right-[7%] h-[2px] bg-[#E7E2D9] z-0 rounded-full overflow-hidden">
+              {/* Filled part of the line, up to the last finished step */}
+              <span
+                className="block h-full bg-[var(--green)] origin-left transition-transform duration-700"
+                style={{ transform: `scaleX(${Math.max(0, timelineStages.filter(s => s.isDone).length - 1) / (timelineStages.length - 1)})` }}
+              />
+            </div>
             <div className="pipeline-steps grid grid-cols-1 md:grid-cols-7 gap-4 relative z-10">
-              {timelineStages.map((stg) => (
-                <div key={stg.stage} className="flex md:flex-col items-center md:items-center gap-3 md:gap-2 text-left md:text-center">
+              {timelineStages.map((stg, idx) => {
+                const isCurrent = !stg.isDone && timelineStages.findIndex(s => !s.isDone) === idx;
+                return (
+                <div key={stg.stage} aria-current={isCurrent ? 'step' : undefined} className="flex md:flex-col items-center md:items-center gap-3 md:gap-2 text-left md:text-center">
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-sm transition-all ${
                       stg.isDone
-                        ? 'bg-[var(--green)] text-white'
-                        : 'bg-[var(--bg-warm)] text-[var(--charcoal)] border border-[#E7E2D9]'
+                        ? 'bg-[var(--green)] text-white shadow-sm shadow-emerald-900/20'
+                        : isCurrent
+                          ? 'bg-white text-[var(--orange)] border-2 border-[var(--orange)] ring-4 ring-[var(--orange)]/10'
+                          : 'bg-[var(--bg-warm)] text-[var(--charcoal)] border border-[#E7E2D9]'
                     }`}
                   >
                     {stg.isDone ? <Check size={18} /> : stg.stage}
@@ -590,10 +638,11 @@ function CandidateDashboard() {
                     <p className={`text-xs font-bold ${stg.isDone ? 'text-[var(--navy)]' : 'text-[var(--charcoal)]'}`}>
                       {stg.label}
                     </p>
-                    <p className="text-[10px] text-[var(--charcoal)]">{stg.date}</p>
+                    <p className={`text-[10px] ${isCurrent ? 'text-[var(--orange)] font-bold' : 'text-[var(--charcoal)]'}`}>{isCurrent ? 'Up next' : stg.date}</p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -601,71 +650,81 @@ function CandidateDashboard() {
         <div className="grid lg:grid-cols-3 gap-8 min-w-0 dash-enter dash-enter-d2">
           <div className="lg:col-span-2 space-y-8 min-w-0">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-[var(--navy)] flex items-center gap-2">
-                    <Sparkles size={20} className="text-amber-500" /> Recommended Jobs For You
+              <div className="ap-section-head">
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-[var(--navy)] flex items-center gap-2">
+                    <Sparkles size={19} className="text-amber-500 flex-shrink-0" /> Recommended for you
                   </h3>
-                  <p className="text-xs text-[var(--charcoal)]">Handpicked roles based on your skills and location preferences</p>
+                  <p className="text-xs text-[var(--charcoal)] mt-0.5">Picked from your skills, experience, pay and location</p>
                 </div>
-                <Link to="/jobs" className="text-xs font-bold text-[var(--orange)] hover:underline flex items-center gap-1 whitespace-nowrap flex-shrink-0">
-                  View All <ChevronRight size={14} />
+                <Link to="/jobs" className="ap-section-head__action hover:underline">
+                  View all <ChevronRight size={14} />
                 </Link>
               </div>
 
-              <div className="dash-surface">
+              <div className="dash-surface overflow-hidden">
                 {recommendedJobs.length === 0 ? (
-                  <div className="px-5 py-8 text-center">
+                  <div className="px-5 py-9 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3"><Sparkles size={20} /></div>
                     <p className="text-sm font-bold text-[var(--navy)]">No recommendations yet</p>
-                    <p className="text-xs text-[var(--charcoal)] mt-1">Add your skills, experience, location and expected salary to your profile to get matched jobs.</p>
+                    <p className="text-xs text-[var(--charcoal)] mt-1 max-w-xs mx-auto">Add your skills, experience, location and expected salary, and matching jobs will appear here.</p>
+                    <Button size="sm" variant="outline" className="mt-4" onClick={() => setShowEditProfileModal(true)}>Update profile</Button>
                   </div>
                 ) : recommendedJobs.map(job => {
                   const isSaved = savedJobIds.includes(job.id);
                   const isApplied = appliedJobIds.has(job.id);
+                  const match = jobMatchResults.get(job.id);
+                  const place = [job.city, job.state].filter(Boolean).join(', ');
 
                   return (
-                    <div key={job.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0 px-4 sm:px-5 pt-4 pb-4 sm:pt-3.5 sm:pb-3.5 border-b border-[#EFEAE1] last:border-b-0 hover:bg-[var(--bg-warm)] transition-colors">
+                    <div
+                      key={job.id}
+                      onClick={() => navigate(`/jobs/${job.id}`)}
+                      className="job-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0 px-4 sm:px-5 pt-4 pb-3.5 sm:pt-3.5 sm:pb-3.5 border-b border-[#EFEAE1] last:border-b-0 sm:hover:bg-[var(--bg-warm)] transition-colors"
+                    >
                       <div className="flex items-start gap-3.5 min-w-0">
-                        <div className="dash-avatar">{job.companyName?.charAt(0) || '?'}</div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Link to={`/jobs/${job.id}`} className="font-bold text-[15px] text-[var(--navy)] hover:text-[var(--orange)] transition-colors">
+                        <div className="dash-avatar" aria-hidden="true">{job.companyName?.charAt(0)?.toUpperCase() || '?'}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Link to={`/jobs/${job.id}`} onClick={e => e.stopPropagation()} className="font-bold text-[15px] text-[var(--navy)] hover:text-[var(--orange)] transition-colors break-words">
                               {job.jobTitle}
                             </Link>
-                             {job.isVerified !== false && (
-                               <ShieldCheck size={13} className="text-[var(--green)]" />
-                             )}
-                             <span className="text-[12px] font-bold text-[var(--orange)]">
-                               {jobMatchResults.get(job.id) ? `${jobMatchResults.get(job.id)?.score}% Match${jobMatchResults.get(job.id)?.confident ? '' : ' · limited data'}` : 'New'}
-                             </span>
+                            {job.isVerified !== false && (
+                              <ShieldCheck size={13} className="text-[var(--green)] flex-shrink-0" aria-label="Verified employer" />
+                            )}
                           </div>
-                          <p className="text-[13px] text-[var(--charcoal)] font-medium mt-0.5">
-                            {job.companyName} · {job.city}, {job.state}
+                          <p className="text-[13px] text-[var(--charcoal)] font-medium mt-0.5 truncate">
+                            {[job.companyName, place].filter(Boolean).join(' · ')}
                           </p>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--charcoal)] mt-1.5 font-medium">
-                            <span className="font-bold text-[var(--green)]">₹{parseInt(job.salaryMin).toLocaleString()}-{parseInt(job.salaryMax).toLocaleString()}/mo</span>
-                            <span className="text-[#D8D2C6]">·</span>
-                            <span>{job.employmentType}</span>
-                            <span className="text-[#D8D2C6]">·</span>
-                            <span>{job.experienceRequired}</span>
-                            <span className="text-[#D8D2C6]">·</span>
-                            <span>{job.skillsRequired.slice(0, 3).join(', ')}</span>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            <span className="ap-pill ap-pill--pay"><span>{payRange(job.salaryMin, job.salaryMax)}{payRange(job.salaryMin, job.salaryMax) !== 'Not disclosed' ? '/mo' : ''}</span></span>
+                            {job.employmentType && <span className="ap-pill"><span>{job.employmentType}</span></span>}
+                            {match && (
+                              <span className="ap-pill !bg-[var(--orange)]/10 !border-[var(--orange)]/20 !text-[var(--orange)]">
+                                <span>{match.score}% match{match.confident ? '' : ' · limited data'}</span>
+                              </span>
+                            )}
                           </div>
+                          {job.skillsRequired.length > 0 && (
+                            <p className="text-[12px] text-slate-500 mt-1.5 truncate">{job.skillsRequired.slice(0, 4).join(' · ')}</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
                         <button
-                          onClick={() => toggleSaveJob(job.id)}
-                          className="dash-btn-tertiary h-9 w-9 !p-0 rounded-lg"
-                          title="Bookmark Job"
+                          onClick={e => { e.stopPropagation(); toggleSaveJob(job.id); }}
+                          className={`h-10 w-10 sm:h-9 sm:w-9 flex items-center justify-center rounded-full sm:rounded-lg border transition-[color,background-color,transform] active:scale-90 ${isSaved ? 'bg-[var(--orange)]/10 border-[var(--orange)]/25 text-[var(--orange)]' : 'border-[#E7E2D9] text-slate-400 hover:text-[var(--navy)]'}`}
+                          title={isSaved ? 'Remove from saved' : 'Save job'}
+                          aria-label={isSaved ? `Remove ${job.jobTitle} from saved jobs` : `Save ${job.jobTitle}`}
+                          aria-pressed={isSaved}
                         >
-                          <Bookmark size={16} className={isSaved ? 'fill-[var(--orange)] text-[var(--orange)]' : ''} />
+                          <Bookmark size={16} className={isSaved ? 'fill-[var(--orange)]' : ''} />
                         </button>
                         {isApplied ? (
                           <span className="dash-status dash-status--success">Applied</span>
                         ) : (
-                          <button onClick={() => setShowApplyModal(job)} className="dash-btn dash-btn-primary dash-btn--compact flex-1 sm:flex-none">
+                          <button onClick={e => { e.stopPropagation(); haptic('tap'); setShowApplyModal(job); }} className="dash-btn dash-btn-primary dash-btn--compact flex-1 sm:flex-none">
                             Apply Now
                           </button>
                         )}
@@ -706,11 +765,22 @@ function CandidateDashboard() {
                         {stage.closed ? (
                           <p className="text-xs text-[var(--charcoal)]">This application is closed. Browse other jobs to apply again.</p>
                         ) : (
-                          <ol className="grid grid-cols-5 gap-1 text-center text-[9px] sm:text-[10px] font-bold" aria-label="Application progress">
-                            {APPLICATION_STAGES.map((name, i) => (
-                              <li key={name} className={`py-1 rounded truncate ${i + 1 <= stage.step ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-[var(--charcoal)]'}`}>{name}</li>
-                            ))}
-                          </ol>
+                          <div>
+                            <div className="grid grid-cols-5 gap-1" aria-hidden="true">
+                              {APPLICATION_STAGES.map((name, i) => (
+                                <span
+                                  key={name}
+                                  className={`h-1.5 rounded-full origin-left ${i + 1 <= stage.step ? 'bg-emerald-600' : 'bg-slate-200'}`}
+                                  style={i + 1 <= stage.step ? { animation: `ap-bar-grow 600ms cubic-bezier(0.16,1,0.3,1) ${i * 90}ms backwards` } : undefined}
+                                />
+                              ))}
+                            </div>
+                            <ol className="grid grid-cols-5 gap-1 mt-1.5 text-center text-[9.5px] sm:text-[10.5px] font-bold" aria-label={`Application progress: ${stage.label}`}>
+                              {APPLICATION_STAGES.map((name, i) => (
+                                <li key={name} aria-current={i + 1 === stage.step ? 'step' : undefined} className={`truncate ${i + 1 === stage.step ? 'text-emerald-700' : i + 1 < stage.step ? 'text-[var(--navy)]' : 'text-slate-400'}`}>{name}</li>
+                              ))}
+                            </ol>
+                          </div>
                         )}
                       </div>
                     );
@@ -721,21 +791,24 @@ function CandidateDashboard() {
             </div>
 
             <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-[var(--navy)] flex items-center gap-2">
-                  <Video size={20} className="text-emerald-500" /> Upcoming Interviews ({upcomingInterviews.length})
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-lg font-bold text-[var(--navy)] flex items-center gap-2 min-w-0">
+                  <Video size={20} className="text-emerald-500 flex-shrink-0" /> <span className="truncate">Upcoming Interviews</span>
+                  <span className="text-[13px] font-bold text-slate-400 tabular-nums">{upcomingInterviews.length}</span>
                 </h3>
                 {upcomingInterviews.length > 0 && (
-                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full flex-shrink-0">
                     Confirmed
                   </span>
                 )}
               </div>
 
               {upcomingInterviews.length === 0 ? (
-                <p className="text-sm text-[var(--charcoal)] text-center py-6">
-                  No upcoming interviews scheduled.
-                </p>
+                <EmptyState
+                  icon={<Calendar size={20} />}
+                  title="No interviews yet"
+                  body="When an employer schedules an interview with you, it shows up here with the date."
+                />
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                   {upcomingInterviews.map(int => (
@@ -750,7 +823,7 @@ function CandidateDashboard() {
                       <p className="text-xs text-[var(--charcoal)] font-semibold">{int.company}</p>
 
                       <div className="my-3 text-xs text-[var(--charcoal)] space-y-1">
-                        <p className="flex items-center gap-1.5"><Calendar size={12} className="text-emerald-600" /> {int.date} at {int.time}</p>
+                        <p className="flex items-center gap-1.5"><Calendar size={12} className="text-emerald-600" /> {int.dateLabel} · {int.time}</p>
                       </div>
 
                       <div className="flex gap-2 pt-2 border-t border-slate-200">
@@ -774,7 +847,8 @@ function CandidateDashboard() {
             <div id="saved-jobs" className="scroll-mt-20">
             <Card>
               <h3 className="text-lg font-bold text-[var(--navy)] mb-4 flex items-center gap-2">
-                <Bookmark size={20} className="text-amber-500" /> Bookmarked Jobs ({savedJobs.length})
+                <Bookmark size={20} className="text-amber-500" /> Saved Jobs
+                <span className="text-[13px] font-bold text-slate-400 tabular-nums">{savedJobs.length}</span>
               </h3>
 
               {savedJobs.length === 0 ? (
@@ -789,14 +863,14 @@ function CandidateDashboard() {
                   {savedJobs.map(job => {
                     const alreadyApplied = appliedJobIds.has(job.id);
                     return (
-                      <div key={job.id} className="p-4 rounded-2xl border border-slate-200 bg-[var(--white)] flex flex-col justify-between min-w-0">
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-[var(--navy)] text-sm break-words">{job.jobTitle}</h4>
-                          <p className="text-xs text-[var(--charcoal)] truncate">{job.companyName} • {job.city}</p>
-                          <p className="text-xs font-bold text-emerald-600 mt-2">₹{parseInt(job.salaryMin || '0').toLocaleString()} - ₹{parseInt(job.salaryMax || '0').toLocaleString()}/mo</p>
-                        </div>
+                      <div key={job.id} className="dash-enter p-4 rounded-2xl border border-slate-200 bg-[var(--white)] flex flex-col justify-between min-w-0">
+                        <Link to={`/jobs/${job.id}`} className="min-w-0 block group">
+                          <h4 className="font-bold text-[var(--navy)] text-sm break-words group-hover:text-[var(--orange)] transition-colors">{job.jobTitle}</h4>
+                          <p className="text-xs text-[var(--charcoal)] truncate">{[job.companyName, job.city].filter(Boolean).join(' · ')}</p>
+                          <p className="text-xs font-bold text-emerald-600 mt-2">{payRange(job.salaryMin, job.salaryMax)}{payRange(job.salaryMin, job.salaryMax) !== 'Not disclosed' ? '/mo' : ''}</p>
+                        </Link>
                         <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
-                          <button onClick={() => toggleSaveJob(job.id)} className="text-xs font-semibold text-slate-500 hover:text-red-500 py-2">Remove</button>
+                          <button onClick={() => toggleSaveJob(job.id)} className="text-xs font-semibold text-slate-500 hover:text-red-500 py-2 px-1 -ml-1 min-h-[36px]">Remove</button>
                           {alreadyApplied ? (
                             <Badge variant="success" className="text-xs">Applied</Badge>
                           ) : (
@@ -850,35 +924,53 @@ function CandidateDashboard() {
                 <HugeiconsIcon icon={File01Icon} size={18} /> Resume Center
               </div>
 
-              <p className="font-bold text-sm text-[var(--navy)] truncate">{candidate.resume_url ? candidate.resume_url.split('/').pop() : 'No resume uploaded'}</p>
+              <p className="font-bold text-sm text-[var(--navy)] truncate">{candidate.resume_url ? (() => { const raw = (candidate.resume_url.split('/').pop() || '').split('?')[0]; try { return decodeURIComponent(raw) || 'Your resume'; } catch { return raw || 'Your resume'; } })() : 'No resume uploaded'}</p>
               <p className="text-[11px] text-[var(--charcoal)] mb-3">
                 {candidate.resume_url ? `Uploaded ${new Date(candidate.updated_at || candidate.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Upload a resume to let employers view it'}
               </p>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   className="dash-btn dash-btn-secondary dash-btn--compact min-w-0 px-2"
                   onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet.')}
                 >
                   <HugeiconsIcon icon={ViewIcon} size={15} /> Preview
                 </button>
-                <button
-                  className="dash-btn dash-btn-secondary dash-btn--compact flex-1"
-                  onClick={() => candidate.resume_url ? window.open(candidate.resume_url, '_blank') : setToastMessage('No resume uploaded yet.')}
-                >
-                  <HugeiconsIcon icon={Download04Icon} size={15} /> Download
-                </button>
+                {candidate.resume_url ? (
+                  <a
+                    href={candidate.resume_url}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="dash-btn dash-btn-secondary dash-btn--compact min-w-0"
+                  >
+                    <HugeiconsIcon icon={Download04Icon} size={15} /> Download
+                  </a>
+                ) : (
+                  <button
+                    className="dash-btn dash-btn-secondary dash-btn--compact min-w-0"
+                    onClick={() => setToastMessage('No resume uploaded yet.')}
+                  >
+                    <HugeiconsIcon icon={Download04Icon} size={15} /> Download
+                  </button>
+                )}
               </div>
 
-              <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-dashed border-[var(--orange)]/40 bg-[var(--orange)]/5 px-3 py-2.5">
+              {/* Upload lives in the profile editor's "Resume & Documents" step */}
+              <button
+                type="button"
+                onClick={() => setShowEditProfileModal(true)}
+                className="mt-3 w-full text-left flex items-center gap-2.5 rounded-xl border border-dashed border-[var(--orange)]/40 bg-[var(--orange)]/5 hover:bg-[var(--orange)]/10 active:scale-[0.99] px-3 py-2.5 transition-[background-color,transform]"
+              >
                 <span className="w-8 h-8 rounded-lg bg-white border border-[#E7E2D9] flex items-center justify-center text-[var(--orange)] flex-shrink-0">
                   <Upload size={15} />
                 </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-[var(--navy)]">Upload Resume</p>
-                  <p className="text-[11px] text-[var(--charcoal)]">This feature is coming soon</p>
-                </div>
-              </div>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-bold text-[var(--navy)]">{candidate.resume_url ? 'Replace resume' : 'Upload resume'}</span>
+                  <span className="block text-[11px] text-[var(--charcoal)]">PDF or Word, from Resume &amp; Documents in your profile</span>
+                </span>
+                <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
+              </button>
             </div>
 
             <div className="dash-surface dash-surface--pad">
@@ -900,42 +992,63 @@ function CandidateDashboard() {
               <div className="dash-section-title mb-3 flex items-center gap-2">
                 <HugeiconsIcon icon={Activity03Icon} size={18} /> Recent Activity
               </div>
-              <div className="divide-y divide-[#EFEAE1]">
-                {activityLog.map(act => (
-                  <div key={act.id} className="flex items-start gap-2.5 py-2.5">
-                    <HugeiconsIcon icon={Activity03Icon} size={15} className="text-[var(--charcoal)] flex-shrink-0 mt-0.5" />
-                    <div>
+              {activityLog.length === 0 ? (
+                <p className="text-[12.5px] text-[var(--charcoal)] py-3 flex items-center gap-2">
+                  <Activity size={14} className="text-slate-300" /> Your applications and updates will appear here.
+                </p>
+              ) : (
+                <ol className="relative ml-1.5 border-l border-[#EFEAE1]">
+                  {activityLog.map(act => (
+                    <li key={act.id} className="relative pl-4 py-2.5">
+                      <span className="absolute -left-[5px] top-[15px] w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white" aria-hidden="true" />
                       <p className="font-semibold text-[var(--navy)] text-[13px] leading-snug">{act.text}</p>
                       <p className="text-[11px] text-[var(--charcoal)] mt-0.5">{act.date}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {showApplyModal && (
-        <Modal isOpen={Boolean(showApplyModal)} onClose={() => setShowApplyModal(null)} title="Confirm Job Application" size="md">
-          <div className="space-y-4">
-            <div className="p-4 bg-[var(--orange)]/10 rounded-xl border border-[var(--orange)]/20">
-              <p className="text-xs text-[var(--orange)] font-semibold uppercase">Applying For</p>
-              <h3 className="text-lg font-bold text-[var(--navy)] mt-0.5">{showApplyModal.jobTitle}</h3>
-              <p className="text-xs text-[var(--charcoal)] font-medium">{showApplyModal.companyName} • {showApplyModal.city}</p>
-            </div>
-            <div className="p-4 bg-[var(--white)] rounded-xl border border-slate-200 text-xs space-y-1.5">
-              <p><span className="text-slate-400">Applicant:</span> <strong className="text-[var(--navy)]">{firstName} {lastName}</strong></p>
-              <p><span className="text-slate-400">Email:</span> <span className="text-[var(--navy)]">{candidateEmail}</span></p>
-              <p><span className="text-slate-400">Experience:</span> <span className="text-[var(--navy)]">{candidate.total_experience_years ?? 0} Years</span></p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setShowApplyModal(null)}>Cancel</Button>
-              <Button variant="success" onClick={handleApplyConfirm} className="gap-1 bg-[var(--orange)]"><UserCheck size={16} /> Confirm Application</Button>
-            </div>
+      <Modal
+        isOpen={Boolean(showApplyModal)}
+        onClose={() => { if (!applying) setShowApplyModal(null); }}
+        title="Confirm your application"
+        size="md"
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowApplyModal(null)} disabled={applying}>Cancel</Button>
+            <Button onClick={handleApplyConfirm} loading={applying}>
+              {!applying && <UserCheck size={16} />} {applying ? 'Submitting…' : 'Confirm application'}
+            </Button>
           </div>
-        </Modal>
-      )}
+        }
+      >
+        {applyJob && (
+          <div className="space-y-4">
+            <div className="p-4 bg-[var(--orange)]/10 rounded-2xl border border-[var(--orange)]/20">
+              <p className="text-[11px] text-[var(--orange)] font-bold uppercase tracking-wider">Applying for</p>
+              <h3 className="text-lg font-bold text-[var(--navy)] mt-0.5 break-words">{applyJob.jobTitle}</h3>
+              <p className="text-xs text-[var(--charcoal)] font-medium truncate">{[applyJob.companyName, applyJob.city].filter(Boolean).join(' · ')}</p>
+            </div>
+            <dl className="rounded-2xl border border-slate-200 overflow-hidden grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100 text-sm">
+              {[
+                { k: 'Applicant', v: `${firstName} ${lastName}`.trim() },
+                { k: 'Email', v: candidateEmail || 'Not added' },
+                { k: 'Experience', v: `${candidate.total_experience_years ?? 0} yrs` },
+              ].map(row => (
+                <div key={row.k} className="bg-white px-4 py-2.5 min-w-0">
+                  <dt className="text-[11px] text-slate-400">{row.k}</dt>
+                  <dd className="font-semibold text-[var(--navy)] truncate">{row.v}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-xs text-[var(--charcoal)] leading-relaxed">Your profile and resume go to the employer's hiring team. Your phone number and email stay private.</p>
+          </div>
+        )}
+      </Modal>
 
       <EditProfileModal
         isOpen={showEditProfileModal}
@@ -1001,15 +1114,24 @@ function CandidateDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setShowPremiumModal(false)} className="flex-1">Cancel</Button>
-            <Button variant="primary" className="flex-1 gap-2 bg-[var(--orange)] hover:bg-[#d94d1f]" onClick={() => {
-              setShowPremiumModal(false);
-              setToastMessage('Payment integration coming soon! Please contact support@rojgaarhai.com to proceed.');
-            }}>
-              Proceed to Payment — ₹1,000
-            </Button>
+          {/* Online payment is not wired up yet, so joining goes through the team directly */}
+          <p className="text-xs text-[var(--charcoal)] text-center pt-4">Our placement team activates Premium for you after a quick call.</p>
+          <div className="grid grid-cols-2 gap-2 pt-3">
+            <a
+              href="tel:+918693802432"
+              className="inline-flex items-center justify-center gap-2 h-12 rounded-full border border-slate-300 text-sm font-bold text-[var(--navy)] hover:bg-slate-50 active:scale-[0.97] transition"
+            >
+              <Phone size={16} /> Call us
+            </a>
+            <a
+              href={`mailto:support@rojgaarhai.com?subject=${encodeURIComponent('Premium Placement Plan')}&body=${encodeURIComponent(`Hi, I would like to join the Premium Placement Plan (₹1,000).\n\nName: ${fullName}${profile?.phone ? `\nPhone: ${profile.phone}` : ''}`)}`}
+              onClick={() => setShowPremiumModal(false)}
+              className="inline-flex items-center justify-center gap-2 h-12 rounded-full bg-[var(--orange)] text-white text-sm font-bold hover:bg-[#d94d1f] active:scale-[0.97] transition shadow-[0_10px_24px_-12px_rgba(241,90,36,0.8)]"
+            >
+              <Mail size={16} /> Email to join
+            </a>
           </div>
+          <Button variant="ghost" onClick={() => setShowPremiumModal(false)} className="w-full mt-2">Not now</Button>
         </div>
       </Modal>
 
@@ -1025,7 +1147,7 @@ function CandidateDashboard() {
       />
 
       {toastMessage && (
-        <Toast message={toastMessage} type="success" onClose={() => setToastMessage(null)} />
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
     </div>
   );

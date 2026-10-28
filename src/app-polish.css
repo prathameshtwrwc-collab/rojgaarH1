@@ -1,0 +1,369 @@
+/* ==========================================================================
+   APP POLISH LAYER
+   Fine detailing on top of mobile-app.css: focus, fields, toasts, app bars,
+   section rhythm, list cards and motion. Loaded last.
+
+   Rules that change layout are phone-only (max-width: 767px); the few global
+   ones (focus rings, selection colour, toast timer) are invisible on desktop
+   apart from making keyboard focus clearer. Reduced motion turns every
+   animation here off (see the end of the file).
+   ========================================================================== */
+
+:root {
+  --surface-line: #e7e2d9;
+  --surface-line-soft: #efeae1;
+  --press: rgba(241, 90, 36, 0.06);
+  --shadow-float: 0 18px 40px -16px rgba(16, 26, 54, 0.32);
+}
+
+/* --------------------------------------------------------------------------
+   Global details
+   -------------------------------------------------------------------------- */
+::selection { background: rgba(241, 90, 36, 0.22); color: inherit; }
+
+/* Keyboard focus is always visible; mouse and finger presses leave no ring.
+   :where() keeps this at zero specificity, so components with their own ring win. */
+:where(a, button, [role="button"], [role="switch"], [role="tab"], summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+/* Numbers that change (counts, prices, scores) keep their width instead of jiggling */
+.dash-metric__value,
+.m-nav__badge,
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Toast countdown line */
+.ui-toast__timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.18;
+  transform-origin: left center;
+  animation-name: ui-toast-timer;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes ui-toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* App bars pick up a soft shadow once the page scrolls (see lib/scrollState.ts) */
+.dash-topbar,
+.dash-shell > header,
+.header-solid {
+  transition: box-shadow 260ms ease, background-color 260ms ease;
+}
+html.is-scrolled .dash-topbar,
+html.is-scrolled .dash-shell > header,
+html.is-scrolled .header-solid {
+  box-shadow: 0 10px 24px -18px rgba(16, 26, 54, 0.45);
+}
+
+/* Shared keyframes for this layer */
+@keyframes ap-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes ap-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ap-scale-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes ap-bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ap-ring { from { stroke-dashoffset: var(--ring-full); } }
+@keyframes ap-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 96, 74, 0.45); }
+  50% { box-shadow: 0 0 0 5px rgba(13, 96, 74, 0); }
+}
+
+/* Progress bars fill in from the left when they first appear */
+.dash-progress__fill { transform-origin: left center; animation: ap-bar-grow 900ms var(--ease-out-expo) backwards; }
+
+/* Profile ring (ProgressRing component) */
+.ap-ring__value { animation: ap-ring 1100ms var(--ease-out-expo) backwards; }
+
+/* A small "live" dot, e.g. beside "Open to work" */
+.ap-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: ap-pulse-dot 2.2s ease-in-out infinite;
+}
+
+/* Section header used across dashboards: title left, quiet action right */
+.ap-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ap-section-head__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--orange);
+  white-space: nowrap;
+}
+
+/* Meta pills on job cards (location, pay, type, experience) */
+.ap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-warm);
+  border: 1px solid var(--surface-line-soft);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--charcoal);
+  white-space: nowrap;
+}
+.ap-pill > span { overflow: hidden; text-overflow: ellipsis; }
+.ap-pill--pay { background: rgba(13, 96, 74, 0.07); border-color: rgba(13, 96, 74, 0.16); color: var(--green); }
+
+/* Quick filter chips (Jobs page) */
+.ap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #d8d2c6;
+  background: #fff;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, transform 160ms var(--ease-ios);
+  -webkit-tap-highlight-color: transparent;
+}
+.ap-chip:hover { border-color: #c7c0b2; }
+.ap-chip:active { transform: scale(0.95); }
+.ap-chip[aria-pressed="true"] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.ap-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.ap-rail::-webkit-scrollbar { display: none; }
+.ap-rail > * { flex-shrink: 0; scroll-snap-align: start; }
+
+/* Loading placeholders: a soft light sweep instead of a flat fade, like native apps.
+   Keeps each block's own colour and adds a moving highlight on top of it. */
+@keyframes ap-sheen { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.animate-pulse[class*="bg-slate"] {
+  animation: ap-sheen 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.7) 50%, transparent 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Desktop nav: an underline grows from the centre on hover and stays under the current page */
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--orange);
+  transform: scaleX(0);
+  transition: transform 260ms var(--ease-out-expo);
+}
+.nav-link-underline:hover::after { transform: scaleX(0.6); }
+.nav-link-underline.is-active::after { transform: scaleX(1); }
+
+/* Whole job card is tappable (the title link stays the accessible target) */
+.job-card { cursor: pointer; }
+
+
+/* --------------------------------------------------------------------------
+   Sign-in and sign-up screens
+   -------------------------------------------------------------------------- */
+@keyframes ap-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes ap-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes ap-drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.auth-error { animation: ap-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.auth-field__error { animation: ap-drop 220ms ease-out both; }
+.auth-swap { animation: ap-rise 320ms var(--ease-out-expo) both; }
+.auth-verified > span:first-child { animation: ap-pop 460ms var(--ease-out-expo) both; }
+.auth-step-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 2px;
+}
+/* The focused field's icon picks up the brand colour */
+.auth-field .relative:focus-within .auth-field__icon { color: var(--orange); transition: color 200ms ease; }
+/* Chrome / Safari autofill paints fields blue-yellow; keep them white like the rest */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--navy);
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  caret-color: var(--navy);
+  transition: background-color 9999s ease-out 0s;
+}
+.auth-submit:not(:disabled):hover { transform: translateY(-1px); }
+.auth-submit:not(:disabled):active { transform: scale(0.98); }
+
+/* --------------------------------------------------------------------------
+   Multi-step forms: content slides in from the side you are heading towards
+   -------------------------------------------------------------------------- */
+@keyframes ap-step-fwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+@keyframes ap-step-back { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+@keyframes ap-pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+.ecm-step--fwd { animation: ap-step-fwd 340ms var(--ease-out-expo) both; }
+.ecm-step--back { animation: ap-step-back 340ms var(--ease-out-expo) both; }
+.ecm-pop { transform-origin: top center; animation: ap-pop-in 180ms ease-out both; }
+
+/* ==========================================================================
+   PHONES (<= 767px)
+   ========================================================================== */
+@media (max-width: 767px) {
+  /* ---- Fields and buttons: thumb-sized ---- */
+  .ui-field { min-height: 48px; border-radius: 14px !important; }
+  textarea.ui-field { min-height: 112px; }
+  .ui-btn { min-height: 44px; }
+  .ui-btn.ui-btn--sm { min-height: 38px; }
+  .ui-card.p-6 { padding: 18px; }
+  .ui-card { border-radius: 20px; }
+  .ui-modal-close { width: 38px; height: 38px; background: #f4f1ea; color: var(--navy); }
+
+  /* ---- Toast: dark floating pill, coloured icon ---- */
+  .ui-toast {
+    background: #101a36 !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: var(--shadow-float) !important;
+    padding: 12px 8px 12px 14px !important;
+  }
+  .ui-toast[data-tone="success"] .ui-toast__icon { color: #34d399; }
+  .ui-toast[data-tone="error"] .ui-toast__icon { color: #f87171; }
+  .ui-toast[data-tone="info"] .ui-toast__icon { color: #ff9a6b; }
+  .ui-toast__close { opacity: 0.6; }
+  .ui-toast__timer { opacity: 0.32; background: #fff; }
+
+  /* ---- Installed app / notch: public header clears the status bar ---- */
+  .header,
+  .public-header { padding-top: env(safe-area-inset-top, 0px); }
+
+  /* ---- Dashboard rhythm: tighter, even gaps between sections ---- */
+  .dash-container.space-y-9 > :not(:last-child) { margin-block-end: 22px; }
+
+  /* Sections drift up into place, one after another, when a dashboard opens */
+  .dash-container.space-y-9 > * { animation: ap-rise 560ms var(--ease-out-expo) backwards; }
+  .dash-container.space-y-9 > *:nth-child(1) { animation-delay: 0ms; }
+  .dash-container.space-y-9 > *:nth-child(2) { animation-delay: 50ms; }
+  .dash-container.space-y-9 > *:nth-child(3) { animation-delay: 100ms; }
+  .dash-container.space-y-9 > *:nth-child(4) { animation-delay: 150ms; }
+  .dash-container.space-y-9 > *:nth-child(5) { animation-delay: 200ms; }
+  .dash-container.space-y-9 > *:nth-child(n + 6) { animation-delay: 240ms; }
+
+  /* ---- Greeting header: big friendly title, no divider line ---- */
+  .dash-header { border-bottom: 0 !important; padding: 18px 0 4px !important; }
+  .dash-header__title { font-size: clamp(22px, 7vw, 28px) !important; letter-spacing: -0.02em; }
+
+  /* ---- Cards ---- */
+  .dash-surface { border-radius: 20px; box-shadow: 0 1px 2px rgba(16, 26, 54, 0.04); }
+  .dash-surface--pad { padding: 16px 16px 18px; }
+  .dash-section-title { font-size: 16px; letter-spacing: -0.01em; }
+
+  /* ---- Metric tiles: a touch more presence ---- */
+  .dash-metric { min-width: 128px; padding: 14px 16px 16px !important; }
+  .dash-metric__value { font-size: 26px !important; }
+  .dash-metric__label { font-size: 11.5px; line-height: 1.3; }
+  .dash-metrics > .dash-metric { animation: ap-scale-in 420ms var(--ease-out-expo) backwards; }
+  .dash-metrics > .dash-metric:nth-child(2) { animation-delay: 60ms; }
+  .dash-metrics > .dash-metric:nth-child(3) { animation-delay: 120ms; }
+  .dash-metrics > .dash-metric:nth-child(4) { animation-delay: 180ms; }
+  .dash-metrics > .dash-metric:nth-child(n + 5) { animation-delay: 240ms; }
+
+  /* ---- Top bar on dashboards: a little taller tap targets ---- */
+  .dash-topbar button,
+  .dash-shell > header button { min-width: 40px; min-height: 40px; }
+
+  /* ---- Rows: no hover tint (it sticks after a tap); a press tint instead ---- */
+  .dash-row:hover { background: transparent; }
+  .dash-row:active { background: var(--press); }
+
+  /* ---- Job cards ---- */
+  .job-card { -webkit-tap-highlight-color: transparent; }
+  .job-card:active { background: #fdfbf7; }
+
+  /* ---- Jobs page: search sticks under the header while browsing ---- */
+  .jobs-sticky-search {
+    position: sticky;
+    top: calc(76px + env(safe-area-inset-top, 0px));
+    z-index: 20;
+  }
+
+  /* ---- Employer hiring funnel: one row per stage ---- */
+  .dash-funnel { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .dash-funnel > * { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; }
+  .dash-funnel > * > :nth-child(1) { grid-column: 1; }
+  .dash-funnel > * > :nth-child(2) { grid-column: 2; grid-row: 1 / span 2; margin: 0 !important; font-size: 22px !important; }
+  .dash-funnel > * > :nth-child(3) { grid-column: 1; margin-top: 6px !important; }
+  .dash-funnel > * > :nth-child(4) { grid-column: 1; }
+
+  /* ---- Bottom-sheet lists: comfortable rows ---- */
+  .ui-modal-body .ap-option { min-height: 60px; }
+
+  /* ---- Sign-in screens ---- */
+  .auth-title { font-size: 28px !important; letter-spacing: -0.02em; }
+  .auth-back { min-height: 40px; margin-bottom: 10px !important; }
+
+  /* ---- Admin: page content starts close to the bar ---- */
+  .admin-page-title { display: block !important; }
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .ui-toast__timer,
+  .dash-progress__fill,
+  .ap-ring__value,
+  .ap-live-dot,
+  .dash-container.space-y-9 > *,
+  .dash-metrics > .dash-metric,
+  .auth-error,
+  .auth-field__error,
+  .auth-swap,
+  .auth-verified > span:first-child,
+  .animate-pulse[class*="bg-slate"],
+  .ecm-step--fwd,
+  .ecm-step--back,
+  .ecm-pop {
+    animation: none !important;
+  }
+  .ap-chip, .dash-topbar, .dash-shell > header, .header-solid { transition: none !important; }
+}

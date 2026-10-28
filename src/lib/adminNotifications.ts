@@ -23,6 +23,8 @@ export function buildAdminNotifications(data: {
   jobs: any[];
   employers: any[];
   cvRequests: any[];
+  /** Hand-picked CVs; an employer's answer on one becomes a notification */
+  cvSubmissions?: any[];
 }): AdminNotification[] {
   const cutoff = Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const items: AdminNotification[] = [];
@@ -61,10 +63,26 @@ export function buildAdminNotifications(data: {
       id: `cv-${req.id}`,
       kind: 'cv',
       title: `New CV request · ${req.plan_label}`,
-      body: `${employer} · ₹${total.toLocaleString()} incl. GST · ${req.status}`,
+      body: `${employer} · ₹${total.toLocaleString('en-IN')} incl. GST · ${req.status}`,
       createdAt: req.created_at,
       link: `/admin/notifications/cv-${req.id}`,
       refId: req.id,
+    });
+  });
+
+  const ANSWER: Record<string, string> = { shortlisted: 'shortlisted', interview: 'wants to interview', hired: 'hired', rejected: 'passed on' };
+  (data.cvSubmissions || []).forEach((sub: any) => {
+    if (!sub.responded_at || !ANSWER[sub.status] || new Date(sub.responded_at).getTime() < cutoff) return;
+    const employer = companyName(data.employers, sub.employer_id);
+    const job = data.jobs.find((j: any) => j.id === sub.job_id);
+    items.push({
+      id: `sub-${sub.id}-${sub.status}`,
+      kind: 'cv',
+      title: `${employer} ${ANSWER[sub.status]} ${sub.candidate_name || 'a candidate'}`,
+      body: `${job?.job_title || 'General CV request'}${sub.employer_feedback ? ` · "${String(sub.employer_feedback).slice(0, 80)}"` : ''}`,
+      createdAt: sub.responded_at,
+      link: sub.job_id ? `/admin/jobs/${sub.job_id}` : '/admin/cv-requests',
+      refId: sub.id,
     });
   });
 
@@ -97,7 +115,7 @@ function loadRead(userId: string): Record<string, string> {
  * notifications — reading from storage at write time, not from a `readMap` closure
  * that may be stale, is what prevents that.
  */
-export function useAdminNotifications(userId: string | undefined, source: { jobs: any[]; employers: any[]; cvRequests: any[] }) {
+export function useAdminNotifications(userId: string | undefined, source: { jobs: any[]; employers: any[]; cvRequests: any[]; cvSubmissions?: any[] }) {
   const [readMap, setReadMap] = useState<Record<string, string>>(() => (userId ? loadRead(userId) : {}));
 
   useEffect(() => {
@@ -116,7 +134,7 @@ export function useAdminNotifications(userId: string | undefined, source: { jobs
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, [userId]);
 
-  const items = useMemo(() => buildAdminNotifications(source), [source.jobs, source.employers, source.cvRequests]);
+  const items = useMemo(() => buildAdminNotifications(source), [source.jobs, source.employers, source.cvRequests, source.cvSubmissions]);
 
   const isRead = useCallback((id: string) => Boolean(readMap[id]), [readMap]);
   const markRead = useCallback((id: string) => {

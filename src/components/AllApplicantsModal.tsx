@@ -64,26 +64,27 @@ export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matc
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="search"
+            enterKeyHint="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search by name, location or skill"
+            aria-label="Search applicants"
             className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 bg-white text-sm text-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-[var(--orange)]"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter applicants">
+        <div className="ap-rail -mx-1 px-1" role="tablist" aria-label="Filter applicants">
           {CHIPS.map(c => (
             <button
               key={c.id}
               type="button"
               role="tab"
               aria-selected={chip === c.id}
+              aria-pressed={chip === c.id}
               onClick={() => setChip(c.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                chip === c.id ? 'bg-[var(--navy)] text-white border-[var(--navy)]' : 'bg-white text-[var(--charcoal)] border-slate-200 hover:border-slate-300'
-              }`}
+              className="ap-chip !h-9 !text-xs"
             >
-              {c.label} ({counts[c.id]})
+              {c.label} <span className="opacity-60 tabular-nums">{counts[c.id]}</span>
             </button>
           ))}
         </div>
@@ -94,7 +95,7 @@ export function AllApplicantsModal({ isOpen, onClose, jobTitle, applicants, matc
           </p>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-[var(--charcoal)]">{visible.length} of {applicants.length} applicants, newest first</p>
+            <p className="text-xs text-[var(--charcoal)] tabular-nums" aria-live="polite">{visible.length} of {applicants.length} applicants, newest first</p>
             {pageItems.map(applicant => (
               <ApplicantRow
                 key={applicant.applicationId || applicant.id}

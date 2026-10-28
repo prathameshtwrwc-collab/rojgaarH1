@@ -9,8 +9,26 @@ import "./stats.css";
 import "./testimonials.css";
 import "./final-section.css";
 import "./mobile-app.css";
+import "./app-polish.css";
 import "./lib/pwaInstall";
+import "./lib/scrollState";
 import App from "./App";
+import AppErrorBoundary from "./components/AppErrorBoundary";
+
+// After a deploy, an open tab may ask for a code file that no longer exists.
+// Reload once to pick up the new version instead of failing on that page.
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    if (sessionStorage.getItem('rh.chunkReload') === '1') return;
+    sessionStorage.setItem('rh.chunkReload', '1');
+  } catch { /* storage blocked: still try once */ }
+  event.preventDefault();
+  window.location.reload();
+});
+// A page that loaded fine clears the flag, so a later deploy can reload again
+window.addEventListener('load', () => {
+  setTimeout(() => { try { sessionStorage.removeItem('rh.chunkReload'); } catch { /* blocked */ } }, 10000);
+});
 
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
@@ -34,6 +52,8 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>
 );

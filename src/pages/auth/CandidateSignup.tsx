@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import PageLoader from '../../components/PageLoader';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Mail, User } from 'lucide-react';
+import { AuthField, PasswordField, AuthError, AuthSubmit } from '../../components/AuthFields';
+import PhoneVerifyBox from '../../components/PhoneVerifyBox';
+import { friendlyAuthError, isValidEmail, isValidIndianMobile } from '../../lib/authHelpers';
+import { haptic } from '../../lib/haptics';
 import { signUp, sendOtp, verifyOtp, phoneExists, emailExists } from '../../lib/supabase/auth';
 import { createCandidate, getEmployerByReferralCode, getRecruiterByReferralCode } from '../../lib/supabase/data';
 import { useAuth } from '../../context/AuthContext';
@@ -17,8 +21,8 @@ export default function CandidateSignup() {
     password: '',
     confirmPassword: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'fullName' | 'email' | 'password' | 'confirmPassword', string>>>({});
   const [loading, setLoading] = useState(false);
 
   const [otpPhone, setOtpPhone] = useState('');
@@ -54,7 +58,9 @@ export default function CandidateSignup() {
   }, [countdown]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setFieldErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   // Changing the number means verifying the new one from the start
@@ -66,12 +72,14 @@ export default function CandidateSignup() {
   };
 
   const handleSendOtp = async () => {
-    if (!otpPhone || otpPhone.length < 10) {
+    if (!isValidIndianMobile(otpPhone)) {
       setError(t('auth.enterValidPhone'));
+      haptic('warn');
       return;
     }
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please enter your email address first.');
+    if (!isValidEmail(formData.email)) {
+      setFieldErrors(prev => ({ ...prev, email: 'Enter your email address first, we check it is not already in use' }));
+      haptic('warn');
       return;
     }
 
@@ -81,7 +89,7 @@ export default function CandidateSignup() {
     try {
       const [phoneTaken, emailTaken] = await Promise.all([
         phoneExists(otpPhone),
-        emailExists(formData.email),
+        emailExists(formData.email.trim().toLowerCase()),
       ]);
       if (phoneTaken || emailTaken) {
         setError(
@@ -102,8 +110,9 @@ export default function CandidateSignup() {
 
       setOtpSent(true);
       setCountdown(30);
+      haptic('success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.sendOtpError'));
+      setError(friendlyAuthError(err, t('auth.sendOtpError')));
     } finally {
       setLoading(false);
     }
@@ -127,9 +136,10 @@ export default function CandidateSignup() {
       }
 
       setOtpVerified(true);
-      setFormData({ ...formData, phone: otpPhone });
+      haptic('success');
+      setFormData(prev => ({ ...prev, phone: otpPhone }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.verifyOtpError'));
+      setError(friendlyAuthError(err, t('auth.verifyOtpError')));
     } finally {
       setLoading(false);
     }
@@ -139,18 +149,19 @@ export default function CandidateSignup() {
     e.preventDefault();
     setError('');
 
+    const errs: typeof fieldErrors = {};
+    if (formData.fullName.trim().length < 2) errs.fullName = 'Enter your full name';
+    if (!isValidEmail(formData.email)) errs.email = 'Enter a valid email address';
+    if (formData.password.length < 6) errs.password = t('auth.passwordMinLength');
+    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = t('auth.passwordsDoNotMatch');
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) {
+      haptic('warn');
+      return;
+    }
+
     if (!otpVerified) {
       setError(t('auth.verifyPhoneFirst'));
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError(t('auth.passwordsDoNotMatch'));
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError(t('auth.passwordMinLength'));
       return;
     }
 
@@ -158,9 +169,9 @@ export default function CandidateSignup() {
 
     try {
       const authUser = await signUp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        fullName: formData.fullName,
+        fullName: formData.fullName.trim().replace(/\s+/g, ' '),
         phone: formData.phone,
         role: 'candidate',
       });
@@ -174,9 +185,11 @@ export default function CandidateSignup() {
         if (referringEmployer) referredBy = referringEmployer.id;
       }
       await createCandidate(authUser.id, referredBy, recruiterCode || refCode || null, referredByRecruiter);
+      haptic('success');
       navigate('/dashboard/candidate', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.signupFailed'));
+      haptic('error');
+      setError(friendlyAuthError(err, t('auth.signupFailed')));
     } finally {
       setLoading(false);
     }
@@ -192,7 +205,7 @@ export default function CandidateSignup() {
     <div className="auth-shell min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-12">
       <div className="w-full max-w-[460px]">
         <div className="auth-card bg-white rounded-2xl shadow-lg p-8">
-          <Link to="/" className="inline-flex items-center text-sm text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
+          <Link to="/" className="auth-back inline-flex items-center text-sm font-semibold text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
             <ArrowLeft size={16} className="mr-2" />
             Back to home
           </Link>
@@ -200,7 +213,7 @@ export default function CandidateSignup() {
           <AuthSwitcher active="signup" role="candidate" />
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            <h1 className="auth-title text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
               {t('auth.createCandidateAccount')}
             </h1>
             <p className="text-sm text-[var(--charcoal)]">
@@ -208,172 +221,88 @@ export default function CandidateSignup() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              {error}
-            </div>
-          )}
+          <AuthError message={error} />
 
-          <div className="space-y-5 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.fullName')}
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.fullName')}
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <AuthField
+              label={t('auth.fullName')}
+              icon={<User size={17} />}
+              name="fullName"
+              autoComplete="name"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              value={formData.fullName}
+              onChange={handleChange}
+              placeholder="As on your ID"
+              error={fieldErrors.fullName}
+              maxLength={80}
+            />
 
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.email')}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-          </div>
+            <AuthField
+              label={t('auth.email')}
+              icon={<Mail size={17} />}
+              type="email"
+              name="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+              error={fieldErrors.email}
+            />
 
-          {/* Phone Verification */}
-          <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <h3 className="text-sm font-bold text-[var(--navy)] mb-3">{t('auth.verifyPhone')}</h3>
-            {!otpVerified ? (
-              <>
-                <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                  <input
-                    type="tel"
-                    value={otpPhone}
-                    onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    required
-                    disabled={otpSent}
-                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="9876543210"
-                  />
-                  {!otpSent ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={loading}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
-                    >
-                      {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-white border border-slate-300 text-[var(--navy)] text-sm font-bold rounded-full hover:bg-slate-50 transition-all"
-                    >
-                      Change Number
-                    </button>
-                  )}
-                </div>
-                {otpSent && (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      required
-                      maxLength={6}
-                      className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                      placeholder="••••••"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={loading || otp.length !== 6}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
-                    >
-                      {loading ? t('auth.verifying') : t('auth.verifyOtp')}
-                    </button>
-                  </div>
-                )}
-                {otpSent && (
-                  <div className="mt-2">
-                    {countdown > 0 ? (
-                      <p className="text-xs text-slate-500">{t('auth.resendCode', { count: countdown })}</p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={loading}
-                        className="text-xs font-bold text-[var(--orange)] hover:underline disabled:opacity-50"
-                      >
-                        {loading ? t('auth.sendingOtp') : 'Resend OTP'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-green-700">
-                <span className="text-sm font-semibold">{t('auth.phoneVerified')} · {otpPhone}</span>
-                <button type="button" onClick={resetPhone} className="ml-auto text-xs font-bold text-[var(--navy)] underline underline-offset-2">Change</button>
-              </div>
+            <PhoneVerifyBox
+              phone={otpPhone}
+              onPhoneChange={setOtpPhone}
+              otp={otp}
+              onOtpChange={setOtp}
+              otpSent={otpSent}
+              verified={otpVerified}
+              countdown={countdown}
+              loading={loading}
+              onSend={handleSendOtp}
+              onVerify={handleVerifyOtp}
+              onEditNumber={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
+              onReset={resetPhone}
+            />
+
+            <PasswordField
+              label={t('auth.password')}
+              name="password"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="At least 6 characters"
+              error={fieldErrors.password}
+              showStrength
+            />
+
+            <PasswordField
+              label={t('auth.confirmPassword')}
+              name="confirmPassword"
+              autoComplete="new-password"
+              enterKeyHint="done"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder={t('auth.confirmPassword')}
+              error={
+                fieldErrors.confirmPassword ||
+                (formData.confirmPassword && formData.password && !formData.password.startsWith(formData.confirmPassword)
+                  ? t('auth.passwordsDoNotMatch')
+                  : undefined)
+              }
+            />
+
+            <AuthSubmit loading={loading && otpVerified} disabled={!otpVerified || loading} loadingText={t('auth.creatingAccount')}>
+              {t('auth.createAccount')}
+            </AuthSubmit>
+            {!otpVerified && (
+              <p className="text-center text-[12px] text-slate-500 -mt-1">Verify your phone number above to continue.</p>
             )}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.password')}
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                  placeholder={t('auth.password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)] hover:text-[var(--navy)]"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.confirmPassword')}
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.confirmPassword')}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !otpVerified}
-              className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
-            </button>
           </form>
 
           <div className="mt-6 text-center">

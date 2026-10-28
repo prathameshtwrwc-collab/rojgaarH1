@@ -10,9 +10,27 @@ export function gstFor(base: number) {
   return { base, gst, total: base + gst };
 }
 
+// Built by hand on purpose: URLSearchParams turns spaces into "+", and several UPI apps then show the
+// payee as "Pacific+Jobs+India…". Amounts go with two decimals, which every UPI app accepts.
 function upiParams(amount: number, note: string) {
-  const p = new URLSearchParams({ pa: UPI_VPA, pn: UPI_PAYEE_NAME, am: String(amount), cu: 'INR', tn: note });
-  return p.toString();
+  const pairs: [string, string][] = [
+    ['pa', UPI_VPA],
+    ['pn', UPI_PAYEE_NAME],
+    ['am', (Math.round(amount * 100) / 100).toFixed(2)],
+    ['cu', 'INR'],
+    ['tn', note.slice(0, 50)],
+  ];
+  return pairs.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+}
+
+/** The full upi:// link, shared by the Pay button and the QR codes so they can never disagree */
+export function upiUri(amount: number, note = 'Rojgaar Hai payment') {
+  return 'upi://pay?' + upiParams(amount, note);
+}
+
+/** QR image for the same link, for paying from a second phone */
+export function upiQrSrc(amount: number, note?: string, size = 180) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(upiUri(amount, note))}`;
 }
 
 /**
@@ -39,7 +57,7 @@ export function PayFromUpiButton({ amount, note }: { amount: number; note: strin
         onClick={pay}
         className="w-full h-12 rounded-xl bg-[var(--orange)] hover:bg-[#d94d1a] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-orange-600/20 transition-colors"
       >
-        <Smartphone size={17} /> Pay ₹{amount.toLocaleString()} from UPI app
+        <Smartphone size={17} /> Pay ₹{amount.toLocaleString('en-IN')} from UPI app
       </button>
       {hint && (
         <p className="text-[11px] text-[var(--charcoal)] bg-[var(--bg-warm)] rounded-lg px-3 py-2 flex items-start gap-1.5 break-words">
@@ -55,13 +73,13 @@ export function PaymentBreakdown({ base, gst, total, label }: { base: number; gs
     <div className="rounded-2xl border border-[var(--orange)]/20 overflow-hidden">
       <div className="px-4 py-3 bg-[var(--orange)]/5 text-center">
         <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--orange)]">Total to pay (incl. GST)</p>
-        <p className="text-3xl font-extrabold text-[var(--navy)] mt-0.5">₹{total.toLocaleString()}</p>
+        <p className="text-3xl font-extrabold text-[var(--navy)] mt-0.5">₹{total.toLocaleString('en-IN')}</p>
         <p className="text-xs text-[var(--charcoal)] mt-0.5">{label}</p>
       </div>
       <div className="text-sm divide-y divide-[#EFEAE1]">
-        <div className="flex justify-between px-4 py-2"><span className="text-[var(--charcoal)]">Base amount</span><span className="font-semibold text-[var(--navy)]">₹{base.toLocaleString()}</span></div>
-        <div className="flex justify-between px-4 py-2"><span className="text-[var(--charcoal)]">GST @ 18%</span><span className="font-semibold text-[var(--navy)]">₹{gst.toLocaleString()}</span></div>
-        <div className="flex justify-between px-4 py-2 font-bold"><span className="text-[var(--navy)]">Total</span><span className="text-[var(--orange)]">₹{total.toLocaleString()}</span></div>
+        <div className="flex justify-between px-4 py-2"><span className="text-[var(--charcoal)]">Base amount</span><span className="font-semibold text-[var(--navy)]">₹{base.toLocaleString('en-IN')}</span></div>
+        <div className="flex justify-between px-4 py-2"><span className="text-[var(--charcoal)]">GST @ 18%</span><span className="font-semibold text-[var(--navy)]">₹{gst.toLocaleString('en-IN')}</span></div>
+        <div className="flex justify-between px-4 py-2 font-bold"><span className="text-[var(--navy)]">Total</span><span className="text-[var(--orange)]">₹{total.toLocaleString('en-IN')}</span></div>
       </div>
     </div>
   );

@@ -163,12 +163,12 @@ function salaryCheck(expectedMin: number, jobMin: number | null | undefined, job
   const jMax = jobMax || jobMin || 0;
   if (!jMax || !expectedMin || expectedMin <= 0) return null;
   if (expectedMin <= jMax) {
-    return { fraction: 1, note: `Expects ₹${expectedMin.toLocaleString()}/mo, within the job's pay` };
+    return { fraction: 1, note: `Expects ₹${expectedMin.toLocaleString('en-IN')}/mo, within the job's pay` };
   }
   const overRatio = (expectedMin - jMax) / jMax;
   return {
     fraction: Math.max(0, 1 - 2 * overRatio),
-    note: `Expects ₹${expectedMin.toLocaleString()}/mo, above the job's ₹${jMax.toLocaleString()}/mo ceiling`,
+    note: `Expects ₹${expectedMin.toLocaleString('en-IN')}/mo, above the job's ₹${jMax.toLocaleString('en-IN')}/mo ceiling`,
   };
 }
 

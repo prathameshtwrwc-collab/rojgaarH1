@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, IndianRupee, ShieldCheck, Bookmark, ArrowRight,
-  CheckCircle, GraduationCap, Users,
+  CheckCircle, GraduationCap, Users, Briefcase, Clock,
 } from 'lucide-react';
+import { haptic } from '../lib/haptics';
 
 export interface JobCardData {
   id: string;
@@ -27,6 +28,7 @@ export interface JobCardData {
 export function timeAgo(dateStr?: string): string {
   if (!dateStr) return 'Recently';
   const diffMs = Date.now() - new Date(dateStr).getTime();
+  if (Number.isNaN(diffMs)) return 'Recently';
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;
@@ -37,14 +39,27 @@ export function timeAgo(dateStr?: string): string {
   const weeks = Math.floor(days / 7);
   if (weeks < 5) return `${weeks}w ago`;
   const months = Math.floor(days / 30);
-  return `${months}mo ago`;
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
 }
 
-function money(v: string) {
-  const n = parseInt(v || '0', 10);
+export function money(v: string) {
+  const n = parseInt(v || '0', 10) || 0;
   if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
   if (n >= 1000) return `₹${Math.round(n / 1000)}K`;
   return `₹${n}`;
+}
+
+/** "₹15K–20K", "₹15K+", "Up to ₹20K" or "Not disclosed": never "₹0–₹0". */
+export function payRange(min: string, max: string) {
+  const lo = parseInt(min || '0', 10) || 0;
+  const hi = parseInt(max || '0', 10) || 0;
+  if (lo && hi && lo !== hi) return `${money(min)}–${money(max).replace('₹', '')}`;
+  if (lo && hi) return money(min);
+  if (lo) return `${money(min)}+`;
+  if (hi) return `Up to ${money(max)}`;
+  return 'Not disclosed';
 }
 
 function isNewListing(dateStr?: string) {
@@ -63,7 +78,12 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, onToggleSave, onApply }: JobCardProps) {
+  const navigate = useNavigate();
   const isFresh = isNewListing(job.createdAt);
+  const pay = payRange(job.salaryMin, job.salaryMax);
+  const place = [job.city, job.state].filter(Boolean).join(', ') || 'Location not set';
+  const initial = (job.companyName || '?').trim().charAt(0).toUpperCase() || '?';
+  const openJob = () => navigate(`/jobs/${job.id}`);
 
   const matchColor = matchScore == null ? ''
     : matchScore >= 80 ? 'bg-[rgba(13,96,74,0.08)] border-[rgba(13,96,74,0.25)] text-[var(--green)]'
@@ -71,17 +91,33 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
     : matchScore >= 40 ? 'bg-amber-50 border-amber-200 text-amber-700'
     : 'bg-slate-50 border-slate-200 text-slate-500';
 
+  // The card itself opens the job; its buttons must not also do that
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    haptic('select');
+    onToggleSave(job.id, e);
+  };
+  const handleApply = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onApply(job, e);
+  };
+
   const SaveButton = (
     <button
-      onClick={e => onToggleSave(job.id, e)}
+      type="button"
+      onClick={handleSave}
       title={isSaved ? 'Remove from saved' : 'Save job'}
-      className={`flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-[10px] border transition-colors ${
+      aria-label={isSaved ? `Remove ${job.jobTitle} from saved jobs` : `Save ${job.jobTitle}`}
+      aria-pressed={isSaved}
+      className={`flex-shrink-0 w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full sm:rounded-[10px] border transition-[color,background-color,border-color,transform] active:scale-90 ${
         isSaved
           ? 'bg-[var(--orange)]/10 border-[var(--orange)]/25 text-[var(--orange)]'
           : 'border-[#E7E2D9] text-slate-400 hover:text-[var(--navy)] hover:bg-[var(--bg-warm)]'
       }`}
     >
-      <Bookmark size={15} className={isSaved ? 'fill-[var(--orange)]' : ''} />
+      <Bookmark size={16} className={`transition-transform duration-300 ${isSaved ? 'fill-[var(--orange)] scale-110' : ''}`} />
     </button>
   );
 
@@ -91,31 +127,24 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
     </span>
   ) : (
     <button
-      onClick={e => onApply(job, e)}
-      className="dash-btn dash-btn-primary dash-btn--compact w-full sm:w-auto flex-shrink-0 whitespace-nowrap"
+      type="button"
+      onClick={handleApply}
+      className="dash-btn dash-btn-primary dash-btn--compact flex-shrink-0 whitespace-nowrap"
     >
-      Apply Now <ArrowRight size={13} />
+      Apply<span className="hidden sm:inline">&nbsp;Now</span> <ArrowRight size={13} />
     </button>
   );
 
-  const metaLine = (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-[var(--charcoal)] font-medium">
-      <span className="inline-flex items-center gap-1"><MapPin size={12} className="text-slate-400" />{job.city}{job.state ? `, ${job.state}` : ''}</span>
-      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
-      <span className="font-bold text-[var(--green)] inline-flex items-center gap-0.5"><IndianRupee size={11} />{money(job.salaryMin)}–{money(job.salaryMax)}/mo</span>
-      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
-      <span>{job.employmentType}</span>
-      <span className="text-[#D8D2C6] hidden sm:inline">·</span>
-      <span>{job.experienceRequired}</span>
-    </div>
-  );
-
   const titleRow = (
-    <div className="flex items-center gap-2 flex-wrap">
-      <Link to={`/jobs/${job.id}`} className="font-bold text-[15px] text-[var(--navy)] hover:text-[var(--orange)] transition-colors leading-snug break-words min-w-0">
+    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+      <Link
+        to={`/jobs/${job.id}`}
+        onClick={e => e.stopPropagation()}
+        className="font-bold text-[15px] text-[var(--navy)] hover:text-[var(--orange)] transition-colors leading-snug break-words min-w-0"
+      >
         {job.jobTitle}
       </Link>
-      {job.isVerified !== false && <ShieldCheck size={13} className="text-[var(--green)] flex-shrink-0" />}
+      {job.isVerified !== false && <ShieldCheck size={14} className="text-[var(--green)] flex-shrink-0" aria-label="Verified employer" />}
       {isFresh && (
         <span className="text-[10px] font-extrabold uppercase tracking-wide text-[var(--purple)] bg-[var(--purple)]/10 border border-[var(--purple)]/20 px-1.5 py-0.5 rounded-full">
           New
@@ -124,16 +153,26 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
     </div>
   );
 
+  const metaPills = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="ap-pill ap-pill--pay"><IndianRupee size={11} className="flex-shrink-0" /><span>{pay}{pay !== 'Not disclosed' ? '/mo' : ''}</span></span>
+      <span className="ap-pill"><MapPin size={11} className="text-slate-400 flex-shrink-0" /><span>{place}</span></span>
+      {job.employmentType && <span className="ap-pill"><Briefcase size={11} className="text-slate-400 flex-shrink-0" /><span>{job.employmentType}</span></span>}
+      {job.experienceRequired && job.experienceRequired !== 'Not specified' && <span className="ap-pill"><span>{job.experienceRequired}</span></span>}
+    </div>
+  );
+
+  const shownSkills = view === 'grid' ? 3 : 4;
   const skillsRow = job.skillsRequired.length > 0 && (
-    <div className="flex flex-wrap gap-1.5 mt-2">
-      {job.skillsRequired.slice(0, view === 'grid' ? 3 : 4).map(skill => (
-        <span key={skill} className="px-2 py-0.5 bg-[var(--bg-warm)] border border-[#EFEAE1] text-[var(--charcoal)] rounded-md text-[11px] font-semibold max-w-[160px] truncate">
+    <div className="flex flex-wrap gap-1.5">
+      {job.skillsRequired.slice(0, shownSkills).map(skill => (
+        <span key={skill} className="px-2 py-0.5 bg-white border border-[#EFEAE1] text-[var(--charcoal)] rounded-md text-[11px] font-semibold max-w-[160px] truncate">
           {skill}
         </span>
       ))}
-      {job.skillsRequired.length > (view === 'grid' ? 3 : 4) && (
-        <span className="px-2 py-0.5 text-slate-400 rounded-md text-[11px] font-semibold">
-          +{job.skillsRequired.length - (view === 'grid' ? 3 : 4)} more
+      {job.skillsRequired.length > shownSkills && (
+        <span className="px-1.5 py-0.5 text-slate-400 rounded-md text-[11px] font-semibold">
+          +{job.skillsRequired.length - shownSkills} more
         </span>
       )}
     </div>
@@ -141,23 +180,25 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
 
   if (view === 'grid') {
     return (
-      <div className="dash-surface dash-surface--lift flex flex-col h-full">
+      <article onClick={openJob} className="job-card dash-surface dash-surface--lift flex flex-col h-full">
         <div className="p-5 flex-1">
           <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="dash-avatar">{job.companyName.charAt(0)}</div>
+            <div className="dash-avatar" aria-hidden="true">{initial}</div>
             {SaveButton}
           </div>
 
           {titleRow}
           <p className="text-[13px] text-[var(--charcoal)] font-semibold mt-0.5 truncate">{job.companyName}</p>
 
-          <div className="mt-3">{metaLine}</div>
+          <div className="mt-3">{metaPills}</div>
 
-          <p className="text-[12.5px] text-[var(--charcoal)] leading-relaxed mt-3 line-clamp-2">
-            {job.jobDescription}
-          </p>
+          {job.jobDescription && (
+            <p className="text-[12.5px] text-[var(--charcoal)] leading-relaxed mt-3 line-clamp-2">
+              {job.jobDescription}
+            </p>
+          )}
 
-          {skillsRow}
+          {skillsRow && <div className="mt-3">{skillsRow}</div>}
 
           {matchScore != null && (
             <div className={`inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-lg border text-[11.5px] font-extrabold ${matchColor}`}>
@@ -166,34 +207,32 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
           )}
         </div>
 
-        <div className="px-5 py-3.5 border-t border-[#EFEAE1] flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 min-w-0">
-            <Users size={12} className="flex-shrink-0" /> {job.numberOfOpenings} openings · {timeAgo(job.createdAt)}
+        <div className="px-5 py-3.5 border-t border-[#EFEAE1] flex items-center justify-between gap-3">
+          <span className="text-[11px] text-slate-400 inline-flex items-center gap-1 min-w-0 truncate">
+            <Users size={12} className="flex-shrink-0" /> {job.numberOfOpenings || 1} {job.numberOfOpenings === 1 ? 'opening' : 'openings'} · {timeAgo(job.createdAt)}
           </span>
-          <div className="w-full sm:w-auto">{ApplyButton}</div>
+          {ApplyButton}
         </div>
-      </div>
+      </article>
     );
   }
 
-  // Phone: logo + details on top, a full-width footer with Save and Apply below.
-  // Desktop (sm+): one row, Save and Apply on the right.
+  // Phone: a self-contained card (logo, title, save in the corner; pills; then time + Apply).
+  // Desktop (sm+): one compact row, Save and Apply on the right.
   return (
-    <div className="px-4 py-4 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 hover:bg-[var(--bg-warm)] transition-colors">
+    <article
+      onClick={openJob}
+      className="job-card px-4 pt-4 pb-3.5 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 sm:hover:bg-[var(--bg-warm)] transition-colors"
+    >
       <div className="flex items-start gap-3 min-w-0 sm:flex-1">
-        <div className="dash-avatar flex-shrink-0">{job.companyName.charAt(0)}</div>
+        <div className="dash-avatar flex-shrink-0" aria-hidden="true">{initial}</div>
         <div className="min-w-0 flex-1">
           {titleRow}
           <p className="text-[13px] text-[var(--charcoal)] font-semibold mt-0.5 truncate">
             {job.companyName}
           </p>
-          <div className="mt-1.5">{metaLine}</div>
-          {matchScore != null && (
-            <p className={`sm:hidden inline-flex items-center mt-2 px-2 py-0.5 rounded-md border text-[11px] font-extrabold ${matchColor}`}>
-              {matchScore}% match for you
-            </p>
-          )}
-          {skillsRow}
+          <div className="mt-2">{metaPills}</div>
+          {skillsRow && <div className="mt-2 hidden sm:block">{skillsRow}</div>}
         </div>
 
         {matchScore != null && (
@@ -202,16 +241,34 @@ export function JobCard({ job, view = 'list', isSaved, isApplied, matchScore, on
             <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5">Match</span>
           </div>
         )}
+
+        {/* Save sits in the card's corner on phones */}
+        <div className="sm:hidden -mt-1 -mr-1">{SaveButton}</div>
       </div>
 
-      <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0 min-w-0">
+      {/* Phone footer: how well it matches (or when it was posted) + the action */}
+      <div className="flex sm:hidden items-center justify-between gap-3 pt-3 border-t border-[#F3EFE7]">
+        {matchScore != null ? (
+          <span className={`inline-flex items-center px-2 py-1 rounded-lg border text-[11px] font-extrabold ${matchColor}`}>
+            {matchScore}% match for you
+          </span>
+        ) : (
+          <span className="text-[11.5px] text-slate-400 font-semibold inline-flex items-center gap-1 min-w-0 truncate">
+            <Clock size={12} className="flex-shrink-0" /> {timeAgo(job.createdAt)}
+            {job.numberOfOpenings > 1 && <> · {job.numberOfOpenings} openings</>}
+          </span>
+        )}
+        {ApplyButton}
+      </div>
+
+      <div className="hidden sm:flex items-center gap-2 sm:flex-shrink-0 min-w-0">
         <span className="text-[11px] text-slate-400 hidden md:inline-flex items-center gap-1 mr-1 min-w-0 max-w-[150px] truncate">
           <GraduationCap size={12} className="flex-shrink-0" />
           <span className="truncate">{job.qualificationRequired || 'Any'} · {timeAgo(job.createdAt)}</span>
         </span>
         {SaveButton}
-        <div className="flex-1 sm:flex-none min-w-0 flex justify-end">{ApplyButton}</div>
+        {ApplyButton}
       </div>
-    </div>
+    </article>
   );
 }

@@ -3,8 +3,10 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
-import { GitMerge, Zap, CheckCircle, Trophy, Sparkles, Download } from 'lucide-react';
-import { Card, Badge, Button, Select } from '../../components/ui';
+import { GitMerge, Zap, CheckCircle, Trophy, Sparkles, Download, Send } from 'lucide-react';
+import SendCvsModal from '../../components/SendCvsModal';
+import { useAuth } from '../../context/AuthContext';
+import { Card, Badge, Button, Select, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createMatch, updateMatchStatus as updateMatchStatusApi, getCandidateEducation, getCandidateExperience, getCandidateLanguages } from '../../lib/supabase/data';
 import { computeMatch, matchLabel, checkText } from '../../lib/matching';
@@ -17,13 +19,17 @@ function getScoreColor(score: number) {
 }
 
 const matchStatusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
-  'Pending': 'warning', 'Shortlisted': 'info', 'Interview Scheduled': 'default', 'Offered': 'success', 'Rejected': 'danger',
+  'Pending': 'warning', 'Shortlisted': 'info', 'Interview Scheduled': 'default', 'Offered': 'success', 'Hired': 'success', 'Rejected': 'danger',
 };
+// "Hired" is set by the hire flow; it must be in the list or the dropdown would show the wrong value
+const MATCH_STATUSES = ['Pending', 'Shortlisted', 'Interview Scheduled', 'Offered', 'Hired', 'Rejected'];
 
 type Mode = 'manual' | 'bestForJob';
 
 export default function Matching() {
-  const { candidates, jobs, employers, matches, refresh } = useDatabase();
+  const { candidates, jobs, employers, matches, cvSubmissions, cvRequests, jobSkills, refresh } = useDatabase();
+  const { user } = useAuth();
+  const [showSendCvs, setShowSendCvs] = useState(false);
   const [mode, setMode] = useState<Mode>('manual');
   const [selectedCandidate, setSelectedCandidate] = useState('');
   const [selectedJob, setSelectedJob] = useState('');
@@ -32,13 +38,16 @@ export default function Matching() {
   const [bestJobId, setBestJobId] = useState('');
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [downloadingCsv, setDownloadingCsv] = useState(false);
+  const [statusBusy, setStatusBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const errMsg = (err: unknown, fallback: string) => (err as { message?: string })?.message || fallback;
 
   const employerName = (employerId: string) => employers.find((e: any) => e.id === employerId)?.company_name || 'Unknown';
 
   const openJobs = useMemo(() => jobs.filter((j: any) => j.status === 'Open'), [jobs]);
   const existingMatchKeys = useMemo(() => new Set(matches.map((m: any) => `${m.candidate_id}:${m.job_id}`)), [matches]);
 
-  const matchesEnriched = useMemo(() => matches.map((m: any) => {
+  const matchesEnriched = useMemo(() => [...matches].sort((a: any, b: any) => String(b.created_at || '').localeCompare(String(a.created_at || ''))).map((m: any) => {
     const candidate = candidates.find((c: any) => c.id === m.candidate_id);
     const job = jobs.find((j: any) => j.id === m.job_id);
     return {
@@ -59,25 +68,35 @@ export default function Matching() {
 
   const confirmMatch = async (candidateId: string, jobId: string, score: number) => {
     setSaving(true);
+    if (existingMatchKeys.has(`${candidateId}:${jobId}`)) {
+      setToast('This candidate is already matched to this job');
+      setSaving(false);
+      return;
+    }
     try {
       await createMatch({ candidate_id: candidateId, job_id: jobId, match_score: score, status: 'Pending' } as any);
-      await refresh();
+      await refresh({ silent: true });
       setMatchResult(null);
       setSelectedCandidate('');
       setSelectedJob('');
+      setToast('Match created');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create match');
+      setToast(errMsg(err, 'Failed to create match'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleStatusChange = async (matchId: string, status: string) => {
+    setStatusBusy(matchId);
     try {
       await updateMatchStatusApi(matchId, status);
-      await refresh();
+      await refresh({ silent: true });
+      setToast(`Status changed to ${status}`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update match status');
+      setToast(errMsg(err, 'Failed to update match status'));
+    } finally {
+      setStatusBusy(null);
     }
   };
 
@@ -170,7 +189,7 @@ export default function Matching() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to download CSV');
+      setToast(errMsg(err, 'Failed to download CSV'));
     } finally {
       setDownloadingCsv(false);
     }
@@ -191,12 +210,16 @@ export default function Matching() {
     <div className="space-y-6 dash-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--navy)]">Matching Engine</h2>
+          <h2 className="admin-page-title text-2xl font-bold text-[var(--navy)]">Matching Engine</h2>
           <p className="text-sm text-[var(--charcoal)] mt-1">Weighted, explainable candidate-to-job compatibility scoring</p>
         </div>
-        <div className="flex bg-slate-100 rounded-full p-1">
-          <button onClick={() => setMode('manual')} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${mode === 'manual' ? 'bg-white text-[var(--navy)] shadow-sm' : 'text-[var(--charcoal)]'}`}>Manual Match</button>
-          <button onClick={() => setMode('bestForJob')} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${mode === 'bestForJob' ? 'bg-white text-[var(--navy)] shadow-sm' : 'text-[var(--charcoal)]'}`}>Best Candidates for a Job</button>
+        <div role="tablist" aria-label="Matching mode" className="relative grid grid-cols-2 bg-slate-100 rounded-full p-1 w-full sm:w-auto">
+          <span aria-hidden className="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white rounded-full shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]" style={{ transform: mode === 'bestForJob' ? 'translateX(100%)' : 'none' }} />
+          {([['manual', 'Manual match'], ['bestForJob', 'Best for a job']] as const).map(([m, label]) => (
+            <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`relative z-10 h-9 px-4 rounded-full text-xs font-bold transition-colors ${mode === m ? 'text-[var(--navy)]' : 'text-[var(--charcoal)]'}`}>
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -211,27 +234,32 @@ export default function Matching() {
               label="Select Candidate"
               options={[{ value: '', label: 'Choose a candidate...' }, ...candidates.map((c: any) => ({ value: c.id, label: `${c.profile_name || c.id} — ${(c.skills || []).slice(0, 2).join(', ')}` }))]}
               value={selectedCandidate}
-              onChange={e => setSelectedCandidate(e.target.value)}
+              onChange={e => { setSelectedCandidate(e.target.value); setMatchResult(null); }}
             />
             <Select
               label="Select Job Opening"
               options={[{ value: '', label: 'Choose a job...' }, ...openJobs.map((j: any) => ({ value: j.id, label: `${j.job_title} at ${employerName(j.employer_id)}` }))]}
               value={selectedJob}
-              onChange={e => setSelectedJob(e.target.value)}
+              onChange={e => { setSelectedJob(e.target.value); setMatchResult(null); }}
             />
           </div>
-          <Button onClick={handleMatch} disabled={!selectedCandidate || !selectedJob} className="gap-2">
-            <GitMerge size={16} /> Calculate Match
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={handleMatch} disabled={!selectedCandidate || !selectedJob} className="gap-2">
+              <GitMerge size={16} /> Calculate Match
+            </Button>
+            {selectedCandidate && selectedJob && existingMatchKeys.has(`${selectedCandidate}:${selectedJob}`) && (
+              <span className="text-xs font-semibold text-amber-700">Already matched. You can still view the score.</span>
+            )}
+          </div>
 
           {matchResult && currentBreakdown && (
-            <div className="mt-6 p-4 bg-[var(--bg-warm)] rounded-xl border border-slate-200">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+            <div className="mt-6 p-4 bg-[var(--bg-warm)] rounded-xl border border-slate-200" style={{ animation: "ap-scale-in 320ms var(--ease-out-expo) both" }}>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider">{matchLabel(currentBreakdown.score).label}</p>
-                  <p className="font-bold text-[var(--navy)] text-base">{matchResult.candidate.profile_name || matchResult.candidate.id} ↔ {matchResult.job.job_title} at {employerName(matchResult.job.employer_id)}</p>
+                  <p className="font-bold text-[var(--navy)] text-base break-words">{matchResult.candidate.profile_name || 'Unnamed'} ↔ {matchResult.job.job_title} at {employerName(matchResult.job.employer_id)}</p>
                 </div>
-                <div className={`text-2xl font-bold px-4 py-2 rounded-xl border ${getScoreColor(currentBreakdown.score)}`}>
+                <div className={`text-2xl font-bold px-4 py-2 rounded-xl border flex-shrink-0 tabular-nums ${getScoreColor(currentBreakdown.score)}`}>
                   {currentBreakdown.score}%
                 </div>
               </div>
@@ -253,7 +281,7 @@ export default function Matching() {
               </div>
 
               <div className="flex gap-2">
-                <Button size="sm" variant="success" onClick={() => confirmMatch(matchResult.candidate.id, matchResult.job.id, currentBreakdown.score)} disabled={saving} className="gap-1"><CheckCircle size={14} /> {saving ? 'Saving...' : 'Confirm Match'}</Button>
+                <Button size="sm" variant="success" onClick={() => confirmMatch(matchResult.candidate.id, matchResult.job.id, currentBreakdown.score)} disabled={saving || existingMatchKeys.has(`${matchResult.candidate.id}:${matchResult.job.id}`)} loading={saving} className="gap-1">{!saving && <CheckCircle size={14} />} {saving ? 'Saving…' : 'Confirm Match'}</Button>
                 <Button size="sm" variant="ghost" onClick={() => setMatchResult(null)}>Cancel</Button>
               </div>
             </div>
@@ -274,14 +302,19 @@ export default function Matching() {
                 onChange={e => setBestJobId(e.target.value)}
               />
             </div>
-            <Button
-              variant="secondary"
-              onClick={downloadBestCandidatesCsv}
-              disabled={!bestJobId || downloadingCsv}
-              className="gap-2 self-end"
-            >
-              <Download size={16} /> {downloadingCsv ? 'Downloading...' : 'Download CSV'}
-            </Button>
+            <div className="flex gap-2 self-end">
+              <Button onClick={() => setShowSendCvs(true)} disabled={!bestJobId} className="gap-2">
+                <Send size={16} /> Send CVs
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={downloadBestCandidatesCsv}
+                disabled={!bestJobId || downloadingCsv}
+                className="gap-2"
+              >
+                <Download size={16} /> {downloadingCsv ? 'Downloading...' : 'CSV'}
+              </Button>
+            </div>
           </div>
 
           {bestJobId && (
@@ -292,17 +325,18 @@ export default function Matching() {
                   <div key={candidate.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:shadow-sm transition-shadow">
                     <div className="w-7 h-7 rounded-full bg-[var(--navy)] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-[var(--navy)] truncate">{candidate.profile_name || candidate.id}</p>
+                      <p className="font-bold text-sm text-[var(--navy)] truncate">{candidate.profile_name || 'Unnamed'}</p>
                       <p className="text-xs text-[var(--charcoal)] truncate">{breakdown.reasons.join(' · ') || 'Limited profile data'}</p>
                     </div>
-                    <div className={`text-sm font-bold px-3 py-1 rounded-lg border flex-shrink-0 ${getScoreColor(breakdown.score)}`}>{breakdown.score}%</div>
+                    <div className={`text-sm font-bold px-3 py-1 rounded-lg border flex-shrink-0 tabular-nums ${getScoreColor(breakdown.score)}`}>{breakdown.score}%</div>
                     {alreadyMatched ? (
                       <Badge variant="default" className="flex-shrink-0">Matched</Badge>
                     ) : (
                       <Button
                         size="sm"
                         variant="success"
-                        disabled={creatingFor === candidate.id}
+                        disabled={Boolean(creatingFor)}
+                        loading={creatingFor === candidate.id}
                         onClick={async () => { setCreatingFor(candidate.id); await confirmMatch(candidate.id, bestJobId, breakdown.score); setCreatingFor(null); }}
                         className="flex-shrink-0 gap-1 text-xs"
                       >
@@ -321,7 +355,7 @@ export default function Matching() {
       {/* Existing Matches */}
       <Card padding={false}>
         <div className="px-4 py-3 border-b border-slate-200 bg-[var(--bg-warm)]/80">
-          <h3 className="font-bold text-[var(--navy)]">All Matches ({matches.length})</h3>
+          <h3 className="font-bold text-[var(--navy)]">All Matches <span className="tabular-nums text-[var(--charcoal)] font-semibold">({matches.length})</span></h3>
         </div>
         <div className="admin-table overflow-x-auto">
           <table className="w-full">
@@ -337,7 +371,7 @@ export default function Matching() {
             </thead>
             <tbody>
               {paging.pageItems.map((match: any) => (
-                <tr key={match.id} className="border-b border-slate-100 hover:bg-slate-100 transition-colors">
+                <tr key={match.id} className={`border-b border-slate-100 hover:bg-slate-50 transition-[background-color,opacity] ${statusBusy === match.id ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3 text-sm font-semibold text-[var(--navy)]">{match.candidateName}</td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)]">{match.jobTitle}</td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)]">{match.companyName}</td>
@@ -350,14 +384,14 @@ export default function Matching() {
                   <td className="px-4 py-3">
                     <Select
                       options={[
-                        { value: 'Pending', label: 'Pending' },
-                        { value: 'Shortlisted', label: 'Shortlisted' },
-                        { value: 'Interview Scheduled', label: 'Interview Scheduled' },
-                        { value: 'Offered', label: 'Offered' },
-                        { value: 'Rejected', label: 'Rejected' },
+                        ...MATCH_STATUSES.map(s => ({ value: s, label: s })),
+                        // Keep any status we don't know about visible instead of silently showing "Pending"
+                        ...(match.status && !MATCH_STATUSES.includes(match.status) ? [{ value: match.status, label: match.status }] : []),
                       ]}
                       value={match.status}
                       onChange={e => handleStatusChange(match.id, e.target.value)}
+                      disabled={statusBusy === match.id}
+                      aria-label={`Status for ${match.candidateName}`}
                       className="!py-1 text-xs"
                     />
                   </td>
@@ -366,12 +400,32 @@ export default function Matching() {
             </tbody>
           </table>
                 {paging.total === 0 ? (
-                  <EmptyState icon={<Inbox size={20} />} title="No matches to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                  <div className="p-4"><EmptyState icon={<Inbox size={20} />} title="No matches yet" body="Create one above, or pick a job to see its best candidates." /></div>
                 ) : (
                   <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="matches" />
                 )}
         </div>
       </Card>
+
+      {(() => {
+        const job = jobs.find((j: any) => j.id === bestJobId) || null;
+        return (
+          <SendCvsModal
+            isOpen={showSendCvs && Boolean(job)}
+            onClose={() => setShowSendCvs(false)}
+            job={job}
+            employer={job ? employers.find((e: any) => e.id === job.employer_id) || null : null}
+            candidates={candidates}
+            jobSkills={job ? jobSkills[job.id] || [] : []}
+            submissions={cvSubmissions}
+            cvRequest={job ? cvRequests.find((r: any) => r.job_id === job.id && r.status !== 'cancelled' && r.status !== 'delivered') || null : null}
+            adminId={user?.id || null}
+            onSent={() => refresh({ silent: true })}
+          />
+        );
+      })()}
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

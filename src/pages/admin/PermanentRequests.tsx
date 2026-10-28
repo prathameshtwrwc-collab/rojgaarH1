@@ -186,7 +186,7 @@ export default function PermanentRequests() {
       const updates: Record<string, any> = { status: newStatus };
       if (newStatus === 'delivered') updates.delivered_at = new Date().toISOString();
       const updated = await updatePermanentRequest(requestId, updates);
-      await refresh();
+      await refresh({ silent: true });
       setToast({ message: `Request marked as ${statusMeta(newStatus).label}.`, type: 'success' });
       if (viewingRequest?.id === requestId) {
         setViewingRequest((prev: any) => ({ ...prev, ...updated }));
@@ -290,7 +290,7 @@ export default function PermanentRequests() {
           <div className="dash-metric__label">Sourcing</div>
         </div>
         <div className="dash-metric">
-          <div className="dash-metric__value">₹{stats.revenue.toLocaleString()}</div>
+          <div className="dash-metric__value">₹{stats.revenue.toLocaleString('en-IN')}</div>
           <div className="dash-metric__label">Total Revenue (incl. GST)</div>
         </div>
       </div>
@@ -383,8 +383,8 @@ export default function PermanentRequests() {
                         <p className="text-xs text-[var(--charcoal)] mt-1 flex items-center gap-1"><Users size={11} /> {req.candidate_count}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-bold text-[var(--navy)]">₹{req.totalAmount.toLocaleString()}</p>
-                        <p className="text-[10px] text-[var(--charcoal)]">₹{req.baseAmount.toLocaleString()} + 18% GST</p>
+                        <p className="font-bold text-[var(--navy)]">₹{req.totalAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-[10px] text-[var(--charcoal)]">₹{req.baseAmount.toLocaleString('en-IN')} + 18% GST</p>
                       </td>
                       <td className="px-4 py-3">
                         <div>
@@ -550,15 +550,15 @@ export default function PermanentRequests() {
               <div className="rounded-xl border border-[#E7E2D9] overflow-hidden text-sm">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-warm)]">
                   <span className="text-[var(--charcoal)]">Base Amount</span>
-                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.baseAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.baseAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#EFEAE1]">
                   <span className="text-[var(--charcoal)]">GST (18%)</span>
-                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.gstAmount.toLocaleString()}</span>
+                  <span className="font-semibold text-[var(--navy)]">₹{viewingRequest.gstAmount.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 border-t border-[#EFEAE1] bg-[var(--orange)]/5">
                   <span className="font-bold text-[var(--navy)]">Total Paid</span>
-                  <span className="font-extrabold text-[var(--orange)] text-lg flex items-center"><IndianRupee size={16} />{viewingRequest.totalAmount.toLocaleString()}</span>
+                  <span className="font-extrabold text-[var(--orange)] text-lg flex items-center"><IndianRupee size={16} />{viewingRequest.totalAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -607,7 +607,7 @@ export default function PermanentRequests() {
         title="Delete this request?"
         description="This permanently deletes the request and its payment record from the system. Use Cancel instead if you only want to stop it. This cannot be undone."
         confirmLabel="Delete request"
-        onConfirm={async () => { await adminDeletePermanentRequest(deleteTarget.id); await refresh(); }}
+        onConfirm={async () => { await adminDeletePermanentRequest(deleteTarget.id); await refresh({ silent: true }); }}
       />
 
       {/* Cancel Confirmation Modal */}

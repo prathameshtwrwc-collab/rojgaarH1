@@ -4,8 +4,12 @@ import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, MapPin, IndianRupee, Search, Download, Building2, Users } from 'lucide-react';
-import { Card, Badge, Select } from '../../components/ui';
+import { Briefcase, MapPin, IndianRupee, Search, Download, Building2, Users, X, Phone, Send } from 'lucide-react';
+import { Card, Badge, Select, Button, Toast } from '../../components/ui';
+import SendCvsModal from '../../components/SendCvsModal';
+import SentCvsList from '../../components/SentCvsList';
+import { useAuth } from '../../context/AuthContext';
+import { BackLink, DetailSkeleton, DetailProblem, fmtDate, payText } from '../../components/AdminDetailBits';
 import { useDatabase } from '../../context/DatabaseContext';
 import { getApplicationsForJob } from '../../lib/supabase/data';
 import { exportToCsv } from '../../lib/csvExport';
@@ -15,13 +19,17 @@ const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' |
   interviewed: 'default', selected: 'success', rejected: 'danger', withdrawn: 'default', joined: 'success',
 };
 
-const statusLabel = (s: string) => s.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+const statusLabel = (s: string) => (s || 'applied').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 export default function JobPostDetail() {
   const { id } = useParams<{ id: string }>();
-  const { jobs, employers, candidates, jobSkills } = useDatabase();
+  const { jobs, employers, candidates, jobSkills, cvSubmissions, cvRequests, loading: dbLoading, refresh } = useDatabase();
+  const { user } = useAuth();
+  const [showSendCvs, setShowSendCvs] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -31,8 +39,14 @@ export default function JobPostDetail() {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     setLoading(true);
-    getApplicationsForJob(id).then(apps => { setApplications(apps); setLoading(false); });
+    setLoadFailed(false);
+    getApplicationsForJob(id)
+      .then(apps => { if (!cancelled) setApplications(apps || []); })
+      .catch(() => { if (!cancelled) setLoadFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [id]);
 
   const applicants = applications
@@ -41,11 +55,16 @@ export default function JobPostDetail() {
 
   const filtered = applicants.filter((a: any) => {
     const matchStatus = statusFilter === 'All' || a.status === statusFilter;
-    const matchSearch = !search ||
-      (a.candidate.profile_name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (a.candidate.profile_phone || '').includes(search);
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q ||
+      (a.candidate.profile_name || '').toLowerCase().includes(q) ||
+      (a.candidate.profile_phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '\u0000');
     return matchStatus && matchSearch;
   });
+
+  // Hooks must run on every render, so paging sits above the early returns below
+  const paging = usePagination(filtered, 10);
+  const statusCounts = applicants.reduce<Record<string, number>>((acc, a: any) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc; }, {});
 
   const handleExportCsv = () => {
     exportToCsv(`applicants-${job?.job_title || 'job'}`, filtered.map((a: any) => ({
@@ -64,21 +83,13 @@ export default function JobPostDetail() {
   };
 
   if (!job) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-[var(--charcoal)]">Job not found.</p>
-        <Link to="/admin/jobs" className="text-[var(--orange)] font-semibold text-sm mt-2 inline-block">Back to Job Postings</Link>
-      </div>
-    );
+    if (dbLoading) return <DetailSkeleton />;
+    return <DetailProblem title="Job not found" body="It may have been deleted, or the link is wrong." backTo="/admin/jobs" backLabel="Back to Job Postings" />;
   }
-
-  const paging = usePagination(filtered, 10);
 
   return (
     <div className="space-y-6">
-      <Link to="/admin/jobs" className="inline-flex items-center gap-1 text-sm text-[var(--charcoal)] hover:text-[var(--navy)]">
-        <ArrowLeft size={16} /> Back to Job Postings
-      </Link>
+      <BackLink to="/admin/jobs">Back to Job Postings</BackLink>
 
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -86,57 +97,96 @@ export default function JobPostDetail() {
             <div className="w-14 h-14 rounded-2xl bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">
               <Briefcase size={26} />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-[var(--navy)]">{job.job_title}</h1>
-              <p className="text-sm text-[var(--charcoal)] flex items-center gap-1 mt-1">
-                <Building2 size={14} /> {employer?.company_name || 'Unknown Employer'}
-              </p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--navy)] break-words">{job.job_title}</h1>
+              {employer ? (
+                <Link to={`/employer/${employer.id}`} className="text-sm text-[var(--charcoal)] hover:text-[var(--orange)] inline-flex items-center gap-1 mt-1">
+                  <Building2 size={14} /> {employer.company_name || 'Unnamed company'}
+                </Link>
+              ) : (
+                <p className="text-sm text-[var(--charcoal)] flex items-center gap-1 mt-1"><Building2 size={14} /> Unknown employer</p>
+              )}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--charcoal)] mt-2">
-                <span className="flex items-center gap-1"><MapPin size={12} /> {job.city}, {job.state}</span>
-                <span className="flex items-center gap-1"><IndianRupee size={12} /> {Number(job.salary_min || 0).toLocaleString()}-{Number(job.salary_max || 0).toLocaleString()}/mo</span>
-                <span>{job.employment_type}</span>
+                {(job.city || job.state) && <span className="flex items-center gap-1"><MapPin size={12} /> {[job.city, job.state].filter(Boolean).join(', ')}</span>}
+                <span className="flex items-center gap-1"><IndianRupee size={12} /> {payText(job.salary_min, job.salary_max).replace(/^₹/, '')}</span>
+                {job.employment_type && <span>{job.employment_type}</span>}
+                {job.created_at && <span>Posted {fmtDate(job.created_at)}</span>}
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {(jobSkills[job.id] || []).map((s: string) => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}
               </div>
             </div>
           </div>
-          <Badge variant={job.status === 'Open' ? 'success' : job.status === 'Pending' ? 'warning' : 'default'}>{job.status}</Badge>
+          <div className="flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
+            <Badge variant={job.status === 'Open' ? 'success' : job.status === 'Pending' ? 'warning' : 'default'}>{job.status}</Badge>
+            <Button size="sm" onClick={() => setShowSendCvs(true)} disabled={!employer} className="gap-1.5">
+              <Send size={14} /> Send CVs to employer
+            </Button>
+          </div>
         </div>
       </Card>
+
+      {/* CVs hand-picked by the team, with the employer's answers */}
+      {(() => {
+        const sent = cvSubmissions.filter(s => s.job_id === job.id);
+        const openRequest = cvRequests.find((r: any) => r.job_id === job.id && r.status !== 'cancelled' && r.status !== 'delivered');
+        return (
+          <Card>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className="font-bold text-[var(--navy)] flex items-center gap-2">
+                  <Send size={17} className="text-[var(--orange)]" /> Sent to employer <span className="text-[var(--charcoal)] font-semibold tabular-nums">({sent.length})</span>
+                </h3>
+                {openRequest && (
+                  <p className="text-xs text-amber-700 font-semibold mt-1">
+                    Paid request open: {openRequest.plan_label}, {cvSubmissions.filter(s => s.cv_request_id === openRequest.id).length} of {openRequest.cv_count} sent
+                  </p>
+                )}
+              </div>
+              {sent.length > 0 && (
+                <button type="button" onClick={() => setShowSendCvs(true)} className="text-xs font-bold text-[var(--orange)] hover:underline flex-shrink-0">Send more</button>
+              )}
+            </div>
+            <SentCvsList submissions={sent} onChanged={() => refresh({ silent: true })} onToast={setToast} />
+          </Card>
+        );
+      })()}
 
       <Card padding={false}>
         <div className="p-4 border-b border-slate-200 bg-[var(--bg-warm)]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="font-bold text-[var(--navy)] flex items-center gap-2">
-            <Users size={18} className="text-[var(--orange)]" /> Applicants ({filtered.length})
+            <Users size={18} className="text-[var(--orange)]" /> Applicants <span className="tabular-nums text-[var(--charcoal)] font-semibold">({filtered.length}{filtered.length !== applicants.length ? ` of ${applicants.length}` : ''})</span>
           </h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)]" />
+          <div className="grid grid-cols-[1fr_auto] sm:flex items-center gap-2 sm:flex-wrap">
+            <div className="relative col-span-2 sm:col-span-1">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)] pointer-events-none" />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search by name or phone..."
-                className="pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-[var(--orange)] focus:outline-none"
+                placeholder="Search name or phone"
+                aria-label="Search applicants"
+                className="w-full h-10 pl-9 pr-9 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-[var(--orange)] focus:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
+              {search && (
+                <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100">
+                  <X size={14} />
+                </button>
+              )}
             </div>
             <Select
               options={[
-                { value: 'All', label: 'All Statuses' },
-                { value: 'applied', label: 'Applied' },
-                { value: 'screening', label: 'Screening' },
-                { value: 'shortlisted', label: 'Shortlisted' },
-                { value: 'interview_scheduled', label: 'Interview Scheduled' },
-                { value: 'interviewed', label: 'Interviewed' },
-                { value: 'selected', label: 'Selected' },
-                { value: 'rejected', label: 'Rejected' },
-                { value: 'joined', label: 'Joined' },
+                { value: 'All', label: `All statuses (${applicants.length})` },
+                ...['applied', 'screening', 'shortlisted', 'interview_scheduled', 'interviewed', 'selected', 'rejected', 'joined'].map(s => ({
+                  value: s,
+                  label: `${statusLabel(s)}${statusCounts[s] ? ` (${statusCounts[s]})` : ''}`,
+                })),
               ]}
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             />
-            <button onClick={handleExportCsv} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-[var(--navy)] hover:bg-slate-50 transition-colors">
+            <button type="button" onClick={handleExportCsv} disabled={filtered.length === 0} className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-[var(--navy)] hover:bg-slate-50 transition-colors disabled:opacity-50">
               <Download size={15} /> CSV
             </button>
           </div>
@@ -155,32 +205,54 @@ export default function JobPostDetail() {
             </thead>
             <tbody>
               {paging.pageItems.map((a: any) => (
-                <tr key={a.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
+                <tr key={a.id} className="border-b border-slate-100/60 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="text-sm font-bold text-[var(--navy)]">{a.candidate.profile_name || 'Unnamed'}</p>
-                    <p className="text-xs text-[var(--charcoal)]">{a.candidate.profile_phone}</p>
+                    {a.candidate.profile_phone && (
+                      <a href={`tel:${a.candidate.profile_phone}`} className="text-xs text-[var(--charcoal)] hover:text-[var(--orange)] inline-flex items-center gap-1">
+                        <Phone size={10} /> {a.candidate.profile_phone}
+                      </a>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden sm:table-cell">{a.candidate.location || a.candidate.city || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden md:table-cell">{a.candidate.total_experience_years ?? 0} yrs</td>
-                  <td className="px-4 py-3 text-sm text-[var(--charcoal)]">{a.applied_at ? a.applied_at.split('T')[0] : '—'}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] hidden md:table-cell">{Number(a.candidate.total_experience_years) > 0 ? `${a.candidate.total_experience_years} yrs` : 'Fresher'}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--charcoal)] whitespace-nowrap">{fmtDate(a.applied_at) || '—'}</td>
                   <td className="px-4 py-3"><Badge variant={statusVariant[a.status] || 'default'}>{statusLabel(a.status)}</Badge></td>
                 </tr>
               ))}
             </tbody>
           </table>
-                {paging.total === 0 ? (
-                  <EmptyState icon={<Inbox size={20} />} title="No applications to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                {loading ? (
+                  <div className="p-6 space-y-3" role="status" aria-label="Loading applicants">{[0, 1, 2].map(i => <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />)}</div>
+                ) : paging.total === 0 ? (
+                  <div className="p-4">
+                    <EmptyState
+                      icon={<Inbox size={20} />}
+                      title={loadFailed ? 'Could not load applicants' : applicants.length === 0 ? 'No applications yet' : 'No applicants match'}
+                      body={loadFailed ? 'Check your connection and reload the page.' : applicants.length === 0 ? 'Applicants appear here as soon as candidates apply.' : 'Try a different search or status.'}
+                    />
+                  </div>
                 ) : (
                   <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="applications" />
                 )}
-          {!loading && filtered.length === 0 && (
-            <div className="text-center py-12 text-[var(--charcoal)]"><Users size={32} className="mx-auto mb-2 opacity-40" /><p className="text-sm">No applicants found</p></div>
-          )}
-          {loading && (
-            <div className="text-center py-12 text-[var(--charcoal)]"><p className="text-sm">Loading applicants...</p></div>
-          )}
         </div>
       </Card>
+
+      <SendCvsModal
+        isOpen={showSendCvs}
+        onClose={() => setShowSendCvs(false)}
+        job={job}
+        employer={employer}
+        candidates={candidates}
+        jobSkills={jobSkills[job.id] || []}
+        submissions={cvSubmissions}
+        // An open paid request for this job is fulfilled by what you send here
+        cvRequest={cvRequests.find((r: any) => r.job_id === job.id && r.status !== 'cancelled' && r.status !== 'delivered') || null}
+        adminId={user?.id || null}
+        onSent={() => refresh({ silent: true })}
+      />
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

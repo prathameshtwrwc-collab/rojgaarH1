@@ -57,6 +57,11 @@ export function MobileBottomNav({ items, activeKey }: { items: BottomNavItem[]; 
               className={`m-nav__item${isActive ? ' is-active' : ''}${item.accent ? ' is-accent' : ''}`}
               onClick={() => {
                 haptic('select');
+                // Same as native apps: tapping the tab you are already on takes you back to the top
+                if (isActive && window.scrollY > 40) {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  return;
+                }
                 item.onSelect();
               }}
             >

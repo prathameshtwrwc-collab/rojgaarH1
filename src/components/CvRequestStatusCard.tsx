@@ -10,12 +10,12 @@ const STATUS_COPY: Record<string, { title: string; body: string; tone: 'info' | 
   },
   processing: {
     title: 'Confirmed — we are sourcing your candidates',
-    body: 'Our team is shortlisting and verifying candidates for you. You will receive a call from us to review the profiles, and the resumes will be delivered to your email shortly.',
+    body: 'Our team is shortlisting and verifying candidates for you. As each one is ready it appears under "CVs from Rojgaar Hai" on this dashboard, where you can open the resume and tell us who to arrange.',
     tone: 'progress',
   },
   delivered: {
-    title: 'Delivered — resumes sent to your email',
-    body: 'Your verified candidate resumes have been delivered. Reach out to us at support@rojgaarhai.com if you need any additional profiles.',
+    title: 'Delivered — your verified CVs are ready',
+    body: 'Find them under "CVs from Rojgaar Hai" on this dashboard. Open each resume and mark who you want to meet. Need more profiles? Write to support@rojgaarhai.com.',
     tone: 'done',
   },
   cancelled: {
@@ -49,6 +49,9 @@ export default function CvRequestStatusCard({ req }: { req: any }) {
   const copy = STATUS_COPY[req.status] || STATUS_COPY.pending;
   const { base, gst, total } = gstFor(Number(req.amount || 0));
   const idx = stepIndex(req.status);
+  // "10 Verified CVs · 10 verified CVs" reads twice; only add the count when the plan name lacks it
+  const planText = String(req.plan_label || '').match(/\d/) ? req.plan_label : `${req.plan_label} · ${req.cv_count} verified CVs`;
+  const paid = req.payment_status === 'paid';
   const Icon = copy.tone === 'done' ? CheckCircle2 : copy.tone === 'cancel' ? XCircle : copy.tone === 'progress' ? PhoneCall : Clock;
 
   return (
@@ -60,7 +63,7 @@ export default function CvRequestStatusCard({ req }: { req: any }) {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold text-[var(--navy)] break-words">{copy.title}</p>
           <p className="text-xs text-[var(--charcoal)] mt-1 break-words">
-            {req.plan_label} · {req.cv_count} verified CVs · <span className="font-bold text-[var(--navy)]">₹{total.toLocaleString()}</span>
+            {planText} · <span className="font-bold text-[var(--navy)] tabular-nums">₹{total.toLocaleString('en-IN')}</span>
           </p>
         </div>
       </div>
@@ -69,13 +72,13 @@ export default function CvRequestStatusCard({ req }: { req: any }) {
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--orange)] hover:underline"
+        className="mt-3 inline-flex items-center gap-1 min-h-[32px] text-xs font-bold text-[var(--orange)] hover:underline"
       >
         {open ? <>Hide details <ChevronUp size={14} /></> : <>Show details <ChevronDown size={14} /></>}
       </button>
 
       {open && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-3 space-y-4 dash-enter">
           <p className="text-xs text-[var(--charcoal)] leading-relaxed">{copy.body}</p>
 
           {req.status !== 'cancelled' && (
@@ -98,19 +101,19 @@ export default function CvRequestStatusCard({ req }: { req: any }) {
             <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#EFEAE1]">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1"><FileText size={11} /> Plan purchased</p>
-                <p className="text-sm font-bold text-[var(--navy)] break-words">{req.plan_label} · {req.cv_count} verified CVs</p>
+                <p className="text-sm font-bold text-[var(--navy)] break-words">{planText}</p>
               </div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--green)] bg-[var(--green)]/10 px-2 py-1 rounded-lg">
-                <ShieldCheck size={12} /> {req.payment_status === 'paid' ? 'Payment received' : 'Payment pending'}
+              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg ${paid ? 'text-[var(--green)] bg-[var(--green)]/10' : 'text-amber-700 bg-amber-50'}`}>
+                {paid ? <ShieldCheck size={12} /> : <Clock size={12} />} {paid ? 'Payment received' : 'Payment pending'}
               </span>
             </div>
             <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <div><p className="text-slate-400">Base amount</p><p className="font-semibold text-[var(--navy)]">₹{base.toLocaleString()}</p></div>
-              <div><p className="text-slate-400">GST (18%)</p><p className="font-semibold text-[var(--navy)]">₹{gst.toLocaleString()}</p></div>
-              <div><p className="text-slate-400">Total paid</p><p className="font-extrabold text-[var(--orange)]">₹{total.toLocaleString()}</p></div>
+              <div><p className="text-slate-400">Base amount</p><p className="font-semibold text-[var(--navy)] tabular-nums">₹{base.toLocaleString('en-IN')}</p></div>
+              <div><p className="text-slate-400">GST (18%)</p><p className="font-semibold text-[var(--navy)] tabular-nums">₹{gst.toLocaleString('en-IN')}</p></div>
+              <div><p className="text-slate-400">{paid ? 'Total paid' : 'Total due'}</p><p className="font-extrabold text-[var(--orange)] tabular-nums">₹{total.toLocaleString('en-IN')}</p></div>
               <div className="min-w-0"><p className="text-slate-400">Transaction ID</p><p className="font-mono font-semibold text-[var(--navy)] break-all">{req.upi_transaction_id || '—'}</p></div>
-              <div><p className="text-slate-400">Requested on</p><p className="font-semibold text-[var(--navy)]">{new Date(req.created_at).toLocaleDateString('en-IN')}</p></div>
-              {req.delivered_at && <div><p className="text-slate-400">Delivered on</p><p className="font-semibold text-[var(--navy)]">{new Date(req.delivered_at).toLocaleDateString('en-IN')}</p></div>}
+              <div><p className="text-slate-400">Requested on</p><p className="font-semibold text-[var(--navy)]">{new Date(req.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p></div>
+              {req.delivered_at && <div><p className="text-slate-400">Delivered on</p><p className="font-semibold text-[var(--navy)]">{new Date(req.delivered_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p></div>}
             </div>
           </div>
 

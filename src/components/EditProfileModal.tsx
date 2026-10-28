@@ -48,6 +48,13 @@ const tapClass = "active:scale-[0.97] transition-transform duration-150";
 
 // One consistent sub-section header used everywhere a step combines more than one of
 // the editor's original topics (e.g. "Personal & Location" = Personal + Location).
+// "2022-03-01" -> "Mar 2022" for the experience list
+function monthYear(v?: string) {
+  if (!v) return '';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+}
+
 function SubHeading({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
@@ -209,9 +216,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       const userId = candidate.id || candidate.email || 'temp-user';
       const url = await uploadCandidateDocument(userId, file, docType as any);
       setDocUrls(prev => ({ ...prev, [docType]: url }));
-      setToastMessage(`${docType.replace('_', ' ')} uploaded successfully!`);
+      const docName = docType.replace(/_/g, ' ');
+      setToastMessage(`${docName.charAt(0).toUpperCase()}${docName.slice(1)} uploaded.`);
     } catch (err) {
-      setToastMessage(err instanceof Error ? err.message : 'Upload failed');
+      const message = (err as { message?: string } | null)?.message;
+      setToastMessage(message ? `Upload failed: ${message}` : 'Upload failed. Please try again.');
     } finally {
       setUploadingDoc(null);
     }
@@ -756,12 +765,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>First Name *</label>
-                      <input value={firstName} onChange={e => setFirstName(e.target.value)} className={fieldClass} />
+                      <input value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" autoCapitalize="words" maxLength={40} className={fieldClass} />
                       {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                     </div>
                     <div>
                       <label className={labelClass}>Last Name *</label>
-                      <input value={lastName} onChange={e => setLastName(e.target.value)} className={fieldClass} />
+                      <input value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" autoCapitalize="words" maxLength={40} className={fieldClass} />
                       {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
                     </div>
                   </div>
@@ -769,12 +778,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Email Address *</label>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={fieldClass} />
+                      <input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={email} onChange={e => setEmail(e.target.value)} className={fieldClass} />
                       {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                     </div>
                     <div>
                       <label className={labelClass}>Mobile Number *</label>
-                      <input value={phone} onChange={e => setPhone(e.target.value)} className={fieldClass} />
+                      <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+\s-]/g, '').slice(0, 16))} className={fieldClass} />
                       {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                     </div>
                   </div>
@@ -782,11 +791,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
                       <label className={labelClass}>Alternate Mobile</label>
-                      <input value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="+91-9870000000" className={fieldClass} />
+                      <input type="tel" inputMode="tel" value={altPhone} onChange={e => setAltPhone(e.target.value.replace(/[^\d+\s-]/g, '').slice(0, 16))} placeholder="+91-9870000000" className={fieldClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Date of Birth</label>
-                      <input type="date" value={dob} onChange={e => setDob(e.target.value)} className={fieldClass} />
+                      <input type="date" value={dob} max={new Date().toISOString().slice(0, 10)} min="1940-01-01" onChange={e => setDob(e.target.value)} className={fieldClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Gender</label>
@@ -817,7 +826,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="aadhaar-number" className={labelClass}>Aadhaar Number</label>
-                      <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value)} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className={`${fieldClass} font-mono`} />
+                      <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value.replace(/[^\d\s]/g, '').slice(0, 14))} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className={`${fieldClass} font-mono`} />
                     </div>
                     <div>
                       <label htmlFor="pan-number" className={labelClass}>PAN Number</label>
@@ -832,7 +841,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Current City *</label>
-                      <input value={city} onChange={e => setCity(e.target.value)} className={fieldClass} />
+                      <input value={city} onChange={e => setCity(e.target.value)} autoComplete="address-level2" autoCapitalize="words" className={fieldClass} />
                       {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                     </div>
                     <div>
@@ -852,13 +861,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                     </div>
                     <div>
                       <label className={labelClass}>PIN Code</label>
-                      <input value={pincode} onChange={e => setPincode(e.target.value)} placeholder="302015" className={fieldClass} />
+                      <input value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="postal-code" maxLength={6} placeholder="302015" className={fieldClass} />
                     </div>
                   </div>
 
                   <div>
                     <label className={labelClass}>Full Street Address</label>
-                    <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} placeholder="House No., Street, Area, Landmark" className={fieldClass} />
+                    <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} autoComplete="street-address" placeholder="House No., Street, Area, Landmark" className={fieldClass} />
                   </div>
 
                   <div className="p-4 rounded-2xl bg-white border border-slate-200">
@@ -925,11 +934,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
                       <label className={labelClass}>Total Experience (Years)</label>
-                      <input value={totalExperience} onChange={e => setTotalExperience(e.target.value)} className={fieldClass} />
+                      <input value={totalExperience} onChange={e => setTotalExperience(e.target.value.replace(/[^\d.]/g, '').slice(0, 4))} inputMode="decimal" placeholder="e.g. 3" className={fieldClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Relevant Exp. (Years)</label>
-                      <input value={relevantExperience} onChange={e => setRelevantExperience(e.target.value)} className={fieldClass} />
+                      <input value={relevantExperience} onChange={e => setRelevantExperience(e.target.value.replace(/[^\d.]/g, '').slice(0, 4))} inputMode="decimal" placeholder="e.g. 2" className={fieldClass} />
                     </div>
                     <div>
                       <label className={labelClass}>Current Status</label>
@@ -995,8 +1004,14 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       <div className="grid sm:grid-cols-2 gap-3">
                         <input placeholder="Company Name" value={newExp.company} onChange={e => setNewExp({ ...newExp, company: e.target.value })} className={miniFieldClass} />
                         <input placeholder="Designation / Job Role" value={newExp.designation} onChange={e => setNewExp({ ...newExp, designation: e.target.value })} className={miniFieldClass} />
-                        <input type="date" value={newExp.startDate} onChange={e => setNewExp({ ...newExp, startDate: e.target.value })} className={miniFieldClass} />
-                        <input type="date" disabled={newExp.currentlyWorking} value={newExp.endDate} onChange={e => setNewExp({ ...newExp, endDate: e.target.value })} className={`${miniFieldClass} disabled:opacity-50`} />
+                        <label className="block">
+                          <span className="block text-[11px] font-bold text-slate-500 mb-1">Started</span>
+                          <input type="date" max={new Date().toISOString().slice(0, 10)} value={newExp.startDate} onChange={e => setNewExp({ ...newExp, startDate: e.target.value })} className={`w-full ${miniFieldClass}`} />
+                        </label>
+                        <label className="block">
+                          <span className="block text-[11px] font-bold text-slate-500 mb-1">{newExp.currentlyWorking ? 'Ended (still working here)' : 'Ended'}</span>
+                          <input type="date" disabled={newExp.currentlyWorking} min={newExp.startDate || undefined} max={new Date().toISOString().slice(0, 10)} value={newExp.endDate} onChange={e => setNewExp({ ...newExp, endDate: e.target.value })} className={`w-full ${miniFieldClass} disabled:opacity-50`} />
+                        </label>
                       </div>
                       <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
                         <input type="checkbox" checked={newExp.currentlyWorking} onChange={e => setNewExp({ ...newExp, currentlyWorking: e.target.checked })} className="rounded text-[var(--orange)]" />
@@ -1016,10 +1031,10 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                         <div>
                           <h4 className="font-bold text-slate-900 text-base">{exp.designation}</h4>
                           <p className="text-xs text-[var(--orange)] font-semibold">{exp.company}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{exp.startDate} — {exp.currentlyWorking ? 'Present' : exp.endDate}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{monthYear(exp.startDate) || 'Start not set'} — {exp.currentlyWorking ? 'Present' : monthYear(exp.endDate) || 'End not set'}</p>
                           <p className="text-xs text-slate-600 mt-2 leading-relaxed">{exp.responsibilities}</p>
                         </div>
-                        <button onClick={() => setExperienceList(experienceList.filter(e => e.id !== exp.id))} className={`text-red-500 hover:text-red-700 p-2 rounded-lg flex-shrink-0 ${tapClass}`}>
+                        <button type="button" aria-label={`Remove ${exp.designation || 'this job'}`} onClick={() => setExperienceList(experienceList.filter(e => e.id !== exp.id))} className={`text-red-500 hover:text-red-700 hover:bg-red-50 w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0 ${tapClass}`}>
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1423,7 +1438,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
       </div>
 
       {toastMessage && (
-        <Toast message={toastMessage} type="success" onClose={() => setToastMessage(null)} />
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
     </div>
   );

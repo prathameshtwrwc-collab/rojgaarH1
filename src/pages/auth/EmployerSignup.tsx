@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import PageLoader from '../../components/PageLoader';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown, Mail, User } from 'lucide-react';
+import { AuthField, PasswordField, AuthError, AuthSubmit } from '../../components/AuthFields';
+import PhoneVerifyBox from '../../components/PhoneVerifyBox';
+import { friendlyAuthError, isValidEmail, isValidIndianMobile, roleHome } from '../../lib/authHelpers';
+import { haptic } from '../../lib/haptics';
 import { signUp, sendOtp, verifyOtp, phoneExists, emailExists } from '../../lib/supabase/auth';
 import { createEmployer } from '../../lib/supabase/data';
 import { getSectorsList } from '../../constants/sectors';
@@ -23,6 +27,7 @@ export default function EmployerSignup() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof formData, string>>>({});
   const [loading, setLoading] = useState(false);
 
   const [otpPhone, setOtpPhone] = useState('');
@@ -35,15 +40,7 @@ export default function EmployerSignup() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && user) {
-      if (user.role === 'superadmin') {
-        navigate('/admin', { replace: true });
-      } else if (user.role === 'candidate') {
-        navigate('/dashboard/candidate', { replace: true });
-      } else {
-        navigate('/dashboard/employer', { replace: true });
-      }
-    }
+    if (!authLoading && user) navigate(roleHome(user.role), { replace: true });
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
@@ -53,7 +50,9 @@ export default function EmployerSignup() {
   }, [countdown]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setFieldErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   // Changing the number means verifying the new one from the start
@@ -65,12 +64,14 @@ export default function EmployerSignup() {
   };
 
   const handleSendOtp = async () => {
-    if (!otpPhone || otpPhone.length < 10) {
+    if (!isValidIndianMobile(otpPhone)) {
       setError(t('auth.enterValidPhone'));
+      haptic('warn');
       return;
     }
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please enter your email address first.');
+    if (!isValidEmail(formData.email)) {
+      setFieldErrors(prev => ({ ...prev, email: 'Enter your email address first, we check it is not already in use' }));
+      haptic('warn');
       return;
     }
 
@@ -80,7 +81,7 @@ export default function EmployerSignup() {
     try {
       const [phoneTaken, emailTaken] = await Promise.all([
         phoneExists(otpPhone),
-        emailExists(formData.email),
+        emailExists(formData.email.trim().toLowerCase()),
       ]);
       if (phoneTaken || emailTaken) {
         setError(
@@ -101,8 +102,9 @@ export default function EmployerSignup() {
 
       setOtpSent(true);
       setCountdown(30);
+      haptic('success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.sendOtpError'));
+      setError(friendlyAuthError(err, t('auth.sendOtpError')));
     } finally {
       setLoading(false);
     }
@@ -126,9 +128,10 @@ export default function EmployerSignup() {
       }
 
       setOtpVerified(true);
-      setFormData({ ...formData, phone: otpPhone });
+      haptic('success');
+      setFormData(prev => ({ ...prev, phone: otpPhone }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.verifyOtpError'));
+      setError(friendlyAuthError(err, t('auth.verifyOtpError')));
     } finally {
       setLoading(false);
     }
@@ -138,23 +141,25 @@ export default function EmployerSignup() {
     e.preventDefault();
     setError('');
 
+    const errs: typeof fieldErrors = {};
+    if (formData.fullName.trim().length < 2) errs.fullName = 'Enter your full name';
+    if (!isValidEmail(formData.email)) errs.email = 'Enter a valid email address';
+    if (!formData.companyName.trim()) errs.companyName = 'Enter your company name';
+    if (!formData.industry) errs.industry = 'Pick the closest industry';
+    if (!formData.city.trim()) errs.city = 'Enter a city';
+    if (!formData.state.trim()) errs.state = 'Enter a state';
+    if (formData.password.length < 6) errs.password = t('auth.passwordMinLength');
+    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = t('auth.passwordsDoNotMatch');
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) {
+      haptic('warn');
+      // Bring the first problem into view on small screens
+      requestAnimationFrame(() => document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      return;
+    }
+
     if (!otpVerified) {
       setError(t('auth.verifyPhoneFirst'));
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError(t('auth.passwordsDoNotMatch'));
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError(t('auth.passwordMinLength'));
-      return;
-    }
-
-    if (!formData.companyName.trim() || !formData.industry || !formData.city.trim() || !formData.state.trim()) {
-      setError('Please fill in your company details.');
       return;
     }
 
@@ -162,9 +167,9 @@ export default function EmployerSignup() {
 
     try {
       const authUser = await signUp({
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        fullName: formData.fullName,
+        fullName: formData.fullName.trim().replace(/\s+/g, ' '),
         phone: formData.phone,
         role: 'employer',
       });
@@ -173,13 +178,15 @@ export default function EmployerSignup() {
         industry: formData.industry,
         city: formData.city.trim(),
         state: formData.state.trim(),
-        contactName: formData.fullName,
-        contactEmail: formData.email,
+        contactName: formData.fullName.trim(),
+        contactEmail: formData.email.trim().toLowerCase(),
         contactPhone: formData.phone,
       });
+      haptic('success');
       navigate('/dashboard/employer', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('auth.signupFailed'));
+      haptic('error');
+      setError(friendlyAuthError(err, t('auth.signupFailed')));
     } finally {
       setLoading(false);
     }
@@ -195,7 +202,7 @@ export default function EmployerSignup() {
     <div className="auth-shell min-h-screen flex items-center justify-center bg-[var(--bg-warm)] px-4 py-12">
       <div className="w-full max-w-[460px]">
         <div className="auth-card bg-white rounded-2xl shadow-lg p-8">
-          <Link to="/" className="inline-flex items-center text-sm text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
+          <Link to="/" className="auth-back inline-flex items-center text-sm font-semibold text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
             <ArrowLeft size={16} className="mr-2" />
             Back to home
           </Link>
@@ -203,7 +210,7 @@ export default function EmployerSignup() {
           <AuthSwitcher active="signup" role="employer" />
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            <h1 className="auth-title text-3xl font-extrabold text-[var(--navy)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
               {t('auth.registerEmployer')}
             </h1>
             <p className="text-sm text-[var(--charcoal)]">
@@ -211,222 +218,152 @@ export default function EmployerSignup() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              {error}
-            </div>
-          )}
+          <AuthError message={error} />
 
-          <div className="space-y-5 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.fullName')}
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.fullName')}
-              />
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <p className="auth-step-label">Your details</p>
+            <AuthField
+              label={t('auth.fullName')}
+              icon={<User size={17} />}
+              name="fullName"
+              autoComplete="name"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              value={formData.fullName}
+              onChange={handleChange}
+              placeholder="Person who will manage hiring"
+              error={fieldErrors.fullName}
+              maxLength={80}
+            />
+            <AuthField
+              label={t('auth.email')}
+              icon={<Mail size={17} />}
+              type="email"
+              name="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="company@example.com"
+              error={fieldErrors.email}
+            />
+
+            <PhoneVerifyBox
+              phone={otpPhone}
+              onPhoneChange={setOtpPhone}
+              otp={otp}
+              onOtpChange={setOtp}
+              otpSent={otpSent}
+              verified={otpVerified}
+              countdown={countdown}
+              loading={loading}
+              onSend={handleSendOtp}
+              onVerify={handleVerifyOtp}
+              onEditNumber={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
+              onReset={resetPhone}
+            />
+
+            <div className="pt-2">
+              <p className="auth-step-label">Company details</p>
+              <p className="text-xs text-[var(--charcoal)] -mt-1">So your dashboard is ready to go, no extra setup step.</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.email')}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-          </div>
+            <AuthField
+              label="Company name"
+              icon={<Building2 size={17} />}
+              name="companyName"
+              autoComplete="organization"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              value={formData.companyName}
+              onChange={handleChange}
+              placeholder="e.g. Acme Manufacturing Pvt Ltd"
+              error={fieldErrors.companyName}
+              maxLength={120}
+            />
 
-          {/* Phone Verification */}
-          <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <h3 className="text-sm font-bold text-[var(--navy)] mb-3">{t('auth.verifyPhone')}</h3>
-            {!otpVerified ? (
-              <>
-                <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                  <input
-                    type="tel"
-                    value={otpPhone}
-                    onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    required
-                    disabled={otpSent}
-                    className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent disabled:bg-slate-100 disabled:text-slate-500"
-                    placeholder="9876543210"
-                  />
-                  {!otpSent ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={loading}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--orange)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
-                    >
-                      {loading ? t('auth.sendingOtp') : t('auth.sendOtp')}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => { setOtpSent(false); setOtp(''); setCountdown(0); setError(''); }}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-white border border-slate-300 text-[var(--navy)] text-sm font-bold rounded-full hover:bg-slate-50 transition-all"
-                    >
-                      Change Number
-                    </button>
-                  )}
-                </div>
-                {otpSent && (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      required
-                      maxLength={6}
-                      className="w-full sm:flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                      placeholder="••••••"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={loading || otp.length !== 6}
-                      className="w-full sm:w-auto sm:flex-shrink-0 whitespace-nowrap px-5 py-2.5 bg-[var(--navy)] text-white text-sm font-bold rounded-full hover:shadow-lg transition-all disabled:opacity-50"
-                    >
-                      {loading ? t('auth.verifying') : t('auth.verifyOtp')}
-                    </button>
-                  </div>
-                )}
-                {otpSent && (
-                  <div className="mt-2">
-                    {countdown > 0 ? (
-                      <p className="text-xs text-slate-500">{t('auth.resendCode', { count: countdown })}</p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={loading}
-                        className="text-xs font-bold text-[var(--orange)] hover:underline disabled:opacity-50"
-                      >
-                        {loading ? t('auth.sendingOtp') : 'Resend OTP'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-green-700">
-                <span className="text-sm font-semibold">{t('auth.phoneVerified')} · {otpPhone}</span>
-                <button type="button" onClick={resetPhone} className="ml-auto text-xs font-bold text-[var(--navy)] underline underline-offset-2">Change</button>
+            <div className="auth-field">
+              <label htmlFor="emp-industry" className="block text-[13px] font-bold text-[var(--navy)] mb-1.5">Industry / sector</label>
+              <div className="relative">
+                <select
+                  id="emp-industry"
+                  name="industry"
+                  value={formData.industry}
+                  onChange={handleChange}
+                  aria-invalid={fieldErrors.industry ? true : undefined}
+                  className={`auth-input w-full h-[50px] pl-4 pr-10 rounded-xl border bg-white text-[15px] sm:text-sm appearance-none focus:outline-none focus:ring-4 focus:ring-[var(--orange)]/15 focus:border-[var(--orange)] ${
+                    fieldErrors.industry ? 'border-red-300' : 'border-slate-200'
+                  } ${formData.industry ? 'text-[var(--navy)]' : 'text-slate-400'}`}
+                >
+                  <option value="">Select industry</option>
+                  {getSectorsList().map(sector => <option key={sector} value={sector}>{sector}</option>)}
+                </select>
+                <ChevronDown size={17} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="pt-1">
-              <h3 className="text-sm font-bold text-[var(--navy)] mb-1">Company Details</h3>
-              <p className="text-xs text-[var(--charcoal)] mb-3">So your dashboard is ready to go, no extra setup step.</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Company Name</label>
-              <input
-                type="text"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder="e.g. Acme Manufacturing Pvt Ltd"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">Industry / Sector</label>
-              <select
-                name="industry"
-                value={formData.industry}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent bg-white"
-              >
-                <option value="">Select industry</option>
-                {getSectorsList().map(sector => <option key={sector} value={sector}>{sector}</option>)}
-              </select>
+              {fieldErrors.industry && <p className="auth-field__error mt-1.5 text-[12.5px] font-semibold text-red-600">{fieldErrors.industry}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                  placeholder="e.g. Pune"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[var(--navy)] mb-2">State</label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                  placeholder="e.g. Maharashtra"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.password')}
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
+              <AuthField
+                label="City"
+                name="city"
+                autoComplete="address-level2"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                value={formData.city}
                 onChange={handleChange}
-                required
-                minLength={6}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.password')}
+                placeholder="e.g. Pune"
+                error={fieldErrors.city}
+              />
+              <AuthField
+                label="State"
+                name="state"
+                autoComplete="address-level1"
+                autoCapitalize="words"
+                enterKeyHint="next"
+                value={formData.state}
+                onChange={handleChange}
+                placeholder="e.g. Maharashtra"
+                error={fieldErrors.state}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-[var(--navy)] mb-2">
-                {t('auth.confirmPassword')}
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent"
-                placeholder={t('auth.confirmPassword')}
-              />
-            </div>
+            <PasswordField
+              label={t('auth.password')}
+              name="password"
+              autoComplete="new-password"
+              enterKeyHint="next"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="At least 6 characters"
+              error={fieldErrors.password}
+              showStrength
+            />
+            <PasswordField
+              label={t('auth.confirmPassword')}
+              name="confirmPassword"
+              autoComplete="new-password"
+              enterKeyHint="done"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder={t('auth.confirmPassword')}
+              error={
+                fieldErrors.confirmPassword ||
+                (formData.confirmPassword && formData.password && !formData.password.startsWith(formData.confirmPassword)
+                  ? t('auth.passwordsDoNotMatch')
+                  : undefined)
+              }
+            />
 
-            <button
-              type="submit"
-              disabled={loading || !otpVerified}
-              className="w-full h-[50px] bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
-            </button>
+            <AuthSubmit loading={loading && otpVerified} disabled={!otpVerified || loading} loadingText={t('auth.creatingAccount')}>
+              {t('auth.createAccount')}
+            </AuthSubmit>
+            {!otpVerified && (
+              <p className="text-center text-[12px] text-slate-500 -mt-1">Verify your phone number above to continue.</p>
+            )}
           </form>
 
           <div className="mt-6 text-center">

@@ -6,7 +6,8 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 import EmptyState from '../../components/EmptyState';
 import { Inbox } from 'lucide-react';
-import { Search, Eye, Mail, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Filter, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Eye, Phone as PhoneIcon, MapPin, FileText, UserCheck, Briefcase, IndianRupee, Calendar, Award, X, Download, MessageSquare, ExternalLink } from 'lucide-react';
 import { Card, Badge, Button, Modal, Select, Toast } from '../../components/ui';
 import { useDatabase } from '../../context/DatabaseContext';
 import { hireCandidate as hireCandidateApi } from '../../lib/supabase/data';
@@ -19,6 +20,26 @@ function resumeDisplayName(value: string): string {
   } catch {
     return last || 'Resume';
   }
+}
+
+// Display helpers: never show "undefined", "NaN" or a bare comma to an admin
+const orDash = (v: unknown) => (v === null || v === undefined || String(v).trim() === '' ? '—' : String(v));
+const initialsOf = (first: string, last: string) => `${(first || '?')[0] || ''}${(last || '')[0] || ''}`.toUpperCase();
+function niceDate(ymd: string) {
+  if (!ymd) return '—';
+  const d = new Date(ymd);
+  return Number.isNaN(d.getTime()) ? ymd : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function ageFrom(dob: string) {
+  if (!dob) return '—';
+  const t = new Date(dob).getTime();
+  if (Number.isNaN(t)) return '—';
+  const years = Math.floor((Date.now() - t) / (365.25 * 24 * 60 * 60 * 1000));
+  return years > 0 && years < 100 ? `${years} years` : '—';
+}
+function salaryText(v: string) {
+  const n = parseInt(v, 10);
+  return n > 0 ? `₹${n.toLocaleString('en-IN')}` : 'Not set';
 }
 
 const statusVariant: Record<string, 'default' | 'success' | 'warning' | 'info' | 'danger'> = {
@@ -157,6 +178,7 @@ export default function Candidates() {
       c.lastName.toLowerCase().includes(q) ||
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
       c.location.toLowerCase().includes(q) ||
+      c.phone.replace(/\D/g, '').includes(q.replace(/\D/g, '') || '\u0000') ||
       c.skills.some((s: string) => s.toLowerCase().includes(q));
 
     const matchStatus = !statusFilter || c.status === statusFilter;
@@ -185,7 +207,7 @@ export default function Candidates() {
     try {
       const existingMatch = matches.find((m: any) => m.candidate_id === selectedCandidate.id && m.job_id === hireJobId);
       await hireCandidateApi(selectedCandidate.id, hireJobId, job.employer_id, existingMatch?.id);
-      await refresh();
+      await refresh({ silent: true });
       setToast({ message: `${selectedCandidate.firstName} ${selectedCandidate.lastName} has been hired for ${job.jobTitle} at ${job.companyName}!`, type: 'success' });
       setShowHireModal(false);
       setSelectedCandidate(null);
@@ -244,26 +266,37 @@ export default function Candidates() {
         title="Delete this candidate?"
         description="This permanently deletes the candidate's sign-in, profile, applications and skills. It cannot be undone. Candidates with placement records cannot be deleted."
         confirmLabel="Delete candidate"
-        onConfirm={async () => { await adminDeleteAccount(deleteTarget.id); await refresh(); }}
+        onConfirm={async () => { await adminDeleteAccount(deleteTarget.id); await refresh({ silent: true }); }}
       />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--navy)]">Candidates</h2>
-          <p className="text-sm text-[var(--charcoal)] mt-1">
-            Showing {filtered.length} of {jobSeekers.length} candidates • Search by name & filter by date joined
+          <h2 className="admin-page-title text-2xl font-bold text-[var(--navy)]">Candidates</h2>
+          <p className="text-sm text-[var(--charcoal)] mt-1" aria-live="polite">
+            Showing <span className="font-bold text-[var(--navy)] tabular-nums">{filtered.length}</span> of <span className="tabular-nums">{jobSeekers.length}</span> candidates
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant={activeTab === 'all' ? 'primary' : 'outline'} size="sm" onClick={() => setActiveTab('all')}>
-            All Candidates
-          </Button>
-          <Button variant={activeTab === 'premium' ? 'primary' : 'outline'} size="sm" onClick={() => setActiveTab('premium')} className="gap-1.5">
-            <Award size={14} /> Premium
+        <div className="flex items-center gap-2 flex-wrap">
+          <div role="tablist" aria-label="Candidate group" className="relative grid grid-cols-2 bg-slate-100 rounded-full p-1">
+            <span aria-hidden className="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white rounded-full shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]" style={{ transform: activeTab === 'premium' ? 'translateX(100%)' : 'none' }} />
+            {(['all', 'premium'] as const).map(tab => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative z-10 h-9 px-4 rounded-full text-[13px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors ${activeTab === tab ? 'text-[var(--navy)]' : 'text-[var(--charcoal)]'}`}
+              >
+                {tab === 'premium' && <Award size={14} />}
+                {tab === 'all' ? 'All' : 'Premium'}
+                <span className="text-[11px] tabular-nums opacity-60">{tab === 'all' ? jobSeekers.length : jobSeekers.filter(c => c.is_premium === true).length}</span>
+              </button>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0} className="gap-1.5 flex-shrink-0">
+            <Download size={15} /> CSV
           </Button>
         </div>
-        <Button variant="outline" onClick={handleExportCsv} className="gap-1.5 flex-shrink-0">
-          <Download size={15} /> Download CSV
-        </Button>
       </div>
 
       {/* ═══ FILTER BAR ═══ */}
@@ -274,17 +307,19 @@ export default function Candidates() {
             <div className="relative flex-1">
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--charcoal)]" />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search candidate by name..."
-                className="w-full pl-10 pr-9 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] focus:outline-none text-sm bg-white text-[var(--navy)] placeholder:text-slate-400 transition-colors"
+                placeholder="Search name, phone, city or skill"
+                aria-label="Search candidates"
+                className="w-full h-11 [&::-webkit-search-cancel-button]:hidden pl-10 pr-9 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] focus:outline-none text-sm bg-white text-[var(--navy)] placeholder:text-slate-400 transition-colors"
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--charcoal)] hover:text-[var(--navy)] transition-colors p-1"
-                  title="Clear search"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-[var(--charcoal)] hover:bg-slate-100 hover:text-[var(--navy)] transition-colors"
+                  aria-label="Clear search"
                 >
                   <X size={16} />
                 </button>
@@ -384,15 +419,21 @@ export default function Candidates() {
             </thead>
             <tbody>
               {paging.pageItems.map(candidate => (
-                <tr key={candidate.id} className="border-b border-slate-100/60 hover:bg-slate-100 transition-colors">
+                <tr key={candidate.id} className="border-b border-slate-100/60 hover:bg-slate-50 transition-colors cursor-pointer" onClick={e => { if (!(e.target as HTMLElement).closest('button, a')) openDetail(candidate); }}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#F15A24]/10 text-[var(--orange)] rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        {candidate.firstName[0]}{candidate.lastName[0]}
-                      </div>
+                      {candidate.profilePhotoFile ? (
+                        <img src={candidate.profilePhotoFile} alt="" loading="lazy" className="w-10 h-10 rounded-full object-cover flex-shrink-0 bg-slate-100" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#F15A24]/10 text-[var(--orange)] rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                          {initialsOf(candidate.firstName, candidate.lastName)}
+                        </div>
+                      )}
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[var(--navy)]">{candidate.firstName} {candidate.lastName}</p>
-                        <p className="text-xs text-[var(--charcoal)]">{candidate.qualification} • {candidate.totalExperience}yrs • <MapPin size={10} className="inline" />{candidate.location}</p>
+                        <p className="text-sm font-semibold text-[var(--navy)] truncate">{candidate.firstName} {candidate.lastName}</p>
+                        <p className="text-xs text-[var(--charcoal)] truncate">
+                          {[candidate.qualification, Number(candidate.totalExperience) > 0 ? `${candidate.totalExperience} yrs` : 'Fresher', candidate.location].filter(Boolean).join(' · ')}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -403,12 +444,12 @@ export default function Candidates() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--charcoal)] hidden md:table-cell">
-                    ₹{parseInt(candidate.expectedSalary).toLocaleString()}
+                    <span className="tabular-nums">{salaryText(candidate.expectedSalary)}</span>
                   </td>
                   <td className="px-4 py-3 text-xs font-medium text-[var(--charcoal)] hidden lg:table-cell">
                     <span className="flex items-center gap-1">
                       <Calendar size={12} className="text-slate-400" />
-                      {candidate.createdAt}
+                      {niceDate(candidate.createdAt)}
                     </span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
@@ -417,11 +458,11 @@ export default function Candidates() {
                   <td className="px-4 py-3"><Badge variant={statusVariant[candidate.status]}>{candidate.status}</Badge></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openDetail(candidate)} title="View Submission"><Eye size={16} /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => openDetail(candidate)} title="View profile" aria-label={`View ${candidate.firstName}'s profile`}><Eye size={16} /></Button>
                       {candidate.status !== 'Placed' && (
-                        <Button variant="ghost" size="sm" onClick={() => openHire(candidate)} title="Hire" className="text-[var(--green)] hover:text-[var(--green)]"><UserCheck size={16} /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => openHire(candidate)} title="Hire" aria-label={`Hire ${candidate.firstName}`} className="text-[var(--green)] hover:text-[var(--green)]"><UserCheck size={16} /></Button>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(candidate)} title="Delete candidate" className="text-red-600 hover:text-red-700"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(candidate)} title="Delete candidate" aria-label={`Delete ${candidate.firstName}`} className="text-red-600 hover:text-red-700"><Trash2 size={16} /></Button>
                     </div>
                   </td>
                 </tr>
@@ -429,38 +470,39 @@ export default function Candidates() {
             </tbody>
           </table>
                 {paging.total === 0 ? (
-                  <EmptyState icon={<Inbox size={20} />} title="No candidates to show" body="Nothing matches this view yet. Try clearing a filter or search." />
+                  <div className="p-4">
+                    <EmptyState
+                      icon={<Inbox size={20} />}
+                      title={jobSeekers.length === 0 ? 'No candidates yet' : 'No candidates match'}
+                      body={jobSeekers.length === 0 ? 'New sign-ups will appear here.' : 'Try a different search or clear the filters.'}
+                      action={hasActiveFilters || activeTab === 'premium' ? <Button variant="outline" size="sm" onClick={() => { resetFilters(); setActiveTab('all'); }}>Clear filters</Button> : undefined}
+                    />
+                  </div>
                 ) : (
                   <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.setPage} label="candidates" />
                 )}
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-[var(--charcoal)]">
-              <Filter size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm font-semibold">No candidates found matching your filters</p>
-              <p className="text-xs text-[var(--charcoal)] mt-1">Try clearing filters or searching for a different candidate name.</p>
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={resetFilters} className="mt-4 text-xs">
-                  Reset All Filters
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </Card>
 
       {/* ═══ FULL SUBMISSION DETAIL MODAL ═══ */}
-      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="Full Candidate Submission" size="lg">
+      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} title="Candidate profile" size="lg">
         {selectedCandidate && (
           <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-[rgba(241,90,36,0.15)] to-[rgba(241,90,36,0.05)] text-[var(--orange)] rounded-xl flex items-center justify-center text-2xl font-bold">{selectedCandidate.firstName[0]}{selectedCandidate.lastName[0]}</div>
-              <div>
-                <h3 className="text-xl font-bold text-[var(--navy)]">{selectedCandidate.firstName} {selectedCandidate.lastName}</h3>
-                <div className="flex items-center gap-2 mt-1">
+              {selectedCandidate.profilePhotoFile ? (
+                <img src={selectedCandidate.profilePhotoFile} alt="" className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 bg-slate-100" />
+              ) : (
+                <div className="w-16 h-16 flex-shrink-0 bg-gradient-to-br from-[rgba(241,90,36,0.15)] to-[rgba(241,90,36,0.05)] text-[var(--orange)] rounded-2xl flex items-center justify-center text-2xl font-bold">{initialsOf(selectedCandidate.firstName, selectedCandidate.lastName)}</div>
+              )}
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold text-[var(--navy)] truncate">{selectedCandidate.firstName} {selectedCandidate.lastName}</h3>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
                   <Badge variant={statusVariant[selectedCandidate.status]}>{selectedCandidate.status}</Badge>
-                  <span className="text-xs text-[var(--charcoal)]">ID: {selectedCandidate.id} • Date Joined: {selectedCandidate.createdAt}</span>
+                  {selectedCandidate.is_premium && <Badge variant="warning" className="gap-1"><Award size={11} /> Premium</Badge>}
+                  <span className="text-xs text-[var(--charcoal)]">Joined {niceDate(selectedCandidate.createdAt)}</span>
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono truncate select-all" title="Candidate ID">{selectedCandidate.id}</p>
               </div>
             </div>
 
@@ -471,16 +513,18 @@ export default function Candidates() {
                 {[
                   { label: 'First Name', value: selectedCandidate.firstName, icon: <UserCheck size={12} /> },
                   { label: 'Last Name', value: selectedCandidate.lastName, icon: <UserCheck size={12} /> },
-                  { label: 'Phone Number', value: selectedCandidate.phone, icon: <PhoneIcon size={12} /> },
-                  { label: 'Email Address', value: selectedCandidate.email, icon: <Mail size={12} /> },
-                  { label: 'Date of Birth', value: selectedCandidate.dob, icon: <Calendar size={12} /> },
-                  { label: 'Age', value: `${Math.floor((Date.now() - new Date(selectedCandidate.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years`, icon: <Calendar size={12} /> },
+                  { label: 'Phone Number', value: selectedCandidate.phone, icon: <PhoneIcon size={12} />, href: selectedCandidate.phone ? `tel:${selectedCandidate.phone}` : undefined },
                   { label: 'Gender', value: selectedCandidate.gender, icon: <UserCheck size={12} /> },
-                  { label: 'Date Joined', value: selectedCandidate.createdAt, icon: <Calendar size={12} /> },
+                  { label: 'Date of Birth', value: selectedCandidate.dob ? niceDate(selectedCandidate.dob) : '', icon: <Calendar size={12} /> },
+                  { label: 'Age', value: ageFrom(selectedCandidate.dob), icon: <Calendar size={12} /> },
                 ].map(f => (
-                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100">
+                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100 min-w-0">
                     <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold flex items-center gap-1">{f.icon}{f.label}</p>
-                    <p className="text-sm text-[var(--navy)] font-semibold mt-0.5">{f.value}</p>
+                    {f.href ? (
+                      <a href={f.href} className="block text-sm text-[var(--orange)] font-semibold mt-0.5 truncate hover:underline">{f.value}</a>
+                    ) : (
+                      <p className={`text-sm font-semibold mt-0.5 truncate ${orDash(f.value) === '—' ? 'text-slate-400' : 'text-[var(--navy)]'}`}>{orDash(f.value)}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -491,20 +535,24 @@ export default function Candidates() {
               <h4 className="text-sm font-bold text-[var(--navy)] mb-3 flex items-center gap-2"><span className="w-5 h-5 bg-[var(--green)] text-white rounded text-[10px] flex items-center justify-center font-bold">2</span> Professional Details</h4>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Current Location', value: `${selectedCandidate.location}, ${selectedCandidate.state}`, icon: <MapPin size={12} /> },
+                  { label: 'Current Location', value: [selectedCandidate.location, selectedCandidate.state].filter(Boolean).join(', '), icon: <MapPin size={12} /> },
                   { label: 'Highest Qualification', value: selectedCandidate.qualification, icon: <Award size={12} /> },
                   { label: 'Previous Company', value: selectedCandidate.previousCompany || 'N/A (Fresher)', icon: <Briefcase size={12} /> },
-                  { label: 'Total Experience', value: `${selectedCandidate.totalExperience} years`, icon: <Briefcase size={12} /> },
+                  { label: 'Total Experience', value: Number(selectedCandidate.totalExperience) > 0 ? `${selectedCandidate.totalExperience} years` : 'Fresher', icon: <Briefcase size={12} /> },
                 ].map(f => (
-                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100">
+                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100 min-w-0">
                     <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold flex items-center gap-1">{f.icon}{f.label}</p>
-                    <p className="text-sm text-[var(--navy)] font-semibold mt-0.5">{f.value}</p>
+                    <p className={`text-sm font-semibold mt-0.5 truncate ${orDash(f.value) === '—' ? 'text-slate-400' : 'text-[var(--navy)]'}`}>{orDash(f.value)}</p>
                   </div>
                 ))}
               </div>
               <div className="mt-3">
                 <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold mb-1.5">Key Skills</p>
-                <div className="flex flex-wrap gap-1.5">{selectedCandidate.skills.map((s: string) => <Badge key={s} variant="default">{s}</Badge>)}</div>
+                {selectedCandidate.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">{selectedCandidate.skills.map((s: string) => <Badge key={s} variant="default">{s}</Badge>)}</div>
+                ) : (
+                  <p className="text-sm text-slate-400">No skills added yet</p>
+                )}
               </div>
             </div>
 
@@ -513,13 +561,13 @@ export default function Candidates() {
               <h4 className="text-sm font-bold text-[var(--navy)] mb-3 flex items-center gap-2"><span className="w-5 h-5 bg-[var(--navy)] text-white rounded text-[10px] flex items-center justify-center font-bold">3</span> Job Preferences</h4>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Expected Salary', value: `₹${parseInt(selectedCandidate.expectedSalary).toLocaleString()}/month`, icon: <IndianRupee size={12} /> },
+                  { label: 'Expected Salary', value: parseInt(selectedCandidate.expectedSalary, 10) > 0 ? `${salaryText(selectedCandidate.expectedSalary)}/month` : '', icon: <IndianRupee size={12} /> },
                   { label: 'Preferred Job Type', value: selectedCandidate.preferredJobType, icon: <Briefcase size={12} /> },
                   { label: 'Willing to Relocate', value: selectedCandidate.willingToRelocate ? 'Yes' : 'No', icon: <MapPin size={12} /> },
                 ].map(f => (
-                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100">
+                  <div key={f.label} className="bg-white rounded-lg p-2.5 border border-slate-100 min-w-0">
                     <p className="text-[10px] text-[var(--charcoal)] uppercase tracking-wider font-semibold flex items-center gap-1">{f.icon}{f.label}</p>
-                    <p className="text-sm text-[var(--navy)] font-semibold mt-0.5">{f.value}</p>
+                    <p className={`text-sm font-semibold mt-0.5 truncate ${orDash(f.value) === '—' ? 'text-slate-400' : 'text-[var(--navy)]'}`}>{orDash(f.value)}</p>
                   </div>
                 ))}
               </div>
@@ -556,15 +604,15 @@ export default function Candidates() {
                     <p className="text-sm text-[var(--charcoal)]">Not uploaded</p>
                   )}
                 </div>
-                <div className={`rounded-lg p-3 border ${selectedCandidate.profilePhotoFile ? 'bg-[#0D604A]/5 border-[#0D604A]/10' : 'bg-white border-slate-200'}`}>
+                <div className={`min-w-0 rounded-lg p-3 border ${selectedCandidate.profilePhotoFile ? 'bg-[#0D604A]/5 border-[#0D604A]/10' : 'bg-white border-slate-200'}`}>
                   <p className="text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1 mb-1 text-[var(--charcoal)]">
                     <UserCheck size={12} /> Profile Photo
                   </p>
                   {selectedCandidate.profilePhotoFile ? (
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-[var(--navy)] font-semibold">{selectedCandidate.profilePhotoFile}</p>
-                      <Badge variant="success" className="text-[9px]">Uploaded</Badge>
-                    </div>
+                    <a href={selectedCandidate.profilePhotoFile} target="_blank" rel="noreferrer" className="flex items-center gap-2 group">
+                      <img src={selectedCandidate.profilePhotoFile} alt="Profile photo" className="w-9 h-9 rounded-lg object-cover bg-slate-100" />
+                      <span className="text-sm text-[var(--navy)] font-semibold group-hover:text-[var(--orange)] inline-flex items-center gap-1">Open <ExternalLink size={12} /></span>
+                    </a>
                   ) : (
                     <p className="text-sm text-[var(--charcoal)]">Not uploaded</p>
                   )}
@@ -592,14 +640,20 @@ export default function Candidates() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-slate-200">
+            <div className="grid grid-cols-2 sm:flex gap-2 pt-4 border-t border-slate-200">
               {selectedCandidate.status !== 'Placed' && (
-                <Button variant="success" className="gap-1.5" onClick={() => { setShowDetailModal(false); openHire(selectedCandidate); }}>
+                <Button variant="success" className="gap-1.5 col-span-2 sm:col-span-1" onClick={() => { setShowDetailModal(false); openHire(selectedCandidate); }}>
                   <UserCheck size={16} /> Hire for Job
                 </Button>
               )}
-              <Button variant="outline" className="gap-1.5"><Mail size={14} /> Send Email</Button>
-              <Button variant="ghost" className="gap-1.5"><PhoneIcon size={14} /> Log Call</Button>
+              {selectedCandidate.phone && (
+                <a href={`tel:${selectedCandidate.phone}`} className="contents">
+                  <Button variant="outline" className="gap-1.5 w-full sm:w-auto"><PhoneIcon size={14} /> Call</Button>
+                </a>
+              )}
+              <Link to="/admin/communications" className="contents">
+                <Button variant="ghost" className="gap-1.5 w-full sm:w-auto"><MessageSquare size={14} /> Log contact</Button>
+              </Link>
             </div>
           </div>
         )}
@@ -610,9 +664,11 @@ export default function Candidates() {
         {selectedCandidate && (
           <div className="space-y-5">
             <div className="bg-[#F15A24]/5 rounded-xl p-4 border border-[#F15A24]/10">
-              <p className="text-xs text-[var(--orange)] text-[var(--orange)] font-semibold">Candidate</p>
+              <p className="text-xs text-[var(--orange)] font-semibold">Candidate</p>
               <p className="text-lg font-bold text-[var(--navy)]">{selectedCandidate.firstName} {selectedCandidate.lastName}</p>
-              <p className="text-sm text-[var(--charcoal)]">{selectedCandidate.qualification} • {selectedCandidate.totalExperience} yrs • ₹{parseInt(selectedCandidate.expectedSalary).toLocaleString()}/month</p>
+              <p className="text-sm text-[var(--charcoal)]">
+                {[selectedCandidate.qualification, Number(selectedCandidate.totalExperience) > 0 ? `${selectedCandidate.totalExperience} yrs` : 'Fresher', parseInt(selectedCandidate.expectedSalary, 10) > 0 ? `${salaryText(selectedCandidate.expectedSalary)}/month` : ''].filter(Boolean).join(' · ')}
+              </p>
               <div className="flex flex-wrap gap-1 mt-2">{selectedCandidate.skills.map((s: string) => <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>)}</div>
             </div>
 
@@ -621,7 +677,7 @@ export default function Candidates() {
               <Select
                 options={[
                   { value: '', label: 'Choose a job opening...' },
-                  ...openJobs.map(j => ({ value: j.id, label: `${j.jobTitle} at ${j.companyName} (₹${parseInt(j.salaryMin).toLocaleString()}-${parseInt(j.salaryMax).toLocaleString()})` }))
+                  ...openJobs.map(j => ({ value: j.id, label: `${j.jobTitle} at ${j.companyName} (₹${parseInt(j.salaryMin).toLocaleString('en-IN')} – ₹${parseInt(j.salaryMax).toLocaleString('en-IN')})` }))
                 ]}
                 value={hireJobId}
                 onChange={e => setHireJobId(e.target.value)}
@@ -631,23 +687,25 @@ export default function Candidates() {
             {hireJobId && (() => {
               const job = jobPostingsDisplay.find(j => j.id === hireJobId);
               if (!job) return null;
-              const salaryFit = parseInt(selectedCandidate.expectedSalary) >= parseInt(job.salaryMin) && parseInt(selectedCandidate.expectedSalary) <= parseInt(job.salaryMax);
+              const expected = parseInt(selectedCandidate.expectedSalary, 10) || 0;
+              // No stated expectation counts as a fit; a job with no max only checks the minimum
+              const salaryFit = expected === 0 || (expected >= (parseInt(job.salaryMin, 10) || 0) && (!(parseInt(job.salaryMax, 10) > 0) || expected <= parseInt(job.salaryMax, 10)));
               return (
                 <div className={`rounded-xl p-4 border ${salaryFit ? 'bg-[#0D604A]/5 border-[#0D604A]/10' : 'bg-[#F15A24]/5 border-[#F15A24]/10'}`}>
                   <h4 className="text-sm font-bold text-[var(--navy)] mb-2">Salary Match</h4>
                   <div className="flex items-center justify-between text-[var(--navy)]">
                     <div>
                       <p className="text-xs text-[var(--charcoal)]">Candidate expects</p>
-                      <p className="text-sm font-bold">₹{parseInt(selectedCandidate.expectedSalary).toLocaleString()}/mo</p>
+                      <p className="text-sm font-bold">{expected > 0 ? `₹${expected.toLocaleString('en-IN')}/mo` : 'Not set'}</p>
                     </div>
                     <div className="text-2xl text-slate-400">↔</div>
                     <div className="text-right">
                       <p className="text-xs text-[var(--charcoal)]">Job offers</p>
-                      <p className="text-sm font-bold">₹{parseInt(job.salaryMin).toLocaleString()} - ₹{parseInt(job.salaryMax).toLocaleString()}/mo</p>
+                      <p className="text-sm font-bold">₹{parseInt(job.salaryMin).toLocaleString('en-IN')} – ₹{parseInt(job.salaryMax).toLocaleString('en-IN')}/mo</p>
                     </div>
                   </div>
-                  <p className={`text-xs mt-2 font-semibold ${salaryFit ? 'text-[var(--green)]' : 'text-[var(--orange)] text-[var(--orange)]'}`}>
-                    {salaryFit ? '✓ Salary expectation is within the job range' : '⚠ Salary expectation is outside the job range'}
+                  <p className={`text-xs mt-2 font-semibold ${salaryFit ? 'text-[var(--green)]' : 'text-[var(--orange)]'}`}>
+                    {expected === 0 ? '✓ Candidate has not set a salary expectation' : salaryFit ? '✓ Salary expectation is within the job range' : '⚠ Salary expectation is outside the job range'}
                   </p>
                 </div>
               );
@@ -661,9 +719,12 @@ export default function Candidates() {
               </div>
             )}
 
+            {openJobs.length === 0 && (
+              <p className="text-sm text-[var(--charcoal)] bg-[var(--bg-warm)] rounded-xl p-3 border border-slate-200">There are no open jobs right now. Approve a job first, then come back to hire.</p>
+            )}
             <div className="flex gap-2 pt-2">
-              <Button variant="success" onClick={handleHire} disabled={!hireJobId || hiring} className="gap-1.5">
-                <UserCheck size={16} /> {hiring ? 'Hiring...' : 'Confirm Hiring'}
+              <Button variant="success" onClick={handleHire} disabled={!hireJobId || hiring} loading={hiring} className="gap-1.5">
+                {!hiring && <UserCheck size={16} />} {hiring ? 'Hiring…' : 'Confirm Hiring'}
               </Button>
               <Button variant="ghost" onClick={() => setShowHireModal(false)}>Cancel</Button>
             </div>

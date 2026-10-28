@@ -41,8 +41,9 @@ const indianStatesList = [
   'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Chandigarh',
 ];
 
-const inputClass = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent transition-colors';
-const labelClass = 'block text-xs font-semibold text-[var(--navy)] mb-1.5';
+const inputClass = 'w-full h-12 sm:h-11 px-3.5 rounded-xl border border-slate-200 bg-white text-[15px] sm:text-sm text-[var(--navy)] placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[var(--orange)]/15 focus:border-[var(--orange)] transition-[border-color,box-shadow] disabled:bg-slate-50 disabled:text-slate-400';
+const labelClass = 'block text-xs font-bold text-[var(--navy)] mb-1.5';
+const THIS_YEAR = new Date().getFullYear();
 
 export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, initial, saving, isFirstRun }: EditCompanyModalProps) {
   const [form, setForm] = useState<CompanyForm>(initial);
@@ -54,15 +55,40 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   const [deptInput, setDeptInput] = useState(initial.department || '');
   const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
   const [filteredDepts, setFilteredDepts] = useState<string[]>([]);
+  const [nameError, setNameError] = useState('');
+  // Which way the step content slides in
+  const [dir, setDir] = useState<1 | -1>(1);
 
   useEffect(() => {
     if (isOpen) {
       setForm(initial);
+      // The combobox text must follow the saved values too, or a cancelled edit lingers
+      setSectorInput(initial.industry || '');
+      setDeptInput(initial.department || '');
+      setSectorDropdownOpen(false);
+      setDeptDropdownOpen(false);
+      setNameError('');
       setActiveStep(0);
       setVisited(new Set([0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Escape closes, unless a dropdown is open (then it just closes the dropdown)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (sectorDropdownOpen || deptDropdownOpen) {
+        setSectorDropdownOpen(false);
+        setDeptDropdownOpen(false);
+        return;
+      }
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose, sectorDropdownOpen, deptDropdownOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,8 +109,37 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   ];
 
   const goToStep = (i: number) => {
+    if (i === activeStep) return;
+    setDir(i > activeStep ? 1 : -1);
     setActiveStep(i);
     setVisited(prev => new Set(prev).add(i));
+  };
+
+  const yearError = form.yearEstablished && (!/^\d{4}$/.test(form.yearEstablished) || Number(form.yearEstablished) < 1800 || Number(form.yearEstablished) > THIS_YEAR)
+    ? `Enter a year between 1800 and ${THIS_YEAR}`
+    : '';
+  const emailError = form.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.contactEmail.trim()) ? 'This email does not look right' : '';
+  const phoneDigits = form.contactPhone.replace(/\D/g, '');
+  const phoneError = form.contactPhone && (phoneDigits.length < 10 || phoneDigits.length > 12) ? 'Enter a 10-digit phone number' : '';
+
+  const handleSave = () => {
+    if (!form.companyName.trim()) {
+      setNameError('Company name is required');
+      goToStep(0);
+      return;
+    }
+    if (yearError) { goToStep(0); return; }
+    if (emailError || phoneError) { goToStep(2); return; }
+    onSave({
+      ...form,
+      companyName: form.companyName.trim(),
+      website: form.website.trim(),
+      gstNumber: form.gstNumber.trim().toUpperCase(),
+      city: form.city.trim(),
+      contactName: form.contactName.trim(),
+      contactEmail: form.contactEmail.trim().toLowerCase(),
+      contactPhone: form.contactPhone.trim(),
+    });
   };
   const goStep = (delta: number) => goToStep(Math.min(steps.length - 1, Math.max(0, activeStep + delta)));
 
@@ -93,7 +148,9 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
   // Sector combobox handlers
   const handleSectorInputChange = (value: string) => {
     setSectorInput(value);
-    update({ industry: value });
+    // A different industry means the old department no longer fits
+    if (value !== form.industry) { setDeptInput(''); update({ industry: value, department: '' }); }
+    else update({ industry: value });
     const allSectors = getSectorsList();
     const filtered = allSectors.filter(s => s.toLowerCase().includes(value.toLowerCase()));
     const hasExactMatch = allSectors.some(s => s.toLowerCase() === value.toLowerCase());
@@ -106,20 +163,18 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
 
   const handleSectorSelect = (sector: string) => {
     if (sector === 'Manual') {
-      setSectorInput('Manual');
-      update({ industry: '' });
+      // "Manual" means "let me type my own", so clear the box and focus it
+      setSectorInput('');
+      setDeptInput('');
+      update({ industry: '', department: '' });
       setSectorDropdownOpen(false);
       setTimeout(() => document.getElementById('company-sector-input')?.focus(), 50);
       return;
     }
-    if (sector.startsWith('✏️ Custom: ')) {
-      const customValue = sector.replace('✏️ Custom: ', '');
-      setSectorInput(customValue);
-      update({ industry: customValue });
-    } else {
-      setSectorInput(sector);
-      update({ industry: sector });
-    }
+    const next = sector.startsWith('✏️ Custom: ') ? sector.replace('✏️ Custom: ', '') : sector;
+    if (next !== form.industry) setDeptInput('');
+    setSectorInput(next);
+    update(next !== form.industry ? { industry: next, department: '' } : { industry: next });
     setSectorDropdownOpen(false);
   };
 
@@ -138,7 +193,7 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
 
   const handleDeptSelect = (dept: string) => {
     if (dept === 'Manual') {
-      setDeptInput('Manual');
+      setDeptInput('');
       update({ department: '' });
       setDeptDropdownOpen(false);
       setTimeout(() => document.getElementById('company-dept-input')?.focus(), 50);
@@ -178,13 +233,14 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
               <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
                 {isFirstRun ? 'Complete Your Company Profile' : 'Edit Company Details'}
               </h2>
-              <p className="text-xs text-white/70 mt-0.5">Step {activeStep + 1} of {steps.length} · {steps[activeStep].label}</p>
+              <p className="text-xs text-white/70 mt-0.5" aria-live="polite">Step {activeStep + 1} of {steps.length} · {steps[activeStep].label}</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors flex-shrink-0"
+            className="relative w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors flex-shrink-0"
           >
             <HugeiconsIcon icon={Cancel01Icon} size={19} />
           </button>
@@ -193,23 +249,25 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
         {/* STEP PROGRESS BAR */}
         <div className="px-5 sm:px-6 py-3 bg-white border-b border-slate-100 flex items-center gap-3">
           <button
+            type="button"
             onClick={() => goStep(-1)}
             disabled={activeStep === 0}
-            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="w-8 h-8 text-lg flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Previous step"
           >
             ‹
           </button>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-all duration-400 ease-out"
+              className="h-full bg-gradient-to-r from-[var(--orange)] to-[#d94d1a] rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
             />
           </div>
           <button
+            type="button"
             onClick={() => goStep(1)}
             disabled={activeStep === steps.length - 1}
-            className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            className="w-8 h-8 text-lg flex-shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-[var(--navy)] hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             aria-label="Next step"
           >
             ›
@@ -225,6 +283,8 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
               return (
                 <button
                   key={step.label}
+                  type="button"
+                  aria-current={isActive ? 'step' : undefined}
                   onClick={() => goToStep(i)}
                   className={`relative flex items-center gap-3 px-2.5 md:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all text-left group ${
                     isActive ? 'bg-white shadow-md shadow-slate-900/5 border border-slate-200' : 'hover:bg-slate-100/80 border border-transparent'
@@ -253,15 +313,27 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
             })}
           </div>
 
-          <div className="flex-1 min-h-0 p-5 sm:p-7 overflow-y-auto space-y-4 bg-white" data-lenis-prevent>
+          <div className="flex-1 min-h-0 p-5 sm:p-7 overflow-y-auto overscroll-contain space-y-4 bg-white" data-lenis-prevent>
+            <div key={activeStep} className={dir === 1 ? 'ecm-step ecm-step--fwd' : 'ecm-step ecm-step--back'}>
             {activeStep === 0 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-slate-900">1. Company Basics</h3>
                 <div>
-                  <label className={labelClass}>Company Name</label>
-                  <input value={form.companyName} onChange={e => update({ companyName: e.target.value })} className={inputClass} placeholder="e.g. Bharat Manufacturing Co." />
+                  <label htmlFor="ecm-name" className={labelClass}>Company Name <span className="text-[var(--orange)]">*</span></label>
+                  <input
+                    id="ecm-name"
+                    value={form.companyName}
+                    onChange={e => { update({ companyName: e.target.value }); if (nameError) setNameError(''); }}
+                    autoComplete="organization"
+                    autoCapitalize="words"
+                    maxLength={120}
+                    aria-invalid={nameError ? true : undefined}
+                    className={`${inputClass} ${nameError ? '!border-red-300' : ''}`}
+                    placeholder="e.g. Bharat Manufacturing Co."
+                  />
+                  {nameError && <p className="auth-field__error mt-1.5 text-xs font-semibold text-red-600">{nameError}</p>}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative">
                     <label className={labelClass}>Industry</label>
                     <div className="relative">
@@ -273,25 +345,33 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                         onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)}
                         className={inputClass}
                         placeholder="Type or select industry..."
+                        autoComplete="off"
+                        role="combobox"
+                        aria-expanded={sectorDropdownOpen}
+                        aria-controls="ecm-sector-list"
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
+                        aria-label="Show industries"
                         onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600"
                       >
                         <svg className={`w-4 h-4 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>
                     </div>
                     {sectorDropdownOpen && filteredSectors.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      <div id="ecm-sector-list" role="listbox" className="ecm-pop absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto overscroll-contain py-1" data-lenis-prevent>
                         {filteredSectors.map((sector) => (
                           <button
                             key={sector}
                             type="button"
-                            onMouseDown={() => handleSectorSelect(sector)}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}
+                            role="option"
+                            aria-selected={sector === sectorInput}
+                            onMouseDown={e => { e.preventDefault(); handleSectorSelect(sector); }}
+                            className={`w-full text-left px-4 py-2.5 sm:py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${sector === sectorInput ? 'bg-orange-50 text-[var(--orange)] font-semibold' : 'text-slate-700'}`}
                           >
-                            {sector}
+                            {sector === 'Manual' ? 'Other (type your own)' : sector}
                           </button>
                         ))}
                       </div>
@@ -313,9 +393,15 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                         className={inputClass}
                         placeholder={form.industry || sectorInput ? 'Type or select department...' : 'Select sector first'}
                         disabled={!form.industry && !sectorInput}
+                        autoComplete="off"
+                        role="combobox"
+                        aria-expanded={deptDropdownOpen}
+                        aria-controls="ecm-dept-list"
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
+                        aria-label="Show departments"
                         onClick={() => {
                           if (form.industry || sectorInput) {
                             const subsectors = getSubsectorsForSector(form.industry || sectorInput);
@@ -323,21 +409,23 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                             setDeptDropdownOpen(!deptDropdownOpen);
                           }
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600"
                       >
                         <svg className={`w-4 h-4 transition-transform ${deptDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>
                     </div>
                     {deptDropdownOpen && filteredDepts.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      <div id="ecm-dept-list" role="listbox" className="ecm-pop absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto overscroll-contain py-1" data-lenis-prevent>
                         {filteredDepts.map((dept) => (
                           <button
                             key={dept}
                             type="button"
-                            onMouseDown={() => handleDeptSelect(dept)}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${dept === deptInput ? 'bg-orange-50 text-[var(--orange)] font-medium' : 'text-slate-700'}`}
+                            role="option"
+                            aria-selected={dept === deptInput}
+                            onMouseDown={e => { e.preventDefault(); handleDeptSelect(dept); }}
+                            className={`w-full text-left px-4 py-2.5 sm:py-2 text-sm hover:bg-orange-50 hover:text-[var(--orange)] ${dept === deptInput ? 'bg-orange-50 text-[var(--orange)] font-semibold' : 'text-slate-700'}`}
                           >
-                            {dept}
+                            {dept === 'Manual' ? 'Other (type your own)' : dept}
                           </button>
                         ))}
                       </div>
@@ -345,22 +433,53 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                   </div>
                   <div>
                     <label className={labelClass}>Company Size</label>
-                    <input value={form.companySize} onChange={e => update({ companySize: e.target.value })} className={inputClass} placeholder="e.g. 50-200" />
+                    <input value={form.companySize} onChange={e => update({ companySize: e.target.value })} className={inputClass} placeholder="e.g. 50-200" list="ecm-size-list" />
+                    <datalist id="ecm-size-list">
+                      {['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'].map(s => <option key={s} value={s} />)}
+                    </datalist>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Year Established</label>
-                    <input value={form.yearEstablished} onChange={e => update({ yearEstablished: e.target.value })} className={inputClass} placeholder="e.g. 2015" />
+                    <input
+                      value={form.yearEstablished}
+                      onChange={e => update({ yearEstablished: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                      inputMode="numeric"
+                      maxLength={4}
+                      aria-invalid={yearError ? true : undefined}
+                      className={`${inputClass} ${yearError ? '!border-red-300' : ''}`}
+                      placeholder="e.g. 2015"
+                    />
+                    {yearError && <p className="auth-field__error mt-1.5 text-xs font-semibold text-red-600">{yearError}</p>}
                   </div>
                   <div>
                     <label className={labelClass}>GST Number</label>
-                    <input value={form.gstNumber} onChange={e => update({ gstNumber: e.target.value })} className={inputClass} placeholder="Optional" />
+                    <input
+                      value={form.gstNumber}
+                      onChange={e => update({ gstNumber: e.target.value.toUpperCase().replace(/\s/g, '').slice(0, 15) })}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      maxLength={15}
+                      className={`${inputClass} font-mono tracking-wide`}
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>Website</label>
-                  <input value={form.website} onChange={e => update({ website: e.target.value })} className={inputClass} placeholder="e.g. www.yourcompany.com" />
+                  <input
+                    value={form.website}
+                    onChange={e => update({ website: e.target.value })}
+                    type="url"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className={inputClass}
+                    placeholder="e.g. www.yourcompany.com"
+                  />
                 </div>
               </div>
             )}
@@ -370,12 +489,12 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                 <h3 className="text-lg font-bold text-slate-900">2. Location</h3>
                 <div>
                   <label className={labelClass}>Address</label>
-                  <input value={form.address} onChange={e => update({ address: e.target.value })} className={inputClass} placeholder="Street address" />
+                  <input value={form.address} onChange={e => update({ address: e.target.value })} autoComplete="street-address" className={inputClass} placeholder="Street address" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>City</label>
-                    <input value={form.city} onChange={e => update({ city: e.target.value })} className={inputClass} placeholder="e.g. Pune" />
+                    <input value={form.city} onChange={e => update({ city: e.target.value })} autoComplete="address-level2" autoCapitalize="words" className={inputClass} placeholder="e.g. Pune" />
                   </div>
                   <div>
                     <label className={labelClass}>State</label>
@@ -393,34 +512,65 @@ export default function EditCompanyModal({ isOpen, onClose, onSkip, onSave, init
                 <h3 className="text-lg font-bold text-slate-900">3. Contact Info</h3>
                 <div>
                   <label className={labelClass}>Contact Name</label>
-                  <input value={form.contactName} onChange={e => update({ contactName: e.target.value })} className={inputClass} placeholder="Recruiter / HR contact name" />
+                  <input value={form.contactName} onChange={e => update({ contactName: e.target.value })} autoComplete="name" autoCapitalize="words" className={inputClass} placeholder="Recruiter / HR contact name" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Contact Email</label>
-                    <input type="email" value={form.contactEmail} onChange={e => update({ contactEmail: e.target.value })} className={inputClass} />
+                    <input
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      value={form.contactEmail}
+                      onChange={e => update({ contactEmail: e.target.value })}
+                      aria-invalid={emailError ? true : undefined}
+                      className={`${inputClass} ${emailError ? '!border-red-300' : ''}`}
+                      placeholder="hr@company.com"
+                    />
+                    {emailError && <p className="auth-field__error mt-1.5 text-xs font-semibold text-red-600">{emailError}</p>}
                   </div>
                   <div>
                     <label className={labelClass}>Contact Phone</label>
-                    <input value={form.contactPhone} onChange={e => update({ contactPhone: e.target.value })} className={inputClass} />
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={form.contactPhone}
+                      onChange={e => update({ contactPhone: e.target.value.replace(/[^\d+\s-]/g, '').slice(0, 16) })}
+                      aria-invalid={phoneError ? true : undefined}
+                      className={`${inputClass} ${phoneError ? '!border-red-300' : ''}`}
+                      placeholder="98765 43210"
+                    />
+                    {phoneError && <p className="auth-field__error mt-1.5 text-xs font-semibold text-red-600">{phoneError}</p>}
                   </div>
                 </div>
+                <p className="text-xs text-slate-500">Candidates do not see these details. Our team uses them to reach you.</p>
               </div>
             )}
+            </div>
           </div>
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="ui-modal-footer bg-slate-100 p-4 border-t border-slate-200 flex items-center justify-between gap-3">
+        <div className="ui-modal-footer bg-slate-50 p-4 pb-[max(16px,env(safe-area-inset-bottom))] border-t border-slate-200 flex items-center justify-between gap-3">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             {isFirstRun ? 'Skip for now' : 'Cancel'}
           </Button>
           <div className="flex items-center gap-2">
+            {activeStep > 0 && (
+              <Button variant="ghost" size="md" onClick={() => goStep(-1)} className="hidden sm:inline-flex">Back</Button>
+            )}
+            {/* Editing an existing profile: save from any step. First run: walk through all three. */}
+            {!isFirstRun && activeStep < steps.length - 1 && (
+              <Button variant="outline" size="md" onClick={handleSave} disabled={saving} loading={saving}>Save</Button>
+            )}
             {activeStep < steps.length - 1 ? (
               <Button variant="secondary" size="md" onClick={() => goStep(1)}>Next Step</Button>
             ) : (
-              <Button variant="success" size="md" onClick={() => onSave(form)} disabled={saving} className="gap-1.5 text-sm font-bold shadow-lg">
-                <CheckCircle size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+              <Button variant="success" size="md" onClick={handleSave} disabled={saving} loading={saving} className="gap-1.5 text-sm font-bold shadow-lg">
+                {!saving && <CheckCircle size={16} />} {saving ? 'Saving…' : 'Save Changes'}
               </Button>
             )}
           </div>

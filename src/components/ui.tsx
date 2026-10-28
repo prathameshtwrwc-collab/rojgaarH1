@@ -1,6 +1,6 @@
-import { ReactNode, useState, useEffect, useRef } from 'react';
+import { ReactNode, useState, useEffect, useRef, useId } from 'react';
 import { lockBodyScroll } from '../lib/scrollLock';
-import { X, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, ChevronDown, Info, Loader2 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { cn } from '../utils/cn';
@@ -15,25 +15,34 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   children: ReactNode;
   fullWidth?: boolean;
+  /** Shows a spinner in place of the content's leading space and blocks further presses. */
+  loading?: boolean;
 }
 
-export function Button({ variant = 'primary', size = 'md', children, fullWidth, className = '', ...props }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+export function Button({ variant = 'primary', size = 'md', children, fullWidth, loading = false, className = '', disabled, ...props }: ButtonProps) {
+  // focus-visible: keyboard users get a ring, a finger tap does not leave one behind
+  const base = 'ui-btn inline-flex items-center justify-center gap-1.5 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.97]';
   const variants: Record<string, string> = {
-    primary: 'bg-[var(--orange)] hover:bg-[#d94d1a] text-white focus:ring-[var(--orange)] shadow-md shadow-orange-600/20 active:scale-[0.98]',
-    secondary: 'bg-[var(--navy)] hover:bg-[#1a2540] text-white border border-[var(--navy)] focus:ring-[var(--navy)]',
-    outline: 'border-2 border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--bg-cream)] focus:ring-[var(--navy)]',
-    ghost: 'text-[var(--charcoal)] hover:bg-[var(--bg-cream)] focus:ring-[var(--navy)]',
-    danger: 'bg-red-600 hover:bg-red-500 text-white focus:ring-red-500 shadow-sm',
-    success: 'bg-[var(--green)] hover:bg-[#0a4d3a] text-white focus:ring-[var(--green)] shadow-sm',
+    primary: 'bg-[var(--orange)] hover:bg-[#d94d1a] text-white focus-visible:ring-[var(--orange)] shadow-md shadow-orange-600/20',
+    secondary: 'bg-[var(--navy)] hover:bg-[#1a2540] text-white border border-[var(--navy)] focus-visible:ring-[var(--navy)]',
+    outline: 'border-2 border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--bg-cream)] focus-visible:ring-[var(--navy)]',
+    ghost: 'text-[var(--charcoal)] hover:bg-[var(--bg-cream)] focus-visible:ring-[var(--navy)]',
+    danger: 'bg-red-600 hover:bg-red-500 text-white focus-visible:ring-red-500 shadow-sm',
+    success: 'bg-[var(--green)] hover:bg-[#0a4d3a] text-white focus-visible:ring-[var(--green)] shadow-sm',
   };
   const sizes: Record<string, string> = {
-    sm: 'px-3 py-1.5 text-sm',
+    sm: 'ui-btn--sm px-3 py-1.5 text-sm',
     md: 'px-5 py-2.5 text-sm',
     lg: 'px-8 py-3.5 text-base',
   };
   return (
-    <button className={cn(base, variants[variant], sizes[size], fullWidth && 'w-full', className)} {...props}>
+    <button
+      className={cn(base, variants[variant], sizes[size], fullWidth && 'w-full', className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {loading && <Loader2 size={size === 'lg' ? 18 : 15} className="animate-spin flex-shrink-0" aria-hidden="true" />}
       {children}
     </button>
   );
@@ -47,7 +56,9 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ label, error, hint, className = '', id, ...props }: InputProps) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const autoId = useId();
+  const inputId = id || autoId;
+  const noteId = `${inputId}-note`;
   return (
     <div className="w-full">
       {label && (
@@ -57,15 +68,17 @@ export function Input({ label, error, hint, className = '', id, ...props }: Inpu
       )}
       <input
         id={inputId}
-        className={`w-full px-4 py-2.5 rounded-lg border ${
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? noteId : undefined}
+        className={`ui-field w-full px-4 py-2.5 rounded-xl border ${
           error
-            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-            : 'border-slate-300 focus:ring-[var(--orange)] focus:border-[var(--orange)]'
-        } focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors bg-white text-[var(--navy)] placeholder:text-slate-400 ${className}`}
+            ? 'border-red-500 focus:ring-red-500/25 focus:border-red-500'
+            : 'border-slate-300 focus:ring-[var(--orange)]/25 focus:border-[var(--orange)]'
+        } focus:outline-none focus:ring-4 focus:ring-offset-0 transition-[border-color,box-shadow] bg-white text-[var(--navy)] placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500 ${className}`}
         {...props}
       />
-      {hint && !error && <p className="mt-1 text-xs text-[var(--charcoal)]">{hint}</p>}
-      {error && <p className="mt-1 text-xs text-red-600 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
+      {hint && !error && <p id={noteId} className="mt-1 text-xs text-[var(--charcoal)]">{hint}</p>}
+      {error && <p id={noteId} role="alert" className="ui-field-error mt-1 text-xs text-red-600 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
     </div>
   );
 }
@@ -80,7 +93,8 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, error, options, className = '', id, fullWidth = true, ...props }: SelectProps) {
-  const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const autoId = useId();
+  const selectId = id || autoId;
   return (
     <div className={fullWidth ? 'w-full' : 'inline-block'}>
       {label && (
@@ -91,9 +105,10 @@ export function Select({ label, error, options, className = '', id, fullWidth = 
       <div className="relative">
         <select
           id={selectId}
-          className={`${fullWidth ? 'w-full' : ''} px-4 py-2.5 rounded-lg border ${
+          aria-invalid={error ? true : undefined}
+          className={`ui-field ${fullWidth ? 'w-full' : ''} px-4 py-2.5 rounded-xl border ${
             error ? 'border-red-500' : 'border-slate-300'
-          } focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] focus:outline-none appearance-none bg-white text-[var(--navy)] pr-10 ${className}`}
+          } focus:ring-4 focus:ring-[var(--orange)]/25 focus:border-[var(--orange)] focus:outline-none appearance-none bg-white text-[var(--navy)] pr-10 cursor-pointer transition-[border-color,box-shadow] ${className}`}
           {...props}
         >
           {options.map(opt => (
@@ -117,7 +132,11 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export function Textarea({ label, error, hint, className = '', id, ...props }: TextareaProps) {
-  const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const autoId = useId();
+  const textareaId = id || autoId;
+  const noteId = `${textareaId}-note`;
+  const max = typeof props.maxLength === 'number' ? props.maxLength : null;
+  const length = typeof props.value === 'string' ? props.value.length : null;
   return (
     <div className="w-full">
       {label && (
@@ -127,13 +146,20 @@ export function Textarea({ label, error, hint, className = '', id, ...props }: T
       )}
       <textarea
         id={textareaId}
-        className={`w-full px-4 py-2.5 rounded-lg border ${
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? noteId : undefined}
+        className={`ui-field w-full px-4 py-2.5 rounded-xl border ${
           error ? 'border-red-500' : 'border-slate-300'
-        } focus:ring-2 focus:ring-[var(--orange)] focus:border-[var(--orange)] focus:outline-none transition-colors bg-white text-[var(--navy)] placeholder:text-slate-400 resize-vertical min-h-[100px] ${className}`}
+        } focus:ring-4 focus:ring-[var(--orange)]/25 focus:border-[var(--orange)] focus:outline-none transition-[border-color,box-shadow] bg-white text-[var(--navy)] placeholder:text-slate-400 resize-vertical min-h-[100px] ${className}`}
         {...props}
       />
-      {hint && !error && <p className="mt-1 text-xs text-[var(--charcoal)]">{hint}</p>}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <div className="flex items-start justify-between gap-3">
+        {hint && !error && <p id={noteId} className="mt-1 text-xs text-[var(--charcoal)]">{hint}</p>}
+        {error && <p id={noteId} role="alert" className="ui-field-error mt-1 text-xs text-red-600 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
+        {max !== null && length !== null && (
+          <p className={`mt-1 ml-auto text-[11px] tabular-nums ${length >= max ? 'text-red-600' : 'text-slate-400'}`}>{length}/{max}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -147,7 +173,7 @@ interface CardProps {
 
 export function Card({ children, className = '', padding = true }: CardProps) {
   return (
-    <div className={`bg-white rounded-2xl shadow-sm hover:shadow border border-slate-200 ${padding ? 'p-6' : ''} ${className}`}>
+    <div className={`ui-card bg-white rounded-2xl shadow-sm border border-slate-200 ${padding ? 'p-6' : ''} ${className}`}>
       {children}
     </div>
   );
@@ -190,6 +216,8 @@ interface ModalProps {
   variant?: 'sheet' | 'full';
 }
 
+const openModalStack: object[] = [];
+
 export function Modal({ isOpen, onClose, title, children, size = 'md', footer, variant = 'sheet' }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -201,40 +229,70 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer, v
 
   const { mounted, state } = useMountTransition(isOpen, 260);
   const { wrapRef, backdropRef, handlers } = useSheetDrag(onClose, isOpen);
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Escape closes it; focus moves into the dialog for screen readers and keyboards,
+  // and goes back to whatever opened it once it closes.
+  useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const focusTimer = window.setTimeout(() => {
+      if (panelRef.current && !panelRef.current.contains(document.activeElement)) panelRef.current.focus({ preventScroll: true });
+    }, 30);
+    const token = {};
+    openModalStack.push(token);
+    // Only the top-most of several stacked dialogs reacts to Escape
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && openModalStack[openModalStack.length - 1] === token) onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKey);
+      const at = openModalStack.indexOf(token);
+      if (at >= 0) openModalStack.splice(at, 1);
+      if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [isOpen]);
 
   if (!mounted) return null;
   const sizes: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
   return (
     // Overlay: positions + backdrop only
     <div className="ui-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" data-state={state}>
-      <div ref={backdropRef} className="ui-modal-backdrop fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div ref={backdropRef} className="ui-modal-backdrop fixed inset-0 bg-[#0b1226]/65 backdrop-blur-[6px]" onClick={onClose} />
 
       {/* Wrapper: carries the swipe-to-dismiss transform on phones; invisible to layout on desktop */}
       <div ref={wrapRef} className="ui-sheet-wrap">
         {/* Panel: owns the rounded boundary, clips content, never exceeds viewport */}
         <div
+          ref={panelRef}
           role="dialog"
           aria-modal="true"
-          aria-label={title}
-          className={`ui-modal-panel ${variant === 'full' ? 'ui-modal-panel--full' : ''} relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden`}
+          aria-labelledby={titleId}
+          tabIndex={-1}
+          className={`ui-modal-panel ${variant === 'full' ? 'ui-modal-panel--full' : ''} relative flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${sizes[size]} max-h-[calc(100dvh-48px)] overflow-hidden outline-none`}
         >
           {/* Phone-only grabber: drag it (or the header) down to dismiss */}
           <div className="ui-sheet-grabber" aria-hidden="true" {...handlers} />
 
           {/* Header: non-scrolling */}
-          <div className="ui-modal-header ui-sheet-drag flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200" {...handlers}>
-            <h3 className="text-lg font-bold text-[var(--navy)]">{title}</h3>
+          <div className="ui-modal-header ui-sheet-drag flex-shrink-0 flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-200" {...handlers}>
+            <h3 id={titleId} className="text-lg font-bold text-[var(--navy)] min-w-0">{title}</h3>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-[var(--navy)] hover:bg-slate-100 transition-colors"
+              className="ui-modal-close flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-[var(--navy)] hover:bg-slate-100 active:scale-90 transition-[color,background-color,transform]"
             >
               <HugeiconsIcon icon={Cancel01Icon} size={19} />
             </button>
           </div>
 
           {/* Body: the ONLY scrollable region */}
-          <div className="ui-modal-body flex-1 min-h-0 overflow-y-auto p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
+          <div className="ui-modal-body flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 text-[var(--navy)]" data-lenis-prevent>{children}</div>
 
           {footer && <div className="ui-sheet-footer flex-shrink-0 px-6 py-4 border-t border-slate-200 bg-white">{footer}</div>}
         </div>
@@ -247,42 +305,95 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer, v
 // Top-right on desktop; a floating pill above the bottom navigation on phones.
 interface ToastProps {
   message: string;
+  /** Left out, the tone is read from the message itself (failures read as errors, nudges as info). */
   type?: 'success' | 'error' | 'info';
   onClose: () => void;
 }
 
-export function Toast({ message, type = 'success', onClose }: ToastProps) {
+/** Works out whether a message reports a success, a failure or just a nudge. */
+export function toastTone(message: string): 'success' | 'error' | 'info' {
+  const m = message.toLowerCase();
+  if (/\b(fail(ed|ure)?|errors?|could not|couldn't|cannot|can't|unable|invalid|denied|went wrong|not allowed)\b/.test(m)) return 'error';
+  if (/\b(please|first|awaiting|coming soon|not supported|not available|no saved|not applied|have not|has not|only|no resume|not uploaded|not yet|unlocks?)\b/.test(m)) return 'info';
+  return 'success';
+}
+
+export function Toast({ message, type, onClose }: ToastProps) {
+  const tone = type ?? toastTone(message);
   const [leaving, setLeaving] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Errors stay a little longer: they usually need reading
+  const duration = tone === 'error' ? 5200 : 4000;
 
   // Restarts whenever the message changes, so a fresh toast always gets its full time on screen.
   useEffect(() => {
     setLeaving(false);
-    if (type === 'success') haptic('success');
-    else if (type === 'error') haptic('warn');
-    const leave = setTimeout(() => setLeaving(true), 3650);
-    const done = setTimeout(() => onCloseRef.current(), 4000);
+    if (tone === 'success') haptic('success');
+    else if (tone === 'error') haptic('warn');
+    const leave = setTimeout(() => setLeaving(true), duration - 350);
+    const done = setTimeout(() => onCloseRef.current(), duration);
     return () => { clearTimeout(leave); clearTimeout(done); };
-  }, [message, type]);
+  }, [message, tone, duration]);
 
-  const icons = { success: <CheckCircle size={20} />, error: <AlertCircle size={20} />, info: <AlertCircle size={20} /> };
+  // Swipe sideways to dismiss, like a phone notification. Uses the separate `translate`
+  // property so it never fights the slide-in animation, which animates `transform`.
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef<number | null>(null);
+  useEffect(() => { setDx(0); }, [message]);
+  const onPointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    startX.current = e.clientX;
+    setDragging(true);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (startX.current === null) return;
+    setDx(e.clientX - startX.current);
+  };
+  const onPointerUp = () => {
+    if (startX.current === null) return;
+    startX.current = null;
+    setDragging(false);
+    if (Math.abs(dx) > 70) {
+      setDx(dx > 0 ? 480 : -480);
+      setTimeout(() => onCloseRef.current(), 180);
+    } else {
+      setDx(0);
+    }
+  };
+
+  const icons = { success: <CheckCircle size={20} />, error: <AlertCircle size={20} />, info: <Info size={20} /> };
   const styles = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
     error: 'bg-red-50 border-red-200 text-red-900',
-    info: 'bg-[var(--orange)]/10 border-[var(--orange)]/20 text-[var(--navy)]',
+    info: 'bg-[#FFF6F1] border-[var(--orange)]/25 text-[var(--navy)]',
   };
 
   return (
     <div
-      role="status"
-      aria-live="polite"
+      key={message}
+      role={tone === 'error' ? 'alert' : 'status'}
+      aria-live={tone === 'error' ? 'assertive' : 'polite'}
       data-leaving={leaving ? 'true' : 'false'}
-      className={`ui-toast fixed z-[60] flex items-center gap-3 px-5 py-3 rounded-xl border shadow-xl ${styles[type]}`}
+      data-tone={tone}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={{
+        translate: `${dx}px 0`,
+        opacity: dx ? Math.max(0.15, 1 - Math.abs(dx) / 260) : undefined,
+        transition: dragging ? 'none' : 'translate 240ms cubic-bezier(0.32,0.72,0,1), opacity 240ms ease',
+        touchAction: 'pan-y',
+      }}
+      className={`ui-toast fixed z-[60] flex items-center gap-3 px-5 py-3 rounded-xl border shadow-xl overflow-hidden select-none ${styles[tone]}`}
     >
-      <span className="flex-shrink-0">{icons[type]}</span>
-      <p className="text-sm font-medium min-w-0 flex-1">{message}</p>
-      <button onClick={() => onCloseRef.current()} aria-label="Dismiss" className="ml-1 opacity-70 hover:opacity-100 flex-shrink-0"><X size={16} /></button>
+      <span className="ui-toast__icon flex-shrink-0">{icons[tone]}</span>
+      <p className="text-sm font-medium min-w-0 flex-1 leading-snug">{message}</p>
+      <button onClick={() => onCloseRef.current()} aria-label="Dismiss" className="ui-toast__close -mr-1 w-8 h-8 flex items-center justify-center rounded-full opacity-70 hover:opacity-100 flex-shrink-0"><X size={16} /></button>
+      <span className="ui-toast__timer" style={{ animationDuration: `${duration}ms` }} aria-hidden="true" />
     </div>
   );
 }
@@ -295,22 +406,28 @@ interface ToggleProps {
 }
 
 export function Toggle({ label, checked, onChange }: ToggleProps) {
+  // A real switch: reachable by keyboard, announced as on/off, and the whole row is the hit area
   return (
-    <label className="flex items-center gap-3 cursor-pointer">
-      <div
-        className={`relative w-11 h-6 rounded-full transition-colors ${
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => { haptic('select'); onChange(!checked); }}
+      className="flex items-center gap-3 cursor-pointer min-h-[40px] text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orange)]"
+    >
+      <span
+        className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-300 ${
           checked ? 'bg-[var(--orange)]' : 'bg-slate-300'
         }`}
-        onClick={() => onChange(!checked)}
       >
-        <div
-          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+        <span
+          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
             checked ? 'translate-x-5' : ''
           }`}
         />
-      </div>
+      </span>
       <span className="text-sm font-medium text-[var(--navy)]">{label}</span>
-    </label>
+    </button>
   );
 }
 
@@ -326,6 +443,43 @@ export function ProgressBar({ current, total }: { current: number; total: number
       <div className="w-full bg-slate-200 rounded-full h-2">
         <div className="bg-[var(--orange)] h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+// Progress Ring: a circular percentage, drawn once and filled with a calm sweep
+export function ProgressRing({ value, size = 64, stroke = 6, label, tone = 'var(--orange)', track = 'rgba(255,255,255,0.14)', className = '' }: {
+  value: number;
+  size?: number;
+  stroke?: number;
+  /** Read out instead of the bare number, e.g. "Profile 72% complete". */
+  label?: string;
+  tone?: string;
+  track?: string;
+  className?: string;
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const r = (size - stroke) / 2;
+  const full = 2 * Math.PI * r;
+  return (
+    <div className={`relative inline-flex items-center justify-center flex-shrink-0 ${className}`} style={{ width: size, height: size }} role="img" aria-label={label || `${pct}%`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle
+          className="ap-ring__value"
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={tone}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={full}
+          strokeDashoffset={full * (1 - pct / 100)}
+          style={{ ['--ring-full' as string]: full, transition: 'stroke-dashoffset 700ms cubic-bezier(0.16,1,0.3,1)' }}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold tabular-nums" aria-hidden="true">{pct}%</span>
     </div>
   );
 }
@@ -489,29 +643,39 @@ export function SkillTags({ label, value, onChange, suggestions = [], placeholde
 export function AnimatedCounter({ end, duration = 2000, suffix = '' }: { end: number; duration?: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   useEffect(() => {
-    let start = 0;
-    const increment = end / (duration / 16);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) { setCount(end); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
+    // Eases out (fast start, gentle landing) on the display's own frame clock; no motion if asked
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setCount(end); return; }
+    let frame = 0;
+    const startedAt = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setCount(Math.round(end * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [end, duration]);
 
-  return <span>{count.toLocaleString()}{suffix}</span>;
+  return <span className="tabular-nums">{count.toLocaleString('en-IN')}{suffix}</span>;
 }
 
 // FAQ Accordion
 export function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const panelId = useId();
   return (
     <div className="border-b border-slate-200 last:border-b-0">
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between py-5 px-5 text-left gap-4">
+      <button onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-controls={panelId} className="w-full flex items-center justify-between py-5 px-5 text-left gap-4">
         <span className="font-semibold text-[var(--navy)] text-base sm:text-lg">{question}</span>
-        <ChevronDown className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} size={20} />
+        <ChevronDown className={`flex-shrink-0 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[var(--orange)]' : ''}`} size={20} />
       </button>
-      {isOpen && <p className="px-5 pb-5 text-[var(--charcoal)] leading-relaxed text-sm sm:text-base">{answer}</p>}
+      {/* Height animates open and closed instead of popping */}
+      <div id={panelId} className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <p className="px-5 pb-5 text-[var(--charcoal)] leading-relaxed text-sm sm:text-base">{answer}</p>
+        </div>
+      </div>
     </div>
   );
 }

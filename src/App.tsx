@@ -60,6 +60,7 @@ function AuthGate() {
 
 function ProtectedAdminRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const { isAdminLoggedIn } = useData();
 
   if (loading) return <AuthGate />;
@@ -68,11 +69,12 @@ function ProtectedAdminRoute({ children }: { children: ReactNode }) {
     return <AdminLayout>{children}</AdminLayout>;
   }
 
-  return <Navigate to="/admin/login" replace />;
+  return <Navigate to="/admin/login" replace state={{ from: location }} />;
 }
 
 function ProtectedCandidateRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const { isCandidateLoggedIn } = useData();
 
   if (loading) return <AuthGate />;
@@ -81,11 +83,12 @@ function ProtectedCandidateRoute({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <Navigate to="/login/candidate" replace />;
+  return <Navigate to="/login/candidate" replace state={{ from: location }} />;
 }
 
 function ProtectedEmployerRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const { isEmployerLoggedIn } = useData();
 
   if (loading) return <AuthGate />;
@@ -94,11 +97,12 @@ function ProtectedEmployerRoute({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <Navigate to="/login/employer" replace />;
+  return <Navigate to="/login/employer" replace state={{ from: location }} />;
 }
 
 function ProtectedRecruiterRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return <AuthGate />;
 
@@ -106,7 +110,7 @@ function ProtectedRecruiterRoute({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <Navigate to="/login/recruiter" replace />;
+  return <Navigate to="/login/recruiter" replace state={{ from: location }} />;
 }
 
 function AppRoutes() {
@@ -189,12 +193,19 @@ function AppRoutes() {
 
 function App() {
   useSmoothScroll();
-  const [booting, setBooting] = useState(true);
+  // The splash shows once per session; reloads and in-app returns open straight away
+  const [booting, setBooting] = useState(() => {
+    try { return sessionStorage.getItem('rh.booted') !== '1'; } catch { return true; }
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => setBooting(false), 500);
+    if (!booting) return;
+    const timer = setTimeout(() => {
+      setBooting(false);
+      try { sessionStorage.setItem('rh.booted', '1'); } catch { /* private mode */ }
+    }, 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [booting]);
 
   return (
     <BrowserRouter>

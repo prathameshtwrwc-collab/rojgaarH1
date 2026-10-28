@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Briefcase, CheckCircle, Clock, Info } from 'lucide-react';
+import { ArrowLeft, Briefcase, CheckCircle, Clock, Info, Home, Car, AlertCircle, Loader2 } from 'lucide-react';
+import { haptic } from '../../lib/haptics';
 import { useDatabase } from '../../context/DatabaseContext';
 import { createJobPosting, setJobSkills } from '../../lib/supabase/data';
 import { SkillTagInput } from '../../components/SkillTagInput';
@@ -16,6 +17,7 @@ export default function PostJob() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
     jobTitle: '',
@@ -44,6 +46,23 @@ export default function PostJob() {
     recruiterPhone: employer?.contact_phone || '',
   });
 
+  // The company record can arrive a moment after this page opens: fill the contact fields then,
+  // without overwriting anything already typed.
+  useEffect(() => {
+    if (!employer) return;
+    setForm(prev => ({
+      ...prev,
+      recruiterName: prev.recruiterName || employer.contact_name || '',
+      recruiterEmail: prev.recruiterEmail || employer.contact_email || '',
+      recruiterPhone: prev.recruiterPhone || employer.contact_phone || '',
+    }));
+  }, [employer]);
+
+  // A new error is scrolled into view, so it is never missed below the fold on a phone
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [error]);
+
   // Role suggestions follow the typed sector when it is a known one; otherwise every role is offered.
   const roleOptions = SECTORS.includes(form.sector as (typeof SECTORS)[number]) ? getSubsectorsForSector(form.sector) : ALL_ROLES;
 
@@ -67,6 +86,14 @@ export default function PostJob() {
     }
     if (!isValidDeadline(form.deadline)) {
       setError('Application deadline must be between today and 1.5 months from today.');
+      return;
+    }
+    if (form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin)) {
+      setError('Maximum salary cannot be lower than the minimum salary.');
+      return;
+    }
+    if (form.experienceMinYears && form.experienceMaxYears && Number(form.experienceMaxYears) < Number(form.experienceMinYears)) {
+      setError('Maximum experience cannot be lower than the minimum experience.');
       return;
     }
 
@@ -104,39 +131,51 @@ export default function PostJob() {
 
       if (form.skills.length > 0) await setJobSkills((job as any).id, form.skills);
 
-      await refresh();
+      await refresh({ silent: true });
+      haptic('success');
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
         navigate('/dashboard/employer', { replace: true });
-      }, 3000);
+      }, 3500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit job posting');
+      haptic('warn');
+      const message = (err as { message?: string } | null)?.message;
+      setError(message ? `Could not submit the job: ${message}` : 'Could not submit the job. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClass = "w-full px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 text-sm min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--orange)] focus:border-transparent";
+  const inputClass = "ui-field w-full px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-[var(--navy)] min-w-0 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-[var(--orange)]/20 focus:border-[var(--orange)] transition-[border-color,box-shadow]";
   const labelClass = "block text-sm font-semibold text-[var(--navy)] mb-1.5";
+  const sectionTitle = "text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--orange)] pt-2";
 
   return (
-    <div className="post-job-page min-h-screen bg-[var(--bg-warm)] px-3 py-5 sm:px-4 sm:py-10" style={{ fontFamily: 'var(--font)' }}>
+    <div className="post-job-page min-h-screen bg-[var(--bg-warm)] px-3 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:py-10" style={{ fontFamily: 'var(--font)' }}>
       <div className="max-w-2xl mx-auto">
-        <Link to="/dashboard/employer" className="inline-flex items-center gap-2 text-sm text-[var(--charcoal)] hover:text-[var(--navy)] mb-6">
-          <ArrowLeft size={16} /> Back to Dashboard
+        <Link to="/dashboard/employer" className="inline-flex items-center gap-1.5 -ml-1 h-10 px-1.5 rounded-full text-sm font-semibold text-[var(--charcoal)] hover:text-[var(--navy)] mb-3 sm:mb-6">
+          <ArrowLeft size={17} /> Back to Dashboard
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8">
+        <div className="bg-white rounded-[22px] sm:rounded-2xl shadow-lg shadow-[#101A36]/5 border border-[#EFEAE1] p-5 sm:p-8 dash-enter">
           {submitted ? (
-            <div className="p-4 sm:p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="p-4 sm:p-6 text-center" role="status">
+              <div className="w-16 h-16 rounded-full bg-[var(--green)] text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/25 animate-[ap-scale-in_520ms_cubic-bezier(0.16,1,0.3,1)_backwards]">
                 <CheckCircle size={32} />
               </div>
-              <h3 className="text-xl font-extrabold text-[var(--navy)] mb-2">Job Submitted!</h3>
-              <p className="text-sm text-[var(--charcoal)] mb-4">Your job posting has been submitted and is now pending admin approval. We'll notify you once it's live.</p>
-              <div className="flex items-center justify-center gap-2 text-sm text-[var(--orange)] font-semibold">
-                <Clock size={16} /> Redirecting to dashboard...
-              </div>
+              <h3 className="text-xl font-extrabold text-[var(--navy)] mb-2">Job submitted</h3>
+              <p className="text-sm text-[var(--charcoal)] mb-5 max-w-sm mx-auto">Our team reviews it next. It appears in your dashboard as "Pending approval" and goes live once approved.</p>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/employer', { replace: true })}
+                className="dash-btn dash-btn-primary"
+              >
+                Go to dashboard
+              </button>
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+                <Clock size={13} /> Taking you there in a moment…
+              </p>
             </div>
           ) : (
             <>
@@ -146,15 +185,18 @@ export default function PostJob() {
                 </div>
                 <div>
                   <h1 className="text-xl font-extrabold text-[var(--navy)]">Post a New Job</h1>
-                  <p className="text-xs text-[var(--charcoal)] flex items-center gap-1"><Info size={12} /> It's free to post. Your job goes live after admin approval.</p>
+                  <p className="text-xs text-[var(--charcoal)] flex items-center gap-1"><Info size={12} className="flex-shrink-0" /> Free to post. It goes live after our team approves it.</p>
                 </div>
               </div>
 
               {error && (
-                <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>
+                <div ref={errorRef} role="alert" className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-2 dash-enter">
+                  <AlertCircle size={16} className="flex-shrink-0 mt-0.5" /> <span>{error}</span>
+                </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form id="post-job-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <p className={sectionTitle}>The job</p>
                 <div>
                   <label className={labelClass}>Job Title *</label>
                   <input name="jobTitle" value={form.jobTitle} onChange={handleChange} required className={inputClass} placeholder="e.g. CNC Machine Operator" />
@@ -163,7 +205,7 @@ export default function PostJob() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Number of Openings</label>
-                    <input name="numberOfOpenings" type="number" min={1} value={form.numberOfOpenings} onChange={handleChange} className={inputClass} />
+                    <input name="numberOfOpenings" type="number" inputMode="numeric" min={1} value={form.numberOfOpenings} onChange={handleChange} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Employment Type</label>
@@ -178,6 +220,7 @@ export default function PostJob() {
                   </div>
                 </div>
 
+                <p className={sectionTitle}>Location &amp; pay</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>City *</label>
@@ -197,14 +240,15 @@ export default function PostJob() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Salary Min (₹/month)</label>
-                    <input name="salaryMin" type="number" value={form.salaryMin} onChange={handleChange} className={inputClass} placeholder="15000" />
+                    <input name="salaryMin" type="number" inputMode="numeric" min={0} value={form.salaryMin} onChange={handleChange} className={inputClass} placeholder="15000" />
                   </div>
                   <div>
                     <label className={labelClass}>Salary Max (₹/month)</label>
-                    <input name="salaryMax" type="number" value={form.salaryMax} onChange={handleChange} className={inputClass} placeholder="22000" />
+                    <input name="salaryMax" type="number" inputMode="numeric" min={0} value={form.salaryMax} onChange={handleChange} className={inputClass} placeholder="22000" />
                   </div>
                 </div>
 
+                <p className={sectionTitle}>Who you need</p>
                 <div>
                   <label className={labelClass}>Qualification Required *</label>
                   <input name="qualificationRequired" value={form.qualificationRequired} onChange={handleChange} required className={inputClass} placeholder="e.g. ITI, 12th Pass, B.Tech" />
@@ -213,17 +257,18 @@ export default function PostJob() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>Min Experience (years)</label>
-                    <input name="experienceMinYears" type="number" min={0} value={form.experienceMinYears} onChange={handleChange} className={inputClass} />
+                    <input name="experienceMinYears" type="number" inputMode="numeric" min={0} value={form.experienceMinYears} onChange={handleChange} className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Max Experience (years)</label>
-                    <input name="experienceMaxYears" type="number" min={0} value={form.experienceMaxYears} onChange={handleChange} className={inputClass} />
+                    <input name="experienceMaxYears" type="number" inputMode="numeric" min={0} value={form.experienceMaxYears} onChange={handleChange} className={inputClass} placeholder="Any" />
                   </div>
                 </div>
 
                 <div>
                   <label className={labelClass}>Job Description *</label>
-                  <textarea name="jobDescription" value={form.jobDescription} onChange={handleChange} required rows={4} className={inputClass} placeholder="Describe the role, duties, and expectations..." />
+                  <textarea name="jobDescription" value={form.jobDescription} onChange={handleChange} required rows={5} maxLength={4000} className={`${inputClass} resize-y`} placeholder="Describe the role, daily duties and what a good candidate looks like" />
+                  <p className="text-[11px] text-slate-400 mt-1 text-right tabular-nums">{form.jobDescription.length}/4000</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -252,6 +297,7 @@ export default function PostJob() {
                   hint="Separate skills with a comma or press Enter. Tap a suggestion to add it."
                 />
 
+                <p className={sectionTitle}>Perks &amp; timing</p>
                 <div>
                   <label className={labelClass}>Benefits</label>
                   <input name="benefits" value={form.benefits} onChange={handleChange} className={inputClass} placeholder="e.g. PF, ESI, annual bonus" />
@@ -282,34 +328,62 @@ export default function PostJob() {
                   <input name="workingHours" value={form.workingHours} onChange={handleChange} className={inputClass} placeholder="e.g. 9 AM - 6 PM, 6-day week" />
                 </div>
 
-                <div className="flex items-center gap-6 pt-1">
-                  <label className="flex items-center gap-2 text-sm font-medium text-[var(--navy)]">
-                    <input type="checkbox" name="accommodationProvided" checked={form.accommodationProvided} onChange={handleChange} className="w-4 h-4" />
-                    Accommodation Provided
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-medium text-[var(--navy)]">
-                    <input type="checkbox" name="transportationProvided" checked={form.transportationProvided} onChange={handleChange} className="w-4 h-4" />
-                    Transportation Provided
-                  </label>
+                {/* Facilities as tappable cards instead of tiny checkboxes */}
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  {[
+                    { name: 'accommodationProvided', label: 'Accommodation', icon: Home, on: form.accommodationProvided },
+                    { name: 'transportationProvided', label: 'Transport', icon: Car, on: form.transportationProvided },
+                  ].map(({ name, label, icon: Icon, on }) => (
+                    <label
+                      key={name}
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border-2 cursor-pointer select-none transition-colors ${on ? 'border-[var(--green)] bg-[var(--green)]/5' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                    >
+                      <input type="checkbox" name={name} checked={on} onChange={e => { haptic('select'); handleChange(e); }} className="sr-only peer" />
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--green)] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        {on ? <CheckCircle size={16} /> : <Icon size={16} />}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-bold text-[var(--navy)]">{label}</span>
+                        <span className="block text-[11px] text-[var(--charcoal)]">{on ? 'Provided' : 'Not provided'}</span>
+                      </span>
+                    </label>
+                  ))}
                 </div>
 
                 <div className="border-t border-slate-100 pt-4">
-                  <p className="text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider mb-3">Recruiter Contact (shown to applicants)</p>
+                  <p className="text-xs font-semibold text-[var(--charcoal)] uppercase tracking-wider mb-1">Contact person</p>
+                  <p className="text-[11.5px] text-slate-400 mb-3">Applicants see only the name. Email and phone stay with our team.</p>
                   <div className="space-y-3">
-                    <input name="recruiterName" value={form.recruiterName} onChange={handleChange} className={inputClass} placeholder="Recruiter name" />
-                    <input name="recruiterEmail" type="email" value={form.recruiterEmail} onChange={handleChange} className={inputClass} placeholder="Recruiter email" />
-                    <input name="recruiterPhone" value={form.recruiterPhone} onChange={handleChange} className={inputClass} placeholder="Recruiter phone" />
+                    <input name="recruiterName" value={form.recruiterName} onChange={handleChange} className={inputClass} placeholder="Contact person's name" autoComplete="name" aria-label="Contact person's name" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input name="recruiterEmail" type="email" inputMode="email" autoCapitalize="none" value={form.recruiterEmail} onChange={handleChange} className={inputClass} placeholder="Email" autoComplete="email" aria-label="Contact email" />
+                      <input name="recruiterPhone" type="tel" inputMode="tel" value={form.recruiterPhone} onChange={handleChange} className={inputClass} placeholder="Phone" autoComplete="tel" aria-label="Contact phone" />
+                    </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full min-h-[50px] sm:h-[50px] px-4 py-3 leading-tight text-[15px] sm:text-base bg-[var(--orange)] text-white font-bold rounded-2xl sm:rounded-full hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hidden sm:flex w-full items-center justify-center gap-2 h-[50px] px-4 leading-tight text-base bg-[var(--orange)] text-white font-bold rounded-full hover:shadow-lg active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Submitting...' : 'Submit for Approval'}
+                  {loading && <Loader2 size={18} className="animate-spin" />}
+                  {loading ? 'Submitting…' : 'Submit for Approval'}
                 </button>
               </form>
+
+              {/* Phones: the submit button stays within thumb reach while scrolling the form */}
+              <div className="sm:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-[#E7E2D9] px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-8px_24px_-12px_rgba(16,26,54,0.18)]">
+                <button
+                  type="submit"
+                  form="post-job-form"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 min-h-[52px] px-4 text-[15px] bg-[var(--orange)] text-white font-bold rounded-2xl active:scale-[0.98] transition-transform disabled:opacity-60"
+                >
+                  {loading && <Loader2 size={18} className="animate-spin" />}
+                  {loading ? 'Submitting…' : 'Submit for Approval'}
+                </button>
+              </div>
             </>
           )}
         </div>
