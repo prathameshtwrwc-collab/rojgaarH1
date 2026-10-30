@@ -4,7 +4,7 @@ import { FAQItem } from '../components/ui';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
 const SUPPORT_EMAIL = 'support@rojgaarhai.com';
-const SUPPORT_PHONE = '+918693802432';
+const SUPPORT_PHONE = '+918432960666';
 
 // The site has no message inbox on the server, so the form hands the message to the
 // visitor's own email app, addressed to support. Nothing is pretended to be "sent".
@@ -57,7 +57,7 @@ function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-[var(--navy)]">{t('contact.phone')}</h3>
-                   <p className="text-sm font-semibold text-[var(--orange)] mt-1">+91-8693802432</p>
+                   <p className="text-sm font-semibold text-[var(--orange)] mt-1">+91-8432960666</p>
                    <p className="text-xs text-[var(--charcoal)] mt-1">Mon–Sat, 9am–6pm · tap to call</p>
                 </div>
               </a>
