@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { lockBodyScroll } from '../lib/scrollLock';
 import {
   X, User, MapPin, Briefcase, GraduationCap, Sparkles,
-  Upload, Shield, Globe, BookOpen, Award, CheckCircle, Target,
-  Plus, Trash2, Save, RefreshCw, Eye, ChevronLeft, ChevronRight, Loader2
+  Upload, Shield, Globe, Award, CheckCircle, Target,
+  Plus, Trash2, Save, RefreshCw, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
@@ -46,6 +46,15 @@ const miniFieldClass = "px-3 py-2 rounded-xl border border-slate-300 bg-white te
 const labelClass = "block text-xs font-semibold text-slate-700 mb-1";
 const tapClass = "active:scale-[0.97] transition-transform duration-150";
 
+// Required fields carry a red star; everything else wears a bold OPTIONAL tag, so a
+// candidate can see at a glance what must be filled in and what can be skipped.
+function Req() {
+  return <span className="ml-0.5 text-red-600 font-extrabold" title="Required"><span aria-hidden>*</span><span className="sr-only"> (required)</span></span>;
+}
+function Opt() {
+  return <span className="ml-1.5 align-middle inline-block text-[9.5px] leading-none font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100 border border-slate-300 rounded px-1.5 py-[3px]">Optional</span>;
+}
+
 // One consistent sub-section header used everywhere a step combines more than one of
 // the editor's original topics (e.g. "Personal & Location" = Personal + Location).
 // "2022-03-01" -> "Mar 2022" for the experience list
@@ -55,12 +64,12 @@ function monthYear(v?: string) {
   return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 
-function SubHeading({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
+function SubHeading({ icon, title, action, optional }: { icon: ReactNode; title: string; action?: ReactNode; optional?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
         <span className="w-7 h-7 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] flex items-center justify-center flex-shrink-0">{icon}</span>
-        <h4 className="text-[13px] sm:text-sm font-extrabold text-slate-800 uppercase tracking-wide">{title}</h4>
+        <h4 className="text-[13px] sm:text-sm font-extrabold text-slate-800 uppercase tracking-wide">{title}{optional && <Opt />}</h4>
       </div>
       {action}
     </div>
@@ -250,13 +259,13 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   const [immediateJoining, setImmediateJoining] = useState(candidate.immediateJoining ?? true);
 
   // SECTION: Social Links
-  const [linkedin, setLinkedin] = useState(candidate.linkedin || '');
-  const [github, setGithub] = useState(candidate.github || '');
-  const [portfolio, setPortfolio] = useState(candidate.portfolio || '');
-  const [website, setWebsite] = useState(candidate.website || '');
-
-  // SECTION: About Me
-  const [bio, setBio] = useState(candidate.bio || '');
+  // These have no screen any more. Their stored values are passed straight through on save,
+  // so nobody's existing bio or links are wiped.
+  const linkedin = candidate.linkedin || '';
+  const github = candidate.github || '';
+  const portfolio = candidate.portfolio || '';
+  const website = candidate.website || '';
+  const bio = candidate.bio || '';
 
   // SECTION: Languages
   const [languageList, setLanguageList] = useState<LanguageEntry[]>(candidate.languageList || []);
@@ -366,8 +375,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
     if (educationList.length > 0) score += 10;
     if (experienceList.length > 0) score += 10;
     if (expectedSalary) score += 5;
-    if (docUrls.photo) score += 5;
-    if (bio) score += 5;
+    if (docUrls.photo) score += 10;
     return Math.min(score, 100);
   })();
 
@@ -555,15 +563,14 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
   // of leaving the dashboard behind it with unsaved edits.
   useModalBackButton(isOpen, handleRequestClose);
 
-  // Six steps, each grouping topics that belong together — down from the original 13
+  // Five steps, each grouping topics that belong together — down from the original 13
   // single-topic steps, so the whole editor is scannable at a glance on a phone.
   const sectionTabs = [
     { id: 'personal', label: 'Personal & Location', description: 'Who you are & where you live', icon: <User size={16} /> },
     { id: 'professional', label: 'Professional Background', description: 'Current role, sector & work history', icon: <Briefcase size={16} /> },
-    { id: 'qualifications', label: 'Qualifications', description: 'Education, skills, languages & certificates', icon: <GraduationCap size={16} /> },
-    { id: 'documents', label: 'Resume & Documents', description: 'Resume, photo, ID & certificates', icon: <Shield size={16} /> },
+    { id: 'qualifications', label: 'Qualifications', description: 'Education, skills, languages & licences', icon: <GraduationCap size={16} /> },
+    { id: 'documents', label: 'Resume & Documents', description: 'Resume, photo & experience letter', icon: <Shield size={16} /> },
     { id: 'preferences', label: 'Job Preferences', description: 'Salary, role, shift & notice period', icon: <Target size={16} /> },
-    { id: 'about', label: 'About & Links', description: 'Bio, LinkedIn, GitHub & portfolio', icon: <BookOpen size={16} /> },
   ];
 
   const activeStepIndex = sectionTabs.findIndex(t => t.id === activeSection);
@@ -750,6 +757,11 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
           {/* RIGHT SCROLLABLE SECTION EDITOR */}
           <div className="flex-1 min-h-0 p-4 sm:p-8 overflow-y-auto space-y-6 bg-white" data-lenis-prevent>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+              <span><span className="text-red-600 font-extrabold">*</span> Required</span>
+              <span className="text-slate-300" aria-hidden>·</span>
+              <span>Anything tagged <Opt /> can be skipped</span>
+            </p>
 
             {/* ═══ STEP 1: PERSONAL & LOCATION ═══ */}
             {activeSection === 'personal' && (
@@ -764,12 +776,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>First Name *</label>
+                      <label className={labelClass}>First Name<Req /></label>
                       <input value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" autoCapitalize="words" maxLength={40} className={fieldClass} />
                       {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                     </div>
                     <div>
-                      <label className={labelClass}>Last Name *</label>
+                      <label className={labelClass}>Last Name<Req /></label>
                       <input value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" autoCapitalize="words" maxLength={40} className={fieldClass} />
                       {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
                     </div>
@@ -777,12 +789,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Email Address *</label>
+                      <label className={labelClass}>Email Address<Req /></label>
                       <input type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={email} onChange={e => setEmail(e.target.value)} className={fieldClass} />
                       {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                     </div>
                     <div>
-                      <label className={labelClass}>Mobile Number *</label>
+                      <label className={labelClass}>Mobile Number<Req /></label>
                       <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+\s-]/g, '').slice(0, 16))} className={fieldClass} />
                       {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                     </div>
@@ -790,15 +802,15 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Alternate Mobile</label>
+                      <label className={labelClass}>Alternate Mobile<Opt /></label>
                       <input type="tel" inputMode="tel" value={altPhone} onChange={e => setAltPhone(e.target.value.replace(/[^\d+\s-]/g, '').slice(0, 16))} placeholder="+91-9870000000" className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Date of Birth</label>
+                      <label className={labelClass}>Date of Birth<Opt /></label>
                       <input type="date" value={dob} max={new Date().toISOString().slice(0, 10)} min="1940-01-01" onChange={e => setDob(e.target.value)} className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Gender</label>
+                      <label className={labelClass}>Gender<Opt /></label>
                       <select value={gender} onChange={e => setGender(e.target.value)} className={fieldClass}>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -810,7 +822,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Marital Status</label>
+                      <label className={labelClass}>Marital Status<Opt /></label>
                       <select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className={fieldClass}>
                         <option value="Single">Single</option>
                         <option value="Married">Married</option>
@@ -818,18 +830,18 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       </select>
                     </div>
                     <div>
-                      <label className={labelClass}>Nationality</label>
+                      <label className={labelClass}>Nationality<Opt /></label>
                       <input value={nationality} onChange={e => setNationality(e.target.value)} className={fieldClass} />
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="aadhaar-number" className={labelClass}>Aadhaar Number</label>
+                      <label htmlFor="aadhaar-number" className={labelClass}>Aadhaar Number<Opt /></label>
                       <input id="aadhaar-number" value={aadhaarNumber} onChange={e => setAadhaarNumber(e.target.value.replace(/[^\d\s]/g, '').slice(0, 14))} inputMode="numeric" autoComplete="off" maxLength={14} placeholder="12-digit Aadhaar number" className={`${fieldClass} font-mono`} />
                     </div>
                     <div>
-                      <label htmlFor="pan-number" className={labelClass}>PAN Number</label>
+                      <label htmlFor="pan-number" className={labelClass}>PAN Number<Opt /></label>
                       <input id="pan-number" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} autoComplete="off" maxLength={10} placeholder="e.g. ABCDE1234F" className={`${fieldClass} font-mono uppercase`} />
                     </div>
                   </div>
@@ -840,12 +852,12 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Current City *</label>
+                      <label className={labelClass}>Current City<Req /></label>
                       <input value={city} onChange={e => setCity(e.target.value)} autoComplete="address-level2" autoCapitalize="words" className={fieldClass} />
                       {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                     </div>
                     <div>
-                      <label className={labelClass}>State *</label>
+                      <label className={labelClass}>State<Req /></label>
                       <select value={state} onChange={e => setState(e.target.value)} className={fieldClass}>
                         <option value="">Select State</option>
                         {indianStates.map(s => <option key={s} value={s}>{s}</option>)}
@@ -856,17 +868,17 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelClass}>Country</label>
+                      <label className={labelClass}>Country<Opt /></label>
                       <input value={country} onChange={e => setCountry(e.target.value)} className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>PIN Code</label>
+                      <label className={labelClass}>PIN Code<Opt /></label>
                       <input value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="postal-code" maxLength={6} placeholder="302015" className={fieldClass} />
                     </div>
                   </div>
 
                   <div>
-                    <label className={labelClass}>Full Street Address</label>
+                    <label className={labelClass}>Full Street Address<Opt /></label>
                     <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} autoComplete="street-address" placeholder="House No., Street, Area, Landmark" className={fieldClass} />
                   </div>
 
@@ -918,30 +930,30 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Current Job Title</label>
+                      <label className={labelClass}>Current Job Title<Opt /></label>
                       <input value={currentJobTitle} onChange={e => setCurrentJobTitle(e.target.value)} placeholder="e.g. Machine Operator" className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Current Company</label>
+                      <label className={labelClass}>Current Company<Opt /></label>
                       <input value={currentCompany} onChange={e => setCurrentCompany(e.target.value)} placeholder="e.g. Bharat Manufacturing Co." className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Previous Company</label>
+                      <label className={labelClass}>Previous Company<Opt /></label>
                       <input value={previousCompany} onChange={e => setPreviousCompany(e.target.value)} placeholder="e.g. Local Traders Pvt Ltd" className={fieldClass} />
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Total Experience (Years)</label>
+                      <label className={labelClass}>Total Experience (Years)<Opt /></label>
                       <input value={totalExperience} onChange={e => setTotalExperience(e.target.value.replace(/[^\d.]/g, '').slice(0, 4))} inputMode="decimal" placeholder="e.g. 3" className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Relevant Exp. (Years)</label>
+                      <label className={labelClass}>Relevant Exp. (Years)<Opt /></label>
                       <input value={relevantExperience} onChange={e => setRelevantExperience(e.target.value.replace(/[^\d.]/g, '').slice(0, 4))} inputMode="decimal" placeholder="e.g. 2" className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Current Status</label>
+                      <label className={labelClass}>Current Status<Opt /></label>
                       <select value={currentStatus} onChange={e => setCurrentStatus(e.target.value as any)} className={`${fieldClass} font-semibold`}>
                         <option value="Open to Work">🟢 Open to Work</option>
                         <option value="Employed">🏢 Employed</option>
@@ -953,7 +965,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="relative">
-                      <label className={labelClass}>Industry / Sector</label>
+                      <label className={labelClass}>Industry / Sector<Opt /></label>
                       <div className="relative">
                         <input id="sector-input" value={sectorInput} onChange={(e) => handleSectorInputChange(e.target.value)} onFocus={() => { setSectorDropdownOpen(true); setFilteredSectors(getSectorsList()); }} onBlur={() => setTimeout(() => setSectorDropdownOpen(false), 200)} placeholder="Type or select sector..." className={`${fieldClass} pr-8`} />
                         <button type="button" onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -969,7 +981,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       )}
                     </div>
                     <div className="relative">
-                      <label className={labelClass}>Department / Sub-Sector</label>
+                      <label className={labelClass}>Department / Sub-Sector<Opt /></label>
                       <div className="relative">
                         <input id="dept-input" value={deptInput} onChange={(e) => handleDeptInputChange(e.target.value)} onFocus={() => { setDeptDropdownOpen(true); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); }} onBlur={() => setTimeout(() => setDeptDropdownOpen(false), 200)} placeholder={industry || sectorInput ? "Type or select department..." : "Select sector first"} disabled={!industry && !sectorInput} className={`${fieldClass} pr-8 disabled:bg-slate-50 disabled:text-slate-400`} />
                         <button type="button" onClick={() => { if (industry || sectorInput) { setDeptDropdownOpen(!deptDropdownOpen); const subsectors = getSubsectorsForSector(industry || sectorInput); setFilteredDepts(subsectors); } }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -991,6 +1003,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <SubHeading
                     icon={<Award size={14} />}
                     title="Work Experience History"
+                    optional
                     action={
                       <Button size="sm" onClick={() => setShowAddExp(true)} className={`gap-1 text-xs ${tapClass}`}>
                         <Plus size={14} /> Add
@@ -1056,6 +1069,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                   <SubHeading
                     icon={<GraduationCap size={14} />}
                     title="Education"
+                    optional
                     action={
                       <Button size="sm" onClick={() => setShowAddEdu(true)} className={`gap-1 text-xs ${tapClass}`}>
                         <Plus size={14} /> Add
@@ -1097,7 +1111,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 </SubCard>
 
                 <SubCard>
-                  <SubHeading icon={<Sparkles size={14} />} title={`Skills (${skills.length})`} />
+                  <SubHeading icon={<Sparkles size={14} />} title={`Skills (${skills.length})`} optional />
 
                   <div className="flex gap-2">
                     <input
@@ -1138,7 +1152,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 </SubCard>
 
                 <SubCard>
-                  <SubHeading icon={<Globe size={14} />} title="Languages Known" />
+                  <SubHeading icon={<Globe size={14} />} title="Languages Known" optional />
 
                   <div className="flex flex-wrap gap-2">
                     <select value={newLang.language} onChange={e => setNewLang({ ...newLang, language: e.target.value })} className={miniFieldClass}>
@@ -1171,7 +1185,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 </SubCard>
 
                 <SubCard>
-                  <SubHeading icon={<Award size={14} />} title="Certifications & Licenses" />
+                  <SubHeading icon={<Award size={14} />} title="Certifications & Licenses" optional />
 
                   <div className="p-4 rounded-2xl bg-[rgba(241,90,36,0.1)]/50 border border-[rgba(241,90,36,0.2)] space-y-3">
                     <h4 className="font-bold text-sm text-slate-900">Add Professional Certification</h4>
@@ -1212,23 +1226,20 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                 </div>
 
                 <SubCard>
-                  <SubHeading icon={<Upload size={14} />} title="Upload Your Documents" />
+                  <SubHeading icon={<Upload size={14} />} title="Upload Your Documents" optional />
                   <div className="grid sm:grid-cols-2 gap-4">
                     {[
-                      { key: 'resume', title: 'Resume Document', accept: '.pdf,.doc,.docx', url: docUrls.resume },
-                      { key: 'photo', title: 'Profile Photo', accept: 'image/*', url: docUrls.photo },
-                      { key: 'aadhaar', title: 'Aadhaar Card Copy', accept: '.pdf,image/*', url: docUrls.aadhaar },
-                      { key: 'pan', title: 'PAN Card Copy', accept: '.pdf,image/*', url: docUrls.pan },
-                      { key: 'certificate', title: 'Educational Degree Certificates', accept: '.pdf,image/*', url: docUrls.certificate },
+                      { key: 'resume', title: 'Resume Document', accept: '.pdf,.doc,.docx', url: docUrls.resume, hint: 'recommended' },
+                      { key: 'photo', title: 'Profile Photo', accept: 'image/*', url: docUrls.photo, hint: 'recommended' },
                       { key: 'experience_letter', title: 'Work Experience Letter', accept: '.pdf,image/*', url: docUrls.experience_letter },
                     ].map((doc) => (
                       <div key={doc.key} className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-xs text-slate-900">{doc.title}</p>
+                          <p className="font-bold text-xs text-slate-900">{doc.title}<Opt /></p>
                           {doc.url ? (
                             <p className="text-[11px] text-green-600 font-semibold mt-0.5 truncate">✓ Uploaded</p>
                           ) : (
-                            <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Not uploaded</p>
+                            <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Not uploaded{doc.hint ? ` · ${doc.hint}` : ''}</p>
                           )}
                         </div>
                         <label className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex-shrink-0 ${tapClass} ${uploadingDoc === doc.key ? 'bg-slate-200 text-slate-500' : 'bg-[var(--orange)] text-white hover:bg-orange-600'}`}>
@@ -1262,23 +1273,23 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Expected Monthly Salary (₹) *</label>
+                      <label className={labelClass}>Expected Monthly Salary (₹)<Req /></label>
                       <input value={expectedSalary} onChange={e => setExpectedSalary(e.target.value)} className={`${fieldClass} font-bold`} />
                       {errors.expectedSalary && <p className="text-xs text-red-500 mt-1">{errors.expectedSalary}</p>}
                     </div>
                     <div>
-                      <label className={labelClass}>Preferred Job Role</label>
+                      <label className={labelClass}>Preferred Job Role<Opt /></label>
                       <input value={preferredJobRole} onChange={e => setPreferredJobRole(e.target.value)} className={fieldClass} />
                     </div>
                     <div>
-                      <label className={labelClass}>Preferred Industry</label>
+                      <label className={labelClass}>Preferred Industry<Opt /></label>
                       <input value={preferredIndustry} onChange={e => setPreferredIndustry(e.target.value)} className={fieldClass} />
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div>
-                      <label className={labelClass}>Preferred Employment Type</label>
+                      <label className={labelClass}>Preferred Employment Type<Opt /></label>
                       <select value={preferredJobType} onChange={e => setPreferredJobType(e.target.value)} className={fieldClass}>
                         <option value="Full-time">Full-time</option>
                         <option value="Part-time">Part-time</option>
@@ -1287,7 +1298,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       </select>
                     </div>
                     <div>
-                      <label className={labelClass}>Preferred Shift</label>
+                      <label className={labelClass}>Preferred Shift<Opt /></label>
                       <select value={preferredShift} onChange={e => setPreferredShift(e.target.value)} className={fieldClass}>
                         <option value="Day Shift">Day Shift</option>
                         <option value="Night Shift">Night Shift</option>
@@ -1295,7 +1306,7 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                       </select>
                     </div>
                     <div>
-                      <label className={labelClass}>Notice Period</label>
+                      <label className={labelClass}>Notice Period<Opt /></label>
                       <select value={noticePeriod} onChange={e => setNoticePeriod(e.target.value)} className={fieldClass}>
                         <option value="Immediate">Immediate Joining</option>
                         <option value="15 Days">15 Days</option>
@@ -1309,81 +1320,6 @@ export function EditProfileModal({ isOpen, onClose, candidate, onSave }: EditPro
                     <input type="checkbox" checked={immediateJoining} onChange={e => setImmediateJoining(e.target.checked)} className="w-4 h-4 text-[var(--orange)] rounded" />
                     <span className="text-sm font-bold text-slate-900">Immediate Joining Available (Ready to join within 48 hours)</span>
                   </label>
-                </SubCard>
-              </div>
-            )}
-
-            {/* ═══ STEP 6: ABOUT & LINKS ═══ */}
-            {activeSection === 'about' && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <BookOpen className="text-[var(--orange)]" size={20} />
-                  <h3 className="text-lg font-bold text-slate-900">{activeStepIndex + 1}. {sectionTabs[activeStepIndex].label}</h3>
-                </div>
-
-                <SubCard>
-                  <SubHeading icon={<BookOpen size={14} />} title="About Me & Professional Summary" />
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className={labelClass}>Career Objective & Bio Highlights</label>
-                      <span className={`text-xs ${bio.length > 500 ? 'text-red-500' : 'text-slate-400'}`}>{bio.length}/600</span>
-                    </div>
-                    <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 600))} rows={6} placeholder="Write a brief professional summary highlighting your skills, experience, and career goals..." className={`${fieldClass} leading-relaxed resize-none`} />
-                    <p className="text-xs text-slate-400 mt-1">Tip: Keep it concise (2-3 sentences). Mention your key skills and what you're looking for.</p>
-                  </div>
-                </SubCard>
-
-                <SubCard>
-                  <SubHeading icon={<Globe size={14} />} title="Social & Portfolio Links" />
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelClass}>LinkedIn Profile</label>
-                      <div className="flex gap-2">
-                        <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/yourprofile" className={`flex-1 ${fieldClass}`} />
-                        {linkedin && (
-                          <a href={linkedin} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
-                            <Eye size={16} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>GitHub Profile</label>
-                      <div className="flex gap-2">
-                        <input value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/yourusername" className={`flex-1 ${fieldClass}`} />
-                        {github && (
-                          <a href={github} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
-                            <Eye size={16} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Portfolio Website</label>
-                      <div className="flex gap-2">
-                        <input value={portfolio} onChange={e => setPortfolio(e.target.value)} placeholder="https://yourportfolio.com" className={`flex-1 ${fieldClass}`} />
-                        {portfolio && (
-                          <a href={portfolio} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
-                            <Eye size={16} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Personal Website / Blog</label>
-                      <div className="flex gap-2">
-                        <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className={`flex-1 ${fieldClass}`} />
-                        {website && (
-                          <a href={website} target="_blank" rel="noopener noreferrer" className={`px-3 py-2.5 rounded-xl border border-slate-300 text-slate-500 hover:text-[var(--orange)] hover:border-[var(--orange)] transition-colors ${tapClass}`}>
-                            <Eye size={16} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500">Add your social profiles and portfolio links. Click the eye icon to preview.</p>
                 </SubCard>
               </div>
             )}
