@@ -565,6 +565,12 @@ function Landing() {
               <a href="https://www.instagram.com/rojgaarhai.co" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="12" cy="12" r="3.5" /><path d="M17.5 6.5h.01" /></svg>
               </a>
+              <a href="https://www.facebook.com/profile.php?id=61596294742321" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h2.5V4.5H14A3.5 3.5 0 0 0 10.5 8v2.5H8V14h2.5v6H14v-6h2.5l.5-3.5H14V8.5A.5.5 0 0 1 14 8z" /></svg>
+              </a>
+              <a href="https://youtube.com/@rojgaarhai-v2z?si=w1YMrO9i8yukJ9xs" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4" /><path d="M10.5 9.5v5l4-2.5z" /></svg>
+              </a>
             </div>
           </div>
         </footer>
