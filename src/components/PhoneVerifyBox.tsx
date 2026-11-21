@@ -149,6 +149,7 @@ export default function PhoneVerifyBox({
                   </button>
                 )}
               </div>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-slate-500">Not received? It can take up to a minute. Check the number is right and is not on a Do Not Disturb list, then tap Resend.</p>
             </div>
           )}
         </>

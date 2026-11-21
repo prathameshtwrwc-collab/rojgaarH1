@@ -179,6 +179,7 @@ export default function ForgotPasswordModal({
               </button>
             )}
           </div>
+          <p className="text-[11.5px] leading-relaxed text-slate-500 text-center">Not received? It can take up to a minute. Check the number is right and is not on a Do Not Disturb list, then tap Resend.</p>
         </form>
       )}
     </Modal>
