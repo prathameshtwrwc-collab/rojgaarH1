@@ -30,7 +30,7 @@ export default function EmployerLogin() {
             <p className="text-sm text-[var(--charcoal)]">Welcome back. Sign in to manage your jobs and applicants.</p>
           </div>
 
-          <EmailLoginForm onSignedIn={() => refresh()} placeholder="company@example.com" />
+          <EmailLoginForm onSignedIn={() => refresh()} placeholder="company@example.com" role="employer" />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-[var(--charcoal)]">

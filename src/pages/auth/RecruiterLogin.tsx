@@ -30,7 +30,7 @@ export default function RecruiterLogin() {
             <p className="text-sm text-[var(--charcoal)]">Welcome back. Sign in to see your network and referrals.</p>
           </div>
 
-          <EmailLoginForm onSignedIn={() => refresh()} />
+          <EmailLoginForm onSignedIn={() => refresh()} role="recruiter" />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-[var(--charcoal)]">

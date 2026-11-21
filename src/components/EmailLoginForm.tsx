@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { signIn } from '../lib/supabase/auth';
 import { AuthField, PasswordField, AuthError, AuthSubmit } from './AuthFields';
 import { friendlyAuthError, isValidEmail } from '../lib/authHelpers';
 import { haptic } from '../lib/haptics';
+import ForgotPasswordModal from './ForgotPasswordModal';
+import type { ResetRole } from '../lib/supabase/passwordReset';
 
 // Email + password sign-in used by the employer, recruiter and admin screens
 export default function EmailLoginForm({
@@ -14,6 +15,7 @@ export default function EmailLoginForm({
   tone = 'orange',
   externalError,
   showForgot = true,
+  role,
 }: {
   onSignedIn: () => Promise<void> | void;
   placeholder?: string;
@@ -21,12 +23,15 @@ export default function EmailLoginForm({
   tone?: 'orange' | 'navy';
   externalError?: string;
   showForgot?: boolean;
+  /** Which account type this screen is for; needed for the Forgot password flow */
+  role?: ResetRole;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,17 +85,18 @@ export default function EmailLoginForm({
           placeholder="Your password"
           error={fieldError.password}
         />
-        {showForgot && (
+        {showForgot && role && (
           <div className="flex justify-end -mt-1">
-            <Link to="/contact" className="text-[12.5px] font-bold text-[var(--charcoal)] hover:text-[var(--orange)] py-1">
+            <button type="button" onClick={() => setForgotOpen(true)} className="text-[12.5px] font-bold text-[var(--charcoal)] hover:text-[var(--orange)] py-1">
               Forgot password?
-            </Link>
+            </button>
           </div>
         )}
         <AuthSubmit loading={loading} loadingText="Signing in…" tone={tone}>
           {submitLabel}
         </AuthSubmit>
       </form>
+      {showForgot && role && <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} role={role} />}
     </>
   );
 }

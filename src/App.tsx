@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { DataProvider, useData } from './context/DataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ResetPasswordModal from './components/ResetPasswordModal';
 import { DatabaseProvider } from './context/DatabaseContext';
 import PageLoader from './components/PageLoader';
 import ScrollRestoration from './components/ScrollRestoration';
@@ -217,6 +218,7 @@ function App() {
               <DatabaseProvider>
                 <ScrollRestoration />
                 {!booting && <AppRoutes />}
+                <ResetPasswordModal />
               </DatabaseProvider>
             </DataProvider>
           </AuthProvider>

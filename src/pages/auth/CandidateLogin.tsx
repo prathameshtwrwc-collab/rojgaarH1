@@ -9,6 +9,7 @@ import { AuthField, PasswordField, AuthError, AuthSubmit } from '../../component
 import { friendlyAuthError, isValidEmail, isValidIndianMobile, normalizeIndianPhone, postLoginPath } from '../../lib/authHelpers';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { haptic } from '../../lib/haptics';
+import ForgotPasswordModal from '../../components/ForgotPasswordModal';
 
 type LoginMethod = 'phone' | 'email';
 const METHOD_KEY = 'rh.candidateLoginMethod';
@@ -31,6 +32,7 @@ export default function CandidateLogin() {
   const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState<{ id?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const idRef = useRef<HTMLInputElement>(null);
 
   const { user, loading: authLoading, refresh } = useAuth();
@@ -172,9 +174,9 @@ export default function CandidateLogin() {
             />
 
             <div className="flex justify-end -mt-1">
-              <Link to="/contact" className="text-[12.5px] font-bold text-[var(--charcoal)] hover:text-[var(--orange)] py-1">
+              <button type="button" onClick={() => setForgotOpen(true)} className="text-[12.5px] font-bold text-[var(--charcoal)] hover:text-[var(--orange)] py-1">
                 Forgot password?
-              </Link>
+              </button>
             </div>
 
             <AuthSubmit loading={loading} loadingText={t('auth.signingIn')}>
@@ -192,6 +194,7 @@ export default function CandidateLogin() {
           </div>
         </div>
       </div>
+      <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} role="candidate" initialPhone={loginMethod === 'phone' ? phone : ''} />
     </div>
   );
 }
